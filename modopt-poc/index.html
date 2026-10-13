@@ -33,6 +33,17 @@
         <p id="data-status" role="status" aria-live="polite">Select the three optimizer data files to inspect them.</p>
       </section>
 
+      <section id="optimizer-controls">
+        <h2>Single-hero optimizer preview</h2>
+        <p>After all four files are loaded, choose a hero to normalize its mods, keystats and set rules, then run the browser MILP. This is a solver preview, not yet a Python-parity or exact in-game stat evaluation.</p>
+        <label for="hero-select">Hero</label>
+        <select id="hero-select" disabled><option value="">Load all files first</option></select>
+        <button id="prepare-hero" type="button" disabled>Prepare hero input</button>
+        <button id="solve-hero" type="button" disabled>Run single-hero MILP</button>
+        <p id="optimizer-status" role="status" aria-live="polite">Load the Grandivory progress file and all three data files.</p>
+        <pre id="optimizer-output"></pre>
+      </section>
+
       <section id="summary" hidden>
         <h2>Progress inventory summary</h2>
         <dl id="summary-fields"></dl>
