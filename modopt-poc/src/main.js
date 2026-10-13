@@ -774,6 +774,8 @@ batchButton?.addEventListener("click", () => {
         heroesRequested: selected.length,
         heroesPrepared: inputs.length,
         heroesFailedPreparation: preparationErrors.length,
+        allocationMode: data.allocationMode || (requestedHeroId ? "independent" : "sequential"),
+        allocationNote: data.note || null,
         pythonReferenceLoaded: Boolean(pythonReference),
         summary: { results: results.length, compared: comparable, matched, mismatched, noReference, referenceFormatUnrecognized: unrecognized, errors: results.filter(row => row.error || row.comparison === "browser-solve-failed").length },
         timingsMs: data.timingsMs,
@@ -781,9 +783,9 @@ batchButton?.addEventListener("click", () => {
       };
       lastParityReport = report;
       parityOutput.textContent = JSON.stringify(report, null, 2);
-      parityStatus.textContent = pythonReference
-        ? "Batch complete: " + matched + " matches, " + mismatched + " mismatches; " + noReference + " heroes had no reference" + (unrecognized ? ", " + unrecognized + " reference formats were unrecognized" : "") + ". Compared " + comparable + " of " + results.length + " results."
-        : "Batch complete for " + results.length + " heroes. Load Python reference JSON and rerun to compare assignments.";
+      parityStatus.textContent = (requestedHeroId ? "Independent single-hero diagnostic complete. " : "Sequential roster-allocation batch complete. ") + (pythonReference
+        ? matched + " matches, " + mismatched + " mismatches; " + noReference + " heroes had no reference" + (unrecognized ? ", " + unrecognized + " reference formats were unrecognized" : "") + ". Compared " + comparable + " of " + results.length + " results."
+        : results.length + " heroes solved. Load Python reference JSON and rerun to compare assignments.");
       downloadParityButton.disabled = false;
     }
     batchButton.disabled = false;
