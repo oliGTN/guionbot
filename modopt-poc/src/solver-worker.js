@@ -159,6 +159,25 @@ self.onmessage = async ({ data }) => {
             ? { ...item.input, modsAvailable: item.input.modsAvailable.filter(mod => !usedModIds.has(mod.id)) }
             : item.input;
           const solved = solveHero(highs, solveInput);
+          let referenceForcedDiagnostic;
+          const referenceIds = [...new Set(item.input.referenceMods || [])];
+          if (referenceIds.length === 6) {
+            try {
+              const forced = solveHero(highs, { ...solveInput, forceReferenceMods: true });
+              referenceForcedDiagnostic = {
+                status: forced.info?.status ?? null,
+                objectiveValue: forced.info?.objectiveValue ?? null,
+                selectedModIds: (forced.chosen || []).map(mod => mod.id).sort(),
+                expectedModIds: referenceIds.slice().sort(),
+                exactAssignmentSelected: Boolean(forced.chosen && forced.chosen.length === 6 && referenceIds.every(id => forced.chosen.some(mod => mod.id === id))),
+                note: "Objective value for the Python assignment forced into the browser MILP; compare with the normal browser objective within this browser model."
+              };
+            } catch (error) {
+              referenceForcedDiagnostic = { status: "diagnostic-error", objectiveValue: null, expectedModIds: referenceIds.slice().sort(), error: error instanceof Error ? error.message : String(error) };
+            }
+          } else {
+            referenceForcedDiagnostic = { status: "not-run", expectedModCount: referenceIds.length, note: "A six-mod Python reference assignment is required." };
+          }
           const chosen = (solved.chosen || []).slice().sort((a, b) => a.slot - b.slot).map(mod => ({
             slot: SLOT_NAMES[mod.slot - 1], id: mod.id, set: mod.set, primary: mod.primary,
             speed: Number(mod.flat?.[5] || 0) + Number(mod.pct?.[57] || 0),
@@ -169,6 +188,7 @@ self.onmessage = async ({ data }) => {
           }
           results.push({ heroId: item.heroId, status: solved.info?.status, objectiveValue: solved.info?.objectiveValue ?? null,
             selectedMods: chosen, counts: { candidateMods: solved.info?.n_candidates ?? null, slots: 6 },
+            referenceForcedDiagnostic,
             referenceDiagnostics: {
               expectedModIds: solved.info?.referenceMods ?? item.input.referenceMods ?? [],
               expectedModsInCandidatePool: solved.info?.referenceCandidates ?? [],
