@@ -551,7 +551,15 @@ prepareHeroButton?.addEventListener("click", () => {
     const keystats = loadedData.get("keystats-file")?.data;
     if (!progress || !gameData || !keystats) throw new Error("Select the progress file, GameData.json, and keystats.json first.");
     preparedHeroInput = prepareHeroInput(progress, gameData, keystats, heroSelect.value);
-    optimizerOutput.textContent = JSON.stringify(summarizePreparedHero(preparedHeroInput), null, 2);
+    const preparedSummary = summarizePreparedHero(preparedHeroInput);
+    const populationUnit = loadedData.get("stats-file")?.data?.units?.[heroSelect.value];
+    preparedSummary.populationReference = populationUnit ? {
+      players: populationUnit.players ?? null,
+      modSpeedMedian: populationUnit.mod_stats?.speed?.median ?? null,
+      finalSpeedMedian: populationUnit.stats?.speed?.median ?? null,
+      note: "Reference population medians only; not used as optimizer targets or constraints.",
+    } : null;
+    optimizerOutput.textContent = JSON.stringify(preparedSummary, null, 2);
     optimizerStatus.textContent = "Hero normalized. Review counts and stat targets, then run the MILP preview.";
     solveHeroButton.disabled = false;
   } catch (error) {
