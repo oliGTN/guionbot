@@ -44,7 +44,7 @@
         <button id="prepare-hero" type="button" disabled>Prepare hero input</button>
         <button id="solve-hero" type="button" disabled>Run single-hero MILP</button>
         <h3>Python parity test</h3>
-        <p>Run a batch in the order listed in Grandivory selectedCharacters. Batch mode allocates mods sequentially: mods chosen for earlier heroes are unavailable to later heroes, matching the Python optimizer’s roster-level behavior. Enter a hero ID to run an independent single-hero diagnostic instead. The optional Python reference file is read locally only.</p>
+        <p>Run a batch in Python reference-plan order when a Python plan JSON is loaded; otherwise it uses Grandivory selectedCharacters order, which may differ from Python’s priority order. Batch mode allocates mods sequentially: mods chosen for earlier heroes are unavailable to later heroes. Enter a hero ID to run an independent single-hero diagnostic. The optional Python reference file is read locally only.</p>
         <label for="batch-hero-id">Only solve this hero ID (optional)</label>
         <input id="batch-hero-id" type="text" placeholder="e.g. GRANDMASTERLUKE or 4LOM" />
         <label for="batch-limit">Maximum heroes (0 = all available)</label>
