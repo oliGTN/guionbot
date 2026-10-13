@@ -29,9 +29,9 @@ const [gameDataPath, keystatsPath, statsPath, outputPath] = [
 
 function readJson(filePath, label) {
   if (!fs.existsSync(filePath)) {
-    throw new Error(label + " not found: " + filePath + "\\nPass its path as a command-line argument if it is stored elsewhere.");
+    throw new Error(label + " not found: " + filePath + "\nPass its path as a command-line argument if it is stored elsewhere.");
   }
-  process.stdout.write("Reading " + label + ": " + filePath + "\\n");
+  process.stdout.write("Reading " + label + ": " + filePath + "\n");
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
@@ -54,7 +54,7 @@ async function extractTopLevelArray(filePaths, targetKey) {
   let arrayEscaped = false;
 
   for (const filePath of filePaths) {
-    process.stdout.write("Streaming GameData segment: " + filePath + "\\n");
+    process.stdout.write("Streaming GameData segment: " + filePath + "\n");
     for await (const chunk of fs.createReadStream(filePath)) {
       for (let i = 0; i < chunk.length; i++) {
         const b = chunk[i];
@@ -114,7 +114,7 @@ async function extractTopLevelArray(filePaths, targetKey) {
 
         if (b === 0x22) {
           inString = true;
-          captureTopString = objectDepth === 1 && arrayDepth === 0;
+          // Segments may be split by top-level sections rather than raw byte offsets.\n          // Accept the target key at any object depth; it is unique in GameData.\n          captureTopString = true;
           stringBytes = [];
         } else if (b === 0x7b) objectDepth++;
         else if (b === 0x7d) objectDepth--;
