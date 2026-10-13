@@ -5,14 +5,14 @@
 const SLOT_ID = { square: 1, arrow: 2, diamond: 3, triangle: 4, circle: 5, cross: 6 };
 const SET_ID = { health: 1, offense: 2, defence: 3, defense: 3, speed: 4, critchance: 5, crit_chance: 5, critdamage: 6, crit_damage: 6, potency: 7, tenacity: 8 };
 const STAT_ID = {
-  health: 1, speed: 5, physical_damage: 6, physicaldamage: 6, physdmg: 6,
+  health: 1, speed: 5, physical_damage: 6, physicaldamage: 6, physdmg: 6, phys_dmg: 6,
   special_damage: 7, specialdamage: 7, specdmg: 7, protection: 28, offense: 41,
   physical_offense: 41, special_offense: 41, defense: 42, defence: 42,
-  crit_damage: 16, critdamage: 16, potency: 17, tenacity: 18,
+  crit_damage: 16, critdamage: 16, critdmg: 16, crit_dmg: 16, potency: 17, tenacity: 18,
   offense_pct: 48, physical_damage_pct: 48, special_damage_pct: 48,
   defense_pct: 49, defence_pct: 49, accuracy_pct: 52, crit_chance_pct: 53,
-  critical_chance_pct: 53, crit_avoid_pct: 54, critical_avoidance_pct: 54,
-  health_pct: 55, protection_pct: 56, speed_pct: 57,
+  critical_chance_pct: 53, crit_chance: 53, crit_avoid_pct: 54, critical_avoidance_pct: 54, crit_avoid: 54,
+  health_pct: 55, protection_pct: 56, speed_pct: 57, defense_pct: 49, crit_chance_pct: 53,
 };
 const LABEL_TO_STAT = {
   health: 1, protection: 28, speed: 5, offense: 41, "physical damage": 41,
@@ -47,11 +47,14 @@ function firstNumber(object, keys) {
   }
   return null;
 }
+function unwrapStat(stat) { return Array.isArray(stat) ? (stat[0] ?? null) : stat; }
 function getRawStatId(stat) {
+  stat = unwrapStat(stat);
   const id = Number(stat?.unitStatId);
   return Number.isFinite(id) ? id : null;
 }
 function getRawStatValue(stat) {
+  stat = unwrapStat(stat);
   if (!stat) return null;
   const v = stat.unscaledDecimalValue ?? stat.statValueDecimal;
   if (v === undefined || v === null) return null;
@@ -65,9 +68,9 @@ export function normalizeSetBonuses(gameData) {
   for (const entry of gameData.statModSet) {
     const id = Number(entry.id);
     const count = Number(entry.setCount);
-    const stat = entry.completeBonus?.stat?.stat;
+    const stat = entry.completeBonus?.stat?.stat ?? entry.completeBonus?.stat;
     const statIdValue = getRawStatId(stat);
-    const lvl15 = getRawStatValue(entry.maxLevelBonus?.stat?.stat ?? stat);
+    const lvl15 = getRawStatValue(entry.maxLevelBonus?.stat?.stat ?? entry.maxLevelBonus?.stat ?? stat);
     if (!Number.isInteger(id) || !Number.isInteger(count) || !statIdValue || lvl15 === null) continue;
     bonuses[id] = { count, stat: statIdValue, lvl15 };
   }
