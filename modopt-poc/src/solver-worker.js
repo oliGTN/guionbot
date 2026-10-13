@@ -169,8 +169,10 @@ self.onmessage = async ({ data }) => {
                 objectiveValue: forced.info?.objectiveValue ?? null,
                 objectiveBreakdown: forced.info?.objectiveBreakdown ?? null,
                 activeStatBands: forced.info?.activeStatBands ?? [],
+                statDiagnostics: forced.info?.statDiagnostics ?? {},
                 normalObjectiveBreakdown: solved.info?.objectiveBreakdown ?? null,
                 normalActiveStatBands: solved.info?.activeStatBands ?? [],
+                normalStatDiagnostics: solved.info?.statDiagnostics ?? {},
                 objectiveDeltaVsNormal: Number.isFinite(Number(forced.info?.objectiveValue)) && Number.isFinite(Number(solved.info?.objectiveValue))
                   ? Number((Number(forced.info.objectiveValue) - Number(solved.info.objectiveValue)).toFixed(6))
                   : null,
@@ -196,6 +198,7 @@ self.onmessage = async ({ data }) => {
           results.push({ heroId: item.heroId, status: solved.info?.status, objectiveValue: solved.info?.objectiveValue ?? null,
             objectiveBreakdown: solved.info?.objectiveBreakdown ?? null,
             activeStatBands: solved.info?.activeStatBands ?? [],
+            statDiagnostics: solved.info?.statDiagnostics ?? {},
             selectedMods: chosen, counts: { candidateMods: solved.info?.n_candidates ?? null, slots: 6 },
             referenceForcedDiagnostic,
             referenceDiagnostics: {
