@@ -1,3 +1,4 @@
+import { EMBEDDED_OPTIMIZER_DATA } from "./optimizer-data.generated.js";
 import { prepareHeroInput, summarizePreparedHero } from "./grandivory-normalize.js";
 const fileInput = document.querySelector("#progress-file");
 const status = document.querySelector("#file-status");
@@ -259,6 +260,7 @@ fileInput.addEventListener("change", async () => {
     inspectProgressFile(data, file);
     loadedData.set("progress-file", { fileName: file.name, data });
     refreshHeroOptions();
+refreshOptimizerDataSummary();
     refreshParityAvailability();
     status.textContent = "File parsed successfully. No optimization has been run.";
   } catch (error) {
@@ -282,6 +284,16 @@ const dataSummary = document.querySelector("#data-summary");
 const dataSummaryFields = document.querySelector("#data-summary-fields");
 const dataStructure = document.querySelector("#data-structure");
 const loadedData = new Map();
+const hasEmbeddedOptimizerData = Boolean(
+  EMBEDDED_OPTIMIZER_DATA?.gameData?.statModSet &&
+  EMBEDDED_OPTIMIZER_DATA?.keystats?.heroes &&
+  EMBEDDED_OPTIMIZER_DATA?.stats?.units
+);
+if (hasEmbeddedOptimizerData) {
+  loadedData.set("gamedata-file", { fileName: "embedded GameData statModSet", data: EMBEDDED_OPTIMIZER_DATA.gameData });
+  loadedData.set("keystats-file", { fileName: "embedded keystats", data: EMBEDDED_OPTIMIZER_DATA.keystats });
+  loadedData.set("stats-file", { fileName: "embedded stats-v2 medians", data: EMBEDDED_OPTIMIZER_DATA.stats });
+}
 
 function shallowDescription(value, depth = 0) {
   if (Array.isArray(value)) {
@@ -458,8 +470,24 @@ async function refreshOptimizerDataSummary() {
   dataSummaryFields.replaceChildren();
   dataStructure.textContent = "";
   if (!chosen.length) {
-    dataSummary.hidden = true;
-    dataStatus.textContent = "Select the three optimizer data files to inspect them.";
+    dataSummaryFields.replaceChildren();
+    if (hasEmbeddedOptimizerData) {
+      addDataSummaryField("GameData", EMBEDDED_OPTIMIZER_DATA.sourceFiles?.gameData || "embedded");
+      addDataSummaryField("Keystats", EMBEDDED_OPTIMIZER_DATA.sourceFiles?.keystats || "embedded");
+      addDataSummaryField("Stats-v2", EMBEDDED_OPTIMIZER_DATA.sourceFiles?.stats || "embedded");
+      addDataSummaryField("Generated", EMBEDDED_OPTIMIZER_DATA.generatedAt || "unknown");
+      dataStructure.textContent = JSON.stringify({
+        setDefinitions: EMBEDDED_OPTIMIZER_DATA.gameData.statModSet.length,
+        keystatsHeroes: Object.keys(EMBEDDED_OPTIMIZER_DATA.keystats.heroes).length,
+        statsV2Units: Object.keys(EMBEDDED_OPTIMIZER_DATA.stats.units).length,
+        note: "Reference data was extracted once into src/optimizer-data.generated.js and is loaded automatically."
+      }, null, 2);
+      dataSummary.hidden = false;
+      dataStatus.textContent = "Embedded optimizer reference data loaded automatically.";
+    } else {
+      dataSummary.hidden = true;
+      dataStatus.textContent = "Embedded reference data is not generated yet. Run npm run extract-data once, or choose the files below.";
+    }
     return;
   }
 
@@ -483,9 +511,7 @@ async function refreshOptimizerDataSummary() {
       note: "This is schema discovery only. The files have not yet been mapped to the optimizer's internal stat IDs or loaded into the MILP.",
     }, null, 2);
     dataSummary.hidden = false;
-    dataStatus.textContent = reports.length === dataFileInputs.length
-      ? "All three optimizer data files parsed locally."
-      : reports.length + " of " + dataFileInputs.length + " optimizer data files parsed locally.";
+    dataStatus.textContent = reports.length + " optional reference file(s) loaded; other reference data remains embedded when available.";
     refreshOptimizerControls();
   } catch (error) {
     dataStatus.textContent = "Could not inspect optimizer data files.";
@@ -600,7 +626,7 @@ solveHeroButton?.addEventListener("click", () => {
 
 function refreshOptimizerControls() {
   refreshHeroOptions();
-  if (loadedData.size >= 4) optimizerStatus.textContent = "All input files are loaded locally. Choose a hero.";
+  if (loadedData.has("progress-file") && loadedData.has("gamedata-file") && loadedData.has("keystats-file") && loadedData.has("stats-file")) optimizerStatus.textContent = "All input files are ready locally. Choose a hero.";
   if (typeof refreshParityAvailability === "function") refreshParityAvailability();
 }
 refreshHeroOptions();
