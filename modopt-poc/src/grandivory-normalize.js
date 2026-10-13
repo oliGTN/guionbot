@@ -212,7 +212,14 @@ export function prepareHeroInput(progress, gameData, keystats, heroId, options =
   const modsAvailable = allMods.filter(m => m.level >= 15 && (!options.lockUnselected || !m.owner || (profile.selectedCharacters || []).some(c => c.id === m.owner)));
   const currentIds = allMods.filter(m => m.owner === heroId).map(m => m.id);
   const setBonuses = normalizeSetBonuses(gameData);
-  const combos = combosFromKeystats(ksHero, setBonuses);
+  const availableCombos = combosFromKeystats(ksHero, setBonuses);
+  const requestedCombo = String(options.comboName || "").replace(/\\s+/g, "").toLowerCase();
+  const combos = requestedCombo
+    ? availableCombos.filter(combo => String(combo.name || "").replace(/\\s+/g, "").toLowerCase() === requestedCombo)
+    : availableCombos;
+  if (requestedCombo && combos.length === 0) {
+    throw new Error("Python reference combo " + options.comboName + " was not found in keystats for " + heroId + ".");
+  }
   return {
     heroId, base, modsAvailable, currentIds, keyStats, also, setBonuses, combos,
     lockedPrimary: primaryLocks(ksHero, Number(options.primaryLock ?? 75)),
