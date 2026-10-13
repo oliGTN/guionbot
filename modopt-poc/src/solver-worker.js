@@ -9,7 +9,7 @@ const KEEP_BONUS = 150;
 // Synthetic fixture only. Values are illustrative units, not live SWGOH stats.
 function makeFixture() {
   const rows = [];
-  const setCycle = [1, 4, 2, 3, 1, 4, 5, 6];
+  const setCycle = [1, 4, 2, 3, 5, 6, 7, 8];
   const speed = [
     [8, 12, 17], [10, 15, 20], [7, 13, 18],
     [9, 14, 19], [11, 16, 21], [8, 15, 22],
