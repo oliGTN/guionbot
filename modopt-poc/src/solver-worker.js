@@ -167,6 +167,9 @@ self.onmessage = async ({ data }) => {
               referenceForcedDiagnostic = {
                 status: forced.info?.status ?? null,
                 objectiveValue: forced.info?.objectiveValue ?? null,
+                objectiveDeltaVsNormal: Number.isFinite(Number(forced.info?.objectiveValue)) && Number.isFinite(Number(solved.info?.objectiveValue))
+                  ? Number((Number(forced.info.objectiveValue) - Number(solved.info.objectiveValue)).toFixed(6))
+                  : null,
                 selectedModIds: (forced.chosen || []).map(mod => mod.id).sort(),
                 expectedModIds: referenceIds.slice().sort(),
                 exactAssignmentSelected: Boolean(forced.chosen && forced.chosen.length === 6 && referenceIds.every(id => forced.chosen.some(mod => mod.id === id))),
