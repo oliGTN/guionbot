@@ -3,18 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GuionBot mod optimizer — HiGHS-JS proof of concept</title>
+    <title>GuionBot mod optimizer — browser POC</title>
   </head>
   <body>
     <main>
-      <h1>HiGHS-JS mod optimizer proof of concept</h1>
+      <h1>Browser mod optimizer — step 1</h1>
       <p>
-        A small synthetic MILP with six slots, binary mod choices, set-group
-        variables, and stat target bands. The solver runs in a Web Worker.
-        This is an isolated experiment; it does not change the production bot.
+        Select a Grandivory “Save my progress” JSON file. This step only reads
+        the file locally and summarizes its structure; it does not upload the
+        file or run the optimizer.
       </p>
-      <button id="run" type="button">Run proof of concept</button>
-      <pre id="output" aria-live="polite">Ready. Click “Run proof of concept”.</pre>
+      <label for="progress-file">Progress file (JSON)</label>
+      <input id="progress-file" type="file" accept=".json,application/json" />
+      <p id="file-status" role="status" aria-live="polite">Choose a progress file to inspect it.</p>
+      <section id="summary" hidden>
+        <h2>Inventory summary</h2>
+        <dl id="summary-fields"></dl>
+        <h2>Detected structure</h2>
+        <pre id="structure"></pre>
+      </section>
+      <pre id="error" role="alert" hidden></pre>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>
