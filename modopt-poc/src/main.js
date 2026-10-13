@@ -752,6 +752,10 @@ batchButton?.addEventListener("click", () => {
   parityStatus.textContent = "Preparing " + inputs.length + " heroes; running browser MILP batch…";
   activeWorker = new Worker(new URL("./solver-worker.js", import.meta.url), { type: "module" });
   activeWorker.onmessage = ({ data }) => {
+    if (data.type === "progress") {
+      parityStatus.textContent = "Solving " + data.completed + "/" + data.total + ": " + data.heroId + "…";
+      return;
+    }
     if (data.error) {
       parityStatus.textContent = "Batch solver failed.";
       parityOutput.textContent = JSON.stringify(data, null, 2);
