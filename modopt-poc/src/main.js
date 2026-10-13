@@ -600,5 +600,168 @@ solveHeroButton?.addEventListener("click", () => {
 function refreshOptimizerControls() {
   refreshHeroOptions();
   if (loadedData.size >= 4) optimizerStatus.textContent = "All input files are loaded locally. Choose a hero.";
+  if (typeof refreshParityAvailability === "function") refreshParityAvailability();
 }
 refreshHeroOptions();
+
+
+// Repeatable Python-vs-browser parity harness. All input and reference files stay
+// in this browser tab; the downloadable report contains only solver outputs.
+const batchButton = document.querySelector("#run-parity-batch");
+const batchLimitInput = document.querySelector("#batch-limit");
+const referenceFileInput = document.querySelector("#reference-file");
+const parityStatus = document.querySelector("#parity-status");
+const parityOutput = document.querySelector("#parity-output");
+const downloadParityButton = document.querySelector("#download-parity");
+let pythonReference = null;
+let lastParityReport = null;
+
+referenceFileInput?.addEventListener("change", async () => {
+  pythonReference = null;
+  const file = referenceFileInput.files?.[0];
+  if (!file) {
+    parityStatus.textContent = "No Python reference loaded; batch will produce browser results only.";
+    return;
+  }
+  try {
+    pythonReference = JSON.parse(await file.text());
+    parityStatus.textContent = "Python reference loaded locally: " + file.name;
+  } catch {
+    parityStatus.textContent = "Reference file is not valid JSON.";
+  }
+});
+
+function referenceResultsByHero(reference) {
+  if (Array.isArray(reference)) return new Map(reference.map(row => [String(row.heroId ?? row.hero_id ?? row.unitId ?? row.id ?? ""), row]).filter(([id]) => id));
+  if (Array.isArray(reference?.results)) return referenceResultsByHero(reference.results);
+  if (reference && typeof reference === "object" && (reference.heroId || reference.hero_id || reference.unitId || reference.id)) {
+    return new Map([[String(reference.heroId ?? reference.hero_id ?? reference.unitId ?? reference.id), reference]]);
+  }
+  if (reference && typeof reference === "object") {
+    return new Map(Object.entries(reference).filter(([, row]) => row && typeof row === "object"));
+  }
+  return new Map();
+}
+
+function slotMap(row) {
+  const mods = row?.selectedMods ?? row?.selected_mods ?? row?.chosen ?? row?.mods;
+  if (Array.isArray(mods)) return new Map(mods.map(mod => [String(mod.slot ?? ""), String(mod.id ?? mod.mod_uid ?? mod.modId ?? "")]));
+  if (mods && typeof mods === "object") {
+    return new Map(Object.entries(mods).map(([slot, mod]) => [String(mod?.slot ?? slot), String(typeof mod === "string" ? mod : mod?.id ?? mod?.mod_uid ?? mod?.modId ?? "")]));
+  }
+  return new Map();
+}
+
+function compareWithReference(results, reference) {
+  const refs = referenceResultsByHero(reference);
+  return results.map(result => {
+    const ref = refs.get(String(result.heroId));
+    if (!ref) return { ...result, comparison: "no-reference-for-hero" };
+    if (result.error || !result.selectedMods?.length) return { ...result, comparison: "browser-solve-failed" };
+    const expected = slotMap(ref);
+    const actual = slotMap(result);
+    if (!expected.size) return { ...result, comparison: "reference-format-unrecognized" };
+    const mismatches = [];
+    for (const slot of ["square", "arrow", "diamond", "triangle", "circle", "cross"]) {
+      if (expected.get(slot) !== actual.get(slot)) mismatches.push({ slot, expected: expected.get(slot) ?? null, actual: actual.get(slot) ?? null });
+    }
+    const expectedObjective = Number(ref.objectiveValue ?? ref.objective_value ?? ref.objective);
+    const objectiveComparable = Number.isFinite(expectedObjective) && Number.isFinite(Number(result.objectiveValue));
+    const objectiveMatches = !objectiveComparable || Math.abs(expectedObjective - Number(result.objectiveValue)) < 1e-5;
+    return {
+      ...result,
+      comparison: mismatches.length === 0 && objectiveMatches ? "match" : "mismatch",
+      referenceObjectiveValue: objectiveComparable ? expectedObjective : null,
+      objectiveMatches: objectiveComparable ? objectiveMatches : null,
+      mismatches,
+    };
+  });
+}
+
+batchButton?.addEventListener("click", () => {
+  const progress = loadedData.get("progress-file")?.data;
+  const gameData = loadedData.get("gamedata-file")?.data;
+  const keystats = loadedData.get("keystats-file")?.data;
+  if (!progress || !gameData || !keystats) return;
+  const profile = progress.profiles?.[0];
+  const available = (profile?.selectedCharacters || [])
+    .filter(c => c?.id && profile.characters?.[c.id] && keystats.heroes?.[c.id]?.key_stats?.length)
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const requestedLimit = Math.max(0, Number.parseInt(batchLimitInput?.value || "0", 10) || 0);
+  const selected = requestedLimit > 0 ? available.slice(0, requestedLimit) : available;
+  const inputs = [];
+  const preparationErrors = [];
+  for (const character of selected) {
+    try {
+      inputs.push({ heroId: character.id, input: prepareHeroInput(progress, gameData, keystats, character.id) });
+    } catch (error) {
+      preparationErrors.push({ heroId: character.id, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  if (activeWorker) activeWorker.terminate();
+  batchButton.disabled = true;
+  solveHeroButton.disabled = true;
+  downloadParityButton.disabled = true;
+  parityOutput.textContent = "";
+  parityStatus.textContent = "Preparing " + inputs.length + " heroes; running browser MILP batch…";
+  activeWorker = new Worker(new URL("./solver-worker.js", import.meta.url), { type: "module" });
+  activeWorker.onmessage = ({ data }) => {
+    if (data.error) {
+      parityStatus.textContent = "Batch solver failed.";
+      parityOutput.textContent = JSON.stringify(data, null, 2);
+    } else {
+      let results = [...preparationErrors, ...(data.results || [])];
+      if (pythonReference) results = compareWithReference(results, pythonReference);
+      const matched = results.filter(row => row.comparison === "match").length;
+      const mismatched = results.filter(row => row.comparison === "mismatch").length;
+      const report = {
+        reportType: "guionbot-modopt-python-parity",
+        generatedAt: new Date().toISOString(),
+        heroesRequested: selected.length,
+        heroesPrepared: inputs.length,
+        heroesFailedPreparation: preparationErrors.length,
+        pythonReferenceLoaded: Boolean(pythonReference),
+        summary: { results: results.length, matched, mismatched, noReference: results.filter(row => row.comparison === "no-reference-for-hero").length, errors: results.filter(row => row.error || row.comparison === "browser-solve-failed").length },
+        timingsMs: data.timingsMs,
+        results,
+      };
+      lastParityReport = report;
+      parityOutput.textContent = JSON.stringify(report, null, 2);
+      parityStatus.textContent = pythonReference
+        ? "Batch complete: " + matched + " matches, " + mismatched + " mismatches across " + results.length + " results. Inspect per-slot differences below."
+        : "Batch complete for " + results.length + " heroes. Load Python reference JSON and rerun to compare assignments.";
+      downloadParityButton.disabled = false;
+    }
+    batchButton.disabled = false;
+    solveHeroButton.disabled = !preparedHeroInput || preparedHeroInput.heroId !== heroSelect.value;
+    activeWorker.terminate();
+    activeWorker = null;
+  };
+  activeWorker.onerror = event => {
+    parityStatus.textContent = "Batch worker error.";
+    parityOutput.textContent = event.message || "Unknown Web Worker error.";
+    batchButton.disabled = false;
+    activeWorker.terminate();
+    activeWorker = null;
+  };
+  activeWorker.postMessage({ type: "run", mode: "batch", inputs });
+});
+
+downloadParityButton?.addEventListener("click", () => {
+  if (!lastParityReport) return;
+  const blob = new Blob([JSON.stringify(lastParityReport, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "modopt-parity-results.json";
+  anchor.click();
+  URL.revokeObjectURL(url);
+});
+
+// Keep batch availability synchronized with the existing file-loading flow.
+const originalRefreshOptimizerControls = refreshOptimizerControls;
+function refreshParityAvailability() {
+  const ready = ["progress-file", "gamedata-file", "keystats-file"].every(id => loadedData.has(id));
+  if (batchButton) batchButton.disabled = !ready;
+}
+refreshParityAvailability();
