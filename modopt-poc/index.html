@@ -40,6 +40,16 @@
         <select id="hero-select" disabled><option value="">Load all files first</option></select>
         <button id="prepare-hero" type="button" disabled>Prepare hero input</button>
         <button id="solve-hero" type="button" disabled>Run single-hero MILP</button>
+        <h3>Python parity test</h3>
+        <p>Run a batch of heroes in one worker and optionally compare each assignment with reference results exported by the Python optimizer. The reference file is read locally only.</p>
+        <label for="batch-limit">Maximum heroes (0 = all available)</label>
+        <input id="batch-limit" type="number" min="0" step="1" value="10" />
+        <button id="run-parity-batch" type="button" disabled>Run batch parity test</button>
+        <label for="reference-file">Python reference results (JSON, optional)</label>
+        <input id="reference-file" type="file" accept=".json,application/json" />
+        <p id="parity-status" role="status" aria-live="polite">Load the four input files to enable batch testing.</p>
+        <pre id="parity-output"></pre>
+        <button id="download-parity" type="button" disabled>Download batch results JSON</button>
         <p id="optimizer-status" role="status" aria-live="polite">Load the Grandivory progress file and all three data files.</p>
         <pre id="optimizer-output"></pre>
       </section>
