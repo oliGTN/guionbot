@@ -50,6 +50,13 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         .remod-options select, .remod-options input { width: 100%; box-sizing: border-box; padding: 9px; border: 1px solid #c7cbd4; border-radius: 4px; background: white; }
         .remod-option-check { display: flex; align-items: center; gap: 8px; margin: 14px 0; }
         .remod-option-check input { width: auto; }
+        .remod-mode { display:flex; flex-wrap:wrap; gap:16px; margin:16px 0; }
+        .remod-mode label { display:flex; align-items:center; gap:7px; font-weight:600; }
+        .remod-mode input { width:auto; }
+        .remod-options-toggle { margin:0 0 10px; }
+        .remod-options[hidden], .remod-option-group[hidden] { display:none !important; }
+        .remod-option-group { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+        .remod-option-group > .remod-option-check { grid-column:1 / -1; }
         #remodFileName { margin: 8px 0; overflow-wrap: anywhere; }
         .remod-results { max-width: 1200px; margin: 24px auto 40px; padding: 0 14px; }
         .remod-plan-toolbar { display:grid; grid-template-columns:minmax(12rem,2fr) minmax(10rem,1fr) minmax(10rem,1fr); gap:8px; align-items:center; margin:14px 0; }
@@ -93,7 +100,18 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                     <label for="remodFile"><strong>Select a restoreMyProgress.json file</strong></label>
                     <input class="remod-file" type="file" id="remodFile" name="file" accept=".json,application/json" required>
                     <div id="remodFileName" class="remod-help">JSON file, maximum size 30 MB.</div>
-                    <div class="remod-options">
+                    <fieldset class="remod-mode"><legend><strong>Remod type</strong></legend>
+                        <label><input type="radio" name="mode" value="full" checked> Full remod</label>
+                        <label><input type="radio" name="mode" value="light"> Light remod (target stats)</label>
+                    </fieldset>
+                    <div id="remodTargetsWrap" hidden>
+                        <label for="remodTargets"><strong>Select cibles.json</strong></label>
+                        <input class="remod-file" type="file" id="remodTargets" name="cibles" accept=".json,application/json">
+                        <div id="remodTargetsName" class="remod-help">Required for light remod, maximum size 256 KB. JSON must contain 1–40 unique heroes.</div>
+                    </div>
+                    <button class="remod-button secondary remod-options-toggle" id="remodOptionsToggle" type="button" aria-expanded="false">Show options</button>
+                    <div class="remod-options" id="remodOptions" hidden>
+                      <div class="remod-option-group" id="remodFullOptions">
                         <div>
                             <label for="remodTarget">Target level</label>
                             <select id="remodTarget" name="cible">
@@ -104,10 +122,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                         </div>
                         <div>
                             <label for="remodTime">Time limit per hero (seconds)</label>
-                            <select id="remodTime" name="time_limit">
-                                <option value="2">2</option><option value="4">4</option><option value="6">6</option>
-                                <option value="8" selected>8</option><option value="10">10</option><option value="12">12</option><option value="15">15</option>
-                            </select>
+                            <select id="remodTime" name="time_limit"><option value="2">2</option><option value="4">4</option><option value="6">6</option><option value="8" selected>8</option><option value="10">10</option><option value="12">12</option><option value="15">15</option></select>
                         </div>
                         <div>
                             <label for="remodMaxHeroes">Maximum heroes (0 = all)</label>
@@ -121,8 +136,15 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                             <label for="remodDepartStats">depart_stats (optional, 0–9999)</label>
                             <input id="remodDepartStats" name="depart_stats" type="number" min="0" max="9999" step="1" placeholder="Leave empty to omit">
                         </div>
+                        <label class="remod-option-check"><input type="checkbox" id="remodFullSansBot" name="sans_bot" value="true"> Manual remod only (do not generate <code>progress_out.json</code>)</label>
+                      </div>
+                      <div class="remod-option-group" id="remodLightOptions" hidden>
+                        <div><label for="remodLang">Language</label><select id="remodLang" name="lang" disabled><option value="fr" selected>Français</option><option value="en">English</option></select></div>
+                        <div><label for="remodLightTime">Time limit per hero (seconds)</label><select id="remodLightTime" name="time_limit_light" disabled><option value="2">2</option><option value="4">4</option><option value="6">6</option><option value="8" selected>8</option><option value="10">10</option><option value="12">12</option><option value="15">15</option></select></div>
+                        <label class="remod-option-check"><input type="checkbox" id="remodSansBot" name="sans_bot_light" value="true" disabled> Manual remod only (do not generate <code>progress_out.json</code>)</label>
+                        <label class="remod-option-check"><input type="checkbox" id="remodSansEmprunt" name="sans_emprunt" value="true" disabled> Do not borrow mods from heroes outside the target list</label>
+                      </div>
                     </div>
-                    <label class="remod-option-check"><input type="checkbox" name="sans_bot" value="true"> Manual remod only (do not generate <code>progress_out.json</code>)</label>
                     <button class="remod-button" id="remodSubmit" type="submit">Upload and start remod</button>
                 </form>
                 <div id="remodStatus" class="remod-status" role="status" aria-live="polite"></div>
