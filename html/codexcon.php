@@ -178,7 +178,7 @@ if ($action === 'submit') {
             if (isset($seen[$id])) codex_json_response(400, ['error' => 'Duplicate hero in cibles.json: ' . $hero['id']]);
             $seen[$id] = true;
             foreach ($hero['stats'] as $stat => $value) {
-                if (!is_string($stat) || $stat === '' || !is_numeric($value) || (float)$value <= 0) {
+                if (!is_string($stat) || $stat === '' || (!is_int($value) && !is_float($value)) || !is_finite((float)$value) || (float)$value <= 0) {
                     codex_json_response(400, ['error' => 'Target stat values must be positive numbers.']);
                 }
             }
