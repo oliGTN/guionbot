@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GuionBot mod optimizer — browser POC</title>
+    <script type="module" crossorigin src="/assets/index-D8ul9Guk.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1>Browser mod optimizer — data loading</h1>
+      <p>
+        Select your changing Grandivory progress export. The reference data from
+        GameData.json, keystats.json and stats_v2_top100.json is loaded from a
+        generated JavaScript module after one-time extraction.
+      </p>
+
+      <section>
+        <h2>Input files</h2>
+        <label for="progress-file">Grandivory “Save my progress” file (JSON)</label>
+        <input id="progress-file" type="file" accept=".json,application/json" />
+        <p id="file-status" role="status" aria-live="polite">Choose a progress file to inspect it.</p>
+
+        <details>
+          <summary>Optional: override embedded reference data</summary>
+          <p>Normally leave these empty. They are available for testing a different data snapshot.</p>
+          <label for="gamedata-file">GameData.json override</label>
+          <input id="gamedata-file" type="file" accept=".json,application/json" />
+
+          <label for="keystats-file">keystats.json override</label>
+          <input id="keystats-file" type="file" accept=".json,application/json" />
+
+          <label for="stats-file">stats_v2_top100.json override</label>
+          <input id="stats-file" type="file" accept=".json,application/json" />
+        </details>
+
+        <p id="data-status" role="status" aria-live="polite">Reference data loads from the embedded module; progress file is still required.</p>
+      </section>
+
+      <section id="optimizer-controls">
+        <h2>Single-hero optimizer preview</h2>
+        <p>After all four files are loaded, choose a hero to normalize its mods, keystats and set rules, then run the browser MILP. This is a solver preview, not yet a Python-parity or exact in-game stat evaluation.</p>
+        <label for="hero-select">Hero</label>
+        <select id="hero-select" disabled><option value="">Load all files first</option></select>
+        <button id="prepare-hero" type="button" disabled>Prepare hero input</button>
+        <button id="solve-hero" type="button" disabled>Run single-hero MILP</button>
+        <h3>Python parity test</h3>
+        <p>Run a batch in Python reference-plan order when a Python plan JSON is loaded; otherwise it uses Grandivory selectedCharacters order, which may differ from Python’s priority order. Batch mode allocates mods sequentially: mods chosen for earlier heroes are unavailable to later heroes. Enter a hero ID to run an independent single-hero diagnostic. The optional Python reference file is read locally only.</p>
+        <label for="batch-hero-id">Only solve this hero ID (optional)</label>
+        <input id="batch-hero-id" type="text" placeholder="e.g. GRANDMASTERLUKE or 4LOM" />
+        <label for="batch-limit">Maximum heroes (0 = all available)</label>
+        <input id="batch-limit" type="number" min="0" step="1" value="10" />
+        <button id="run-parity-batch" type="button" disabled>Run batch parity test</button>
+        <label for="reference-file">Python reference results (JSON, optional)</label>
+        <input id="reference-file" type="file" accept=".json,application/json" />
+        <label for="reference-hero-id">Hero ID for a single Python result without an ID (optional)</label>
+        <input id="reference-hero-id" type="text" placeholder="e.g. GRANDMASTERLUKE" />
+        <p id="parity-status" role="status" aria-live="polite">Load the four input files to enable batch testing.</p>
+        <pre id="parity-output"></pre>
+        <button id="download-parity" type="button" disabled>Download batch results JSON</button>
+        <p id="optimizer-status" role="status" aria-live="polite">Load the Grandivory progress file and all three data files.</p>
+        <pre id="optimizer-output"></pre>
+      </section>
+
+      <section id="summary" hidden>
+        <h2>Progress inventory summary</h2>
+        <dl id="summary-fields"></dl>
+        <h2>Progress file structure</h2>
+        <pre id="structure"></pre>
+      </section>
+
+      <section id="data-summary" hidden>
+        <h2>Optimizer data files</h2>
+        <dl id="data-summary-fields"></dl>
+        <pre id="data-structure"></pre>
+      </section>
+
+      <pre id="error" role="alert" hidden></pre>
+    </main>
+  </body>
+</html>
