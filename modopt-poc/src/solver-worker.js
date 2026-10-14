@@ -159,6 +159,10 @@ self.onmessage = async ({ data }) => {
             ? { ...item.input, modsAvailable: item.input.modsAvailable.filter(mod => !usedModIds.has(mod.id)) }
             : item.input;
           const solved = solveHero(highs, solveInput);
+          const primaryLockDiagnostics = {
+            pythonReferencePrimaryLocks: item.input.referencePrimaryLocks ?? null,
+            appliedLockedPrimary: solveInput.lockedPrimary ?? {},
+          };
           let referenceForcedDiagnostic;
           const referenceIds = [...new Set(item.input.referenceMods || [])];
           if (referenceIds.length === 6) {
@@ -173,6 +177,7 @@ self.onmessage = async ({ data }) => {
                 normalObjectiveBreakdown: solved.info?.objectiveBreakdown ?? null,
                 normalActiveStatBands: solved.info?.activeStatBands ?? [],
                 normalStatDiagnostics: solved.info?.statDiagnostics ?? {},
+                primaryLockDiagnostics,
                 objectiveDeltaVsNormal: Number.isFinite(Number(forced.info?.objectiveValue)) && Number.isFinite(Number(solved.info?.objectiveValue))
                   ? Number((Number(forced.info.objectiveValue) - Number(solved.info.objectiveValue)).toFixed(6))
                   : null,
@@ -199,6 +204,7 @@ self.onmessage = async ({ data }) => {
             objectiveBreakdown: solved.info?.objectiveBreakdown ?? null,
             activeStatBands: solved.info?.activeStatBands ?? [],
             statDiagnostics: solved.info?.statDiagnostics ?? {},
+            primaryLockDiagnostics,
             selectedMods: chosen, counts: { candidateMods: solved.info?.n_candidates ?? null, slots: 6 },
             referenceForcedDiagnostic,
             referenceDiagnostics: {
