@@ -149,16 +149,53 @@ if ($action === 'submit') {
     }
     unset($raw, $progress);
 
-    $options = [
-        'sans_bot' => 'false',
-        'cible' => 'moyenne',
-        'time_limit' => '8',
-        'max_heroes' => '0',
-        'suppr_vitesse_max' => '10',
-        'lang' => 'fr',
-    ];
-    foreach ($options as $key => $default) {
-        if (isset($_POST[$key]) && is_string($_POST[$key])) {
+    $mode = $_POST['mode'] ?? 'full';
+    if (!is_string($mode) || !in_array($mode, ['full', 'light'], true)) {
+        codex_json_response(400, ['error' => 'Choose full or light remod.']);
+    }
+    $fields = ['file' => new CURLFile($file['tmp_name'], 'application/json', 'restoreMyProgress.json')];
+
+    if ($mode === 'light') {
+        if (!isset($_FILES['cibles']) || !is_array($_FILES['cibles']) || ($_FILES['cibles']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            codex_json_response(400, ['error' => 'Light remod requires cibles.json.']);
+        }
+        $targetFile = $_FILES['cibles'];
+        if (!is_uploaded_file($targetFile['tmp_name']) || (int)$targetFile['size'] < 2 || (int)$targetFile['size'] > 262144 ||
+            strtolower(pathinfo((string)($targetFile['name'] ?? ''), PATHINFO_EXTENSION)) !== 'json') {
+            codex_json_response(400, ['error' => 'cibles.json must be a JSON file no larger than 256 KB.']);
+        }
+        $targetData = json_decode(file_get_contents($targetFile['tmp_name']), true);
+        if (!is_array($targetData) || !isset($targetData['heroes']) || !is_array($targetData['heroes']) || count($targetData['heroes']) < 1 || count($targetData['heroes']) > 40) {
+            codex_json_response(400, ['error' => 'cibles.json must contain 1 to 40 heroes.']);
+        }
+        $seen = [];
+        foreach ($targetData['heroes'] as $hero) {
+            if (!is_array($hero) || !isset($hero['id']) || !is_string($hero['id']) || trim($hero['id']) === '' ||
+                !isset($hero['stats']) || !is_array($hero['stats']) || count($hero['stats']) < 1 || count($hero['stats']) > 12) {
+                codex_json_response(400, ['error' => 'Each target needs an id and 1 to 12 positive numeric stats.']);
+            }
+            $id = strtolower(trim($hero['id']));
+            if (isset($seen[$id])) codex_json_response(400, ['error' => 'Duplicate hero in cibles.json: ' . $hero['id']]);
+            $seen[$id] = true;
+            foreach ($hero['stats'] as $stat => $value) {
+                if (!is_string($stat) || $stat === '' || !is_numeric($value) || (float)$value <= 0) {
+                    codex_json_response(400, ['error' => 'Target stat values must be positive numbers.']);
+                }
+            }
+        }
+        $fields['cibles'] = new CURLFile($targetFile['tmp_name'], 'application/json', 'cibles.json');
+        $options = ['lang' => 'fr', 'sans_bot' => 'false', 'sans_emprunt' => 'false', 'time_limit' => '8'];
+        foreach ($options as $key => $default) {
+            if (!isset($_POST[$key]) || !is_string($_POST[$key])) continue;
+            $value = $_POST[$key];
+            if ($key === 'lang' && in_array($value, ['fr', 'en'], true)) $options[$key] = $value;
+            if (in_array($key, ['sans_bot', 'sans_emprunt'], true) && in_array($value, ['true', 'false'], true)) $options[$key] = $value;
+            if ($key === 'time_limit' && ctype_digit($value) && (int)$value >= 2 && (int)$value <= 15) $options[$key] = $value;
+        }
+    } else {
+        $options = ['sans_bot' => 'false', 'cible' => 'moyenne', 'time_limit' => '8', 'max_heroes' => '0', 'suppr_vitesse_max' => '10', 'lang' => 'fr'];
+        foreach ($options as $key => $default) {
+            if (!isset($_POST[$key]) || !is_string($_POST[$key])) continue;
             $value = $_POST[$key];
             if ($key === 'sans_bot' && in_array($value, ['true', 'false'], true)) $options[$key] = $value;
             if ($key === 'cible' && in_array($value, ['moyenne', 'mediane', 'p75'], true)) $options[$key] = $value;
@@ -167,19 +204,14 @@ if ($action === 'submit') {
             if ($key === 'max_heroes' && ctype_digit($value) && (int)$value <= 500) $options[$key] = $value;
             if ($key === 'suppr_vitesse_max' && ctype_digit($value) && (int)$value <= 30) $options[$key] = $value;
         }
-    }
-
-    // depart_stats is optional: forward it only when explicitly supplied and valid.
-    if (isset($_POST['depart_stats']) && $_POST['depart_stats'] !== '') {
-        $departStats = $_POST['depart_stats'];
-        if (!is_string($departStats) || !ctype_digit($departStats) || (int)$departStats < 0 || (int)$departStats > 9999) {
-            codex_json_response(400, ['error' => 'depart_stats must be an integer between 0 and 9999.']);
+        if (isset($_POST['depart_stats']) && $_POST['depart_stats'] !== '') {
+            $value = $_POST['depart_stats'];
+            if (!is_string($value) || !ctype_digit($value) || (int)$value > 9999) codex_json_response(400, ['error' => 'depart_stats must be an integer between 0 and 9999.']);
+            $options['depart_stats'] = (string)(int)$value;
         }
-        $options['depart_stats'] = (string)(int)$departStats;
     }
-
-    $fields = ['file' => new CURLFile($file['tmp_name'], 'application/json', 'restoreMyProgress.json')];
     foreach ($options as $key => $value) $fields[$key] = $value;
+
     $result = codex_api_request('POST', '/jobs', $fields, true);
     if (!$result['ok']) {
         $status = $result['http'] === 429 ? 429 : ($result['http'] === 503 ? 503 : 502);
