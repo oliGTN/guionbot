@@ -169,6 +169,15 @@ if ($action === 'submit') {
         }
     }
 
+    // depart_stats is optional: forward it only when explicitly supplied and valid.
+    if (isset($_POST['depart_stats']) && $_POST['depart_stats'] !== '') {
+        $departStats = $_POST['depart_stats'];
+        if (!is_string($departStats) || !ctype_digit($departStats) || (int)$departStats < 0 || (int)$departStats > 9999) {
+            codex_json_response(400, ['error' => 'depart_stats must be an integer between 0 and 9999.']);
+        }
+        $options['depart_stats'] = (string)(int)$departStats;
+    }
+
     $fields = ['file' => new CURLFile($file['tmp_name'], 'application/json', 'restoreMyProgress.json')];
     foreach ($options as $key => $value) $fields[$key] = $value;
     $result = codex_api_request('POST', '/jobs', $fields, true);

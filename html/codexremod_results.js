@@ -66,7 +66,7 @@
     const statSummary = stats.slice(0, 3).map(s => statLabel(s.stat) + ' ' + signed(Number(s.after) - Number(s.before), String(s.stat) === 'speed' ? 1 : 0)).join(' · ');
     const sets = (tier && tier.sets_after) || (row.advice && row.advice.sets_after) || row.sets || [];
     const setText = Array.isArray(sets) ? sets.map(s => Array.isArray(s) ? String(s[1]) + ' ' + String(s[0]) : (typeof s === 'string' ? s : '')).filter(Boolean).join(' + ') : String(sets || '');
-    const portrait = row.thumb || row.portrait || row.image || '';
+    const portrait = base ? 'IMAGES/CHARACTERS/' + encodeURIComponent(base) + '.png' : (row.thumb || row.portrait || row.image || '');
     const statRows = stats.map(s => {
       const delta = Number(s.after) - Number(s.before);
       const reached = s.target != null && Number(s.target) !== 0 && Number.isFinite(Number(s.after)) ? (Number(s.after) / Number(s.target) * 100) : null;
@@ -167,7 +167,9 @@
         else if (method === 8 && typeof DecompressionStream !== 'undefined') {
           payload = new Uint8Array(await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
         } else throw new Error('Unsupported ZIP compression or browser. Please use a recent Chrome/Edge/Firefox browser.');
-        return JSON.parse(new TextDecoder().decode(payload));
+        const text = new TextDecoder().decode(payload);
+        const data = JSON.parse(text);
+        return { data, text };
       }
       offset += 46 + nameLength + extraLength + commentLength;
     }

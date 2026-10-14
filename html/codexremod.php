@@ -117,6 +117,10 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                             <label for="remodSpeed">Remove-speed threshold</label>
                             <input id="remodSpeed" name="suppr_vitesse_max" type="number" min="0" max="30" value="10" step="1">
                         </div>
+                        <div>
+                            <label for="remodDepartStats">depart_stats (optional, 0–9999)</label>
+                            <input id="remodDepartStats" name="depart_stats" type="number" min="0" max="9999" step="1" placeholder="Leave empty to omit">
+                        </div>
                     </div>
                     <label class="remod-option-check"><input type="checkbox" name="sans_bot" value="true"> Manual remod only (do not generate <code>progress_out.json</code>)</label>
                     <button class="remod-button" id="remodSubmit" type="submit">Upload and start remod</button>
@@ -127,7 +131,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                     <div class="remod-progress-text" id="remodProgressText"></div>
                 </div>
                 <div id="remodActions" hidden>
-                    <button class="remod-button" id="remodDownload" type="button">Download results (.zip)</button>
+                    <button class="remod-button" id="remodShowResults" type="button">Show results</button>
                     <button class="remod-button secondary" id="remodForget" type="button">Clear this result</button>
                 </div>
             </section>
@@ -136,6 +140,10 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             <section id="remodResults" class="remod-results" hidden>
                 <h2>Remod results</h2>
                 <p class="remod-help">Click a character row to expand its StatQ, stat changes and mod recommendations.</p>
+                <div id="remodResultDownloads" hidden>
+                    <button class="remod-button" id="remodDownloadZip" type="button">Download results.zip</button>
+                    <button class="remod-button secondary" id="remodDownloadPlan" type="button">Download plan.json</button>
+                </div>
                 <div id="remodPlan"></div>
             </section>
         </main>
@@ -156,10 +164,15 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const progressBar = document.getElementById('remodProgress');
     const progressText = document.getElementById('remodProgressText');
     const actions = document.getElementById('remodActions');
-    const downloadButton = document.getElementById('remodDownload');
+    const showResultsButton = document.getElementById('remodShowResults');
+    const downloadButtons = document.getElementById('remodResultDownloads');
+    const downloadZipButton = document.getElementById('remodDownloadZip');
+    const downloadPlanButton = document.getElementById('remodDownloadPlan');
     const forgetButton = document.getElementById('remodForget');
     const resultsSection = document.getElementById('remodResults');
     const resultsContainer = document.getElementById('remodPlan');
+    let resultsZipBlob = null;
+    let planJsonText = null;
     const csrf = form.elements.csrf.value;
     let pollTimer = null;
     let busy = false;
@@ -175,7 +188,9 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     function setBusy(value) {
         busy = value;
         submitButton.disabled = value;
-        downloadButton.disabled = value;
+        showResultsButton.disabled = value;
+        downloadZipButton.disabled = value;
+        downloadPlanButton.disabled = value;
         forgetButton.disabled = value;
     }
     async function request(action, extra) {
@@ -222,13 +237,13 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 progressBar.value = 100;
                 progressText.textContent = '100% — calculation complete';
                 actions.hidden = false;
-                downloadButton.hidden = false;
-                showMessage('Remod complete. Download the ZIP archive to get your results.');
+                showResultsButton.hidden = false;
+                showMessage('Remod complete. Click Show results to display the character cards.');
             } else if (name === 'error') {
                 setBusy(false);
                 progressWrap.hidden = true;
                 actions.hidden = false;
-                downloadButton.hidden = true;
+                showResultsButton.hidden = true;
                 showMessage('The remod calculation failed: ' + (state.error || 'No further details were provided.'), true);
             } else {
                 throw new Error('Unknown remod status: ' + name);
@@ -247,8 +262,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         } else {
             hideMessage();
             submitButton.disabled = busy;
-            // Selecting a valid file immediately starts the server-side upload.
-            if (file && !busy) form.requestSubmit();
+            // Let the user configure the options before explicitly starting the upload.
+            if (file && !busy) showMessage('File selected. Configure the options below, then click Upload and start remod.');
         }
     });
     form.addEventListener('submit', async function (event) {
@@ -261,12 +276,19 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         }
         stopPolling();
         actions.hidden = true;
+        resultsSection.hidden = true;
+        downloadButtons.hidden = true;
+        resultsZipBlob = null;
+        planJsonText = null;
         progressWrap.hidden = true;
         hideMessage();
         setBusy(true);
         showMessage('Uploading your file and creating the remod job…');
         try {
             const data = new FormData(form);
+            const departStats = document.getElementById('remodDepartStats').value.trim();
+            if (departStats === '') data.delete('depart_stats');
+            else if (!/^\d+$/.test(departStats) || Number(departStats) > 9999) throw new Error('depart_stats must be an integer between 0 and 9999.');
             data.set('action', 'submit');
             const response = await fetch('codexcon.php', { method: 'POST', body: data, credentials: 'same-origin' });
             const body = await response.json();
@@ -281,10 +303,10 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             showMessage(error.message || 'Unable to start remod.', true);
         }
     });
-    downloadButton.addEventListener('click', async function () {
+    showResultsButton.addEventListener('click', async function () {
         if (busy) return;
         setBusy(true);
-        showMessage('Preparing the results archive…');
+        showMessage('Loading the completed plan from the remod service…');
         try {
             const data = new FormData();
             data.append('action', 'download');
@@ -292,38 +314,41 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             const response = await fetch('codexcon.php', { method: 'POST', body: data, credentials: 'same-origin' });
             if (!response.ok) {
                 const body = await response.json().catch(function () { return {}; });
-                throw new Error(body.error || 'Unable to download results.');
+                throw new Error(body.error || 'Unable to retrieve results.');
             }
-            const blob = await response.blob();
-            try {
-                const planData = await window.codexRemodExtractPlan(blob);
-                const count = window.codexRemodRenderPlan(resultsContainer, planData);
-                resultsSection.hidden = false;
-                showMessage('Remod complete. ' + count + ' character plans loaded below; your ZIP download will start now.');
-                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } catch (renderError) {
-                resultsSection.hidden = true;
-                showMessage('The ZIP will be downloaded, but its plan could not be displayed: ' + (renderError.message || String(renderError)), true);
-            }
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'codex-remod-results.zip';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+            resultsZipBlob = await response.blob();
+            const extracted = await window.codexRemodExtractPlan(resultsZipBlob);
+            planJsonText = extracted.text;
+            const count = window.codexRemodRenderPlan(resultsContainer, extracted.data);
+            resultsSection.hidden = false;
+            downloadButtons.hidden = false;
             actions.hidden = true;
             progressWrap.hidden = true;
-            if (resultsSection.hidden) showMessage('Archive downloaded. The remote result has been cleaned up.');
+            showMessage('Loaded ' + count + ' character plans. Choose whether to download the full ZIP or only plan.json.');
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             fileInput.value = '';
             fileName.textContent = 'JSON file, maximum size 30 MB.';
-            setBusy(false);
-            submitButton.disabled = false;
         } catch (error) {
-            showMessage(error.message || 'Unable to download results.', true);
+            showMessage(error.message || 'Unable to show remod results.', true);
+        } finally {
             setBusy(false);
         }
+    });
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+    }
+    downloadZipButton.addEventListener('click', function () {
+        if (resultsZipBlob) downloadBlob(resultsZipBlob, 'codex-remod-results.zip');
+    });
+    downloadPlanButton.addEventListener('click', function () {
+        if (planJsonText !== null) downloadBlob(new Blob([planJsonText], { type: 'application/json;charset=utf-8' }), 'plan.json');
     });
     forgetButton.addEventListener('click', async function () {
         if (busy) return;
@@ -333,7 +358,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         try {
             await request('forget');
             actions.hidden = true;
-            downloadButton.hidden = false;
+            showResultsButton.hidden = false;
             progressWrap.hidden = true;
             showMessage('Remod job cleared.');
             setBusy(false);
