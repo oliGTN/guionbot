@@ -116,7 +116,10 @@ function normalizeMod(raw, index) {
     const rollCount = Math.max(Math.trunc(rollCountValue ?? 1), 1);
     const pips = Number(raw.pips ?? 5);
     const k = ROLL_K[`${sid},${pips}`] ?? ROLL_K[`${sid},5`] ?? 1.0;
-    const fraction = (numeric(value, "secondaryValue_" + i) / rollCount) / k;
+    // progress_adapter.py::_num removes '+'/'%' and treats comma as decimal separator.
+    const rollValueText = String(value).replace(/\+/g, "").replace(/%/g, "").replace(/,/g, ".").trim();
+    const rollValue = Number(rollValueText || 0);
+    const fraction = (rollValue / rollCount) / k;
     const roundedFraction = Number(fraction.toFixed(5));
     quality += roundedFraction * rollCount * (sid === 5 ? 2 : 1);
   }
