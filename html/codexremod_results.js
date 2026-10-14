@@ -29,7 +29,7 @@
   }
   function getStats(row, tier) {
     const before = statList((row.advice && row.advice.before) || (row.before && row.before.stats));
-    const after = statList((tier && tier.result) || (row.after && row.after.stats));
+    const after = statList((row.after && row.after.stats) || (tier && tier.result));
     const afterByStat = new Map(after.map(s => [String(s.stat), s]));
     return before.map(s => {
       const a = afterByStat.get(String(s.stat)) || {};
