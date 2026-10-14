@@ -534,7 +534,8 @@ def build_profile(mods: list) -> dict:
             continue
         qual.append(m["quality"])
         try:
-            prim[m["primary"]].append(int(m["raw"]["primaryStat"]["stat"]["unscaledDecimalValue"]) / _scale(m["primary"]))        except (KeyError, TypeError, ValueError):
+            prim[m["primary"]].append(int(m["raw"]["primaryStat"]["stat"]["unscaledDecimalValue"]) / _scale(m["primary"]))
+        except (KeyError, TypeError, ValueError):
             pass
         for sx in m["raw"].get("secondaryStat") or []:
             try:
@@ -783,7 +784,8 @@ def optimise(player, gd, keystats, order, loc, min_relic=3, lock_unselected=True
         t1 = time.time()
         strict = n <= strict_n
         chosen, info = solve_hero(unit, bstate, kh, avail, current_ids, name, primary_lock, time_limit, strict=strict)
-        alt = None        if strict:
+        alt = None
+        if strict:
             if chosen is None:
                 # set imposé impossible avec ces mods : on retombe sur la meilleure combinaison possible pour le statq
                 chosen, info = solve_hero(unit, bstate, kh, avail, current_ids, name, primary_lock, time_limit)
