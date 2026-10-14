@@ -247,8 +247,7 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
                gd_unit_name: str, primary_lock: float, time_limit: float, keep_bonus: float = 150.0,
                strict: bool = False):
     """
-    Choisit 6 mods (un par slot) parmi mods_avail pour ce héros.
-    kh = entrée keystats du héros. Retourne (liste de mods choisis, info) ou (None, raison).
+    Choisit 6 mods (un par slot) parmi mods_avail pour ce héros.    kh = entrée keystats du héros. Retourne (liste de mods choisis, info) ou (None, raison).
     """
     key_rows = kh["key_stats"]
     also_rows = kh.get("also") or []
@@ -301,6 +300,9 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
             return None, "slot sans mod disponible"
         P = Problem()
         xs = [P.var(0, 1, True) for _ in cand]
+        set_reward_vars = []
+        band_vars = []
+        also_vars = []
         hv = lambda m: m.get("virtual")
         for slot in SLOTS:
             P.row({xs[i]: 1.0 for i, m in enumerate(cand) if m["slot"] == slot}, 1, 1)
@@ -326,6 +328,7 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
                             P.row({cv[k]: 1.0}, 0, 0)      # set sans aucun mod disponible : combinaison impossible
                         continue
                     yk = P.var(0, ng, False, obj=SET_REWARD)
+                    set_reward_vars.append(yk)
                     P.row({yk: 1.0, g[sid]: -1.0}, -np.inf, 0)
                     P.row({yk: 1.0, cv[k]: -float(ng)}, -np.inf, 0)
                     if strict:
@@ -359,6 +362,7 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
             T = targets[mk]
             co, const = stat_expr(mk)
             bs = [P.var(0, 1, True, obj=BIG) for _ in BAND_THRESHOLDS]
+            band_vars.extend(bs)
             for j, thr in enumerate(BAND_THRESHOLDS):
                 row = dict(co); row[bs[j]] = row.get(bs[j], 0.0) - thr * T
                 P.row(row, -const, np.inf)             # S >= thr*T*b
@@ -369,6 +373,7 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
             T = max(targets[mk], 1e-9)
             co, const = stat_expr(mk)
             z = P.var(0, 1000.0, False, obj=1.0)       # progression plafonnée à 100 % de la cible
+            also_vars.append(z)
             row = {j: -v * 1000.0 / T for j, v in co.items()}; row[z] = 1.0
             P.row(row, -np.inf, const * 1000.0 / T)
         for i, m in enumerate(cand):
@@ -413,6 +418,35 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
             return None, f"échec solveur ({res.message}); diagnostics={json.dumps(failure, ensure_ascii=False)}"
 
         chosen = [cand[i] for i in range(len(cand)) if res.x[xs[i]] > 0.5]
+
+        # Objective decomposition: keep the same categories as the browser
+        # parity report so any scoring mismatch can be localized.
+        def objective_sum(indices):
+            return finite_float(sum(P.obj[j] * float(res.x[j]) for j in indices)) or 0.0
+
+        mod_terms = objective_sum(xs)
+        stat_band_rewards = objective_sum(band_vars)
+        set_combo_rewards = objective_sum(set_reward_vars)
+        also_stat_progression = objective_sum(also_vars)
+        objective_total = finite_float(sum(P.obj[j] * float(res.x[j]) for j in range(len(P.obj))))
+        objective_breakdown = {
+            "modTerms": round(mod_terms, 6),
+            "statBands": round(stat_band_rewards, 6),
+            "setComboRewards": round(set_combo_rewards, 6),
+            "alsoStatProgression": round(also_stat_progression, 6),
+            "other": round((objective_total or 0.0) - mod_terms - stat_band_rewards
+                           - set_combo_rewards - also_stat_progression, 6),
+            "total": round(objective_total, 6) if objective_total is not None else None,
+        }
+        candidate_counts_by_slot = {
+            SLOT_NAME[slot]: sum(1 for m in cand if m["slot"] == slot)
+            for slot in SLOTS
+        }
+        candidate_counts_by_slot_and_set = {
+            f"{SLOT_NAME[slot]}:{SET_KEY.get(sid, str(sid))}":
+                sum(1 for m in cand if m["slot"] == slot and m["set"] == sid)
+            for slot in SLOTS for sid in sorted({m["set"] for m in cand if m["slot"] == slot})
+        }
         info = {
             "status": int(res.status),
             "status_name": status_names.get(int(res.status), "unknown"),
@@ -427,6 +461,9 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
             "mip_dual_bound": finite_float(-res.mip_dual_bound)
                               if getattr(res, "mip_dual_bound", None) is not None else None,
             "mip_node_count": getattr(res, "mip_node_count", None),
+            "objective_breakdown": objective_breakdown,
+            "candidate_counts_by_slot": candidate_counts_by_slot,
+            "candidate_counts_by_slot_and_set": candidate_counts_by_slot_and_set,
         }
         return chosen, info
 
@@ -497,8 +534,7 @@ def build_profile(mods: list) -> dict:
             continue
         qual.append(m["quality"])
         try:
-            prim[m["primary"]].append(int(m["raw"]["primaryStat"]["stat"]["unscaledDecimalValue"]) / _scale(m["primary"]))
-        except (KeyError, TypeError, ValueError):
+            prim[m["primary"]].append(int(m["raw"]["primaryStat"]["stat"]["unscaledDecimalValue"]) / _scale(m["primary"]))        except (KeyError, TypeError, ValueError):
             pass
         for sx in m["raw"].get("secondaryStat") or []:
             try:
@@ -747,8 +783,7 @@ def optimise(player, gd, keystats, order, loc, min_relic=3, lock_unselected=True
         t1 = time.time()
         strict = n <= strict_n
         chosen, info = solve_hero(unit, bstate, kh, avail, current_ids, name, primary_lock, time_limit, strict=strict)
-        alt = None
-        if strict:
+        alt = None        if strict:
             if chosen is None:
                 # set imposé impossible avec ces mods : on retombe sur la meilleure combinaison possible pour le statq
                 chosen, info = solve_hero(unit, bstate, kh, avail, current_ids, name, primary_lock, time_limit)
@@ -997,8 +1032,7 @@ def write_outputs(out_dir, plan, keystats, order, secs, base_targets=None, progr
              f"Points statq : {tb} -> {ta} / {mx}   ({summary['pct_before']} % -> {summary['pct_after']} %)",
              f"Déplacements de mods : {sum(len(p['moves']) for p in done)}   Durée : {secs}s", ""]
     for p in plan:
-        if "skipped" in p:
-            lines.append(f"- {p['hero']}: ignoré ({p['skipped']})")
+        if "skipped" in p:            lines.append(f"- {p['hero']}: ignoré ({p['skipped']})")
     open(os.path.join(out_dir, "resume.txt"), "w", encoding="utf-8").write("\n".join(lines))
     return summary, lines
 
