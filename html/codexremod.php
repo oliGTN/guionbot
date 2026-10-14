@@ -51,7 +51,32 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         .remod-option-check { display: flex; align-items: center; gap: 8px; margin: 14px 0; }
         .remod-option-check input { width: auto; }
         #remodFileName { margin: 8px 0; overflow-wrap: anywhere; }
-        @media (max-width: 600px) { .remod-panel { padding: 16px; } .remod-wrap { margin-top: 16px; } }
+        .remod-results { max-width: 1200px; margin: 24px auto 40px; padding: 0 14px; }
+        .remod-plan-toolbar { display:grid; grid-template-columns:minmax(12rem,2fr) minmax(10rem,1fr) minmax(10rem,1fr); gap:8px; align-items:center; margin:14px 0; }
+        .remod-plan-count { grid-column:1 / -1; }
+        .remod-plan-toolbar input,.remod-plan-toolbar select { width:100%; box-sizing:border-box; padding:9px; border:1px solid #c7cbd4; border-radius:4px; background:white; }
+        .remod-plan-list { display:grid; gap:6px; }
+        .remod-plan-card { border:1px solid #d9dce4; border-radius:7px; overflow:hidden; background:#fff; }
+        .remod-plan-card[hidden] { display:none; }
+        .remod-plan-summary { list-style:none; display:grid; grid-template-columns:28px 44px minmax(0,1fr) auto 16px; gap:10px; align-items:center; padding:10px 12px; cursor:pointer; }
+        .remod-plan-summary::-webkit-details-marker { display:none; } .remod-plan-summary:hover { background:#f8f8fb; }
+        .remod-rank { color:#7a7f8b; text-align:center; font-size:13px; }
+        .remod-portrait { width:42px; height:42px; object-fit:cover; border-radius:50%; }
+        .remod-initials { display:grid; place-items:center; background:#e8eaf0; color:#384052; font-weight:700; }
+        .remod-identity { display:grid; gap:3px; min-width:0; } .remod-identity strong { overflow-wrap:anywhere; }
+        .remod-identity small,.remod-muted { color:#697080; font-size:12px; } .remod-stat-summary { white-space:normal; }
+        .remod-gain { font-size:13px; font-weight:700; white-space:nowrap; } .remod-chevron { color:#697080; }
+        .remod-plan-card[open] > .remod-plan-summary .remod-chevron { transform:rotate(180deg); }
+        .remod-plan-expanded { border-top:1px solid #e2e5eb; padding:10px 14px 16px; } .remod-plan-expanded h4 { margin:16px 0 7px; }
+        .remod-plan-meta { display:flex; flex-wrap:wrap; gap:8px 20px; font-size:13px; } .remod-table-wrap { width:100%; overflow-x:auto; }
+        .remod-plan-table { width:100%; border-collapse:collapse; font-size:13px; } .remod-plan-table th,.remod-plan-table td { text-align:left; vertical-align:top; padding:8px; border-bottom:1px solid #e5e7eb; }
+        .remod-plan-table thead th { color:#626979; white-space:nowrap; } .remod-plan-table tbody th { white-space:nowrap; }
+        .remod-positive { color:#16803c; } .remod-negative { color:#b42318; }
+        .remod-decision { display:inline-block; padding:2px 7px; border-radius:10px; font-weight:700; font-size:12px; }
+        .remod-decision.replace { background:#fff0e8; color:#a43f0b; } .remod-decision.keep { background:#eaf7ee; color:#176b35; }
+        .remod-alternatives,.remod-technical { margin-top:12px; } .remod-alternatives > summary,.remod-technical > summary { cursor:pointer; padding:6px 0; font-weight:600; }
+        .remod-technical pre { max-height:400px; overflow:auto; background:#f5f6f8; padding:10px; font-size:12px; }
+        @media (max-width:650px) { .remod-panel { padding:16px; } .remod-wrap { margin-top:16px; } .remod-plan-toolbar { grid-template-columns:1fr 1fr; } .remod-plan-toolbar .remod-plan-search { grid-column:1 / -1; } .remod-plan-summary { grid-template-columns:20px 36px minmax(0,1fr) auto; gap:6px; padding:8px; } .remod-portrait { width:34px; height:34px; } .remod-gain { grid-column:3; grid-row:2; justify-self:start; } .remod-chevron { grid-column:4; grid-row:1 / span 2; } .remod-identity { grid-column:3; } .remod-plan-table { min-width:560px; } }
     </style>
 </head>
 <body>
@@ -106,12 +131,18 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                     <button class="remod-button secondary" id="remodForget" type="button">Clear this result</button>
                 </div>
             </section>
+            <section id="remodResults" class="remod-results" hidden>
+                <h2>Remod results</h2>
+                <p class="remod-help">Click a character row to expand its StatQ, stat changes and mod recommendations.</p>
+                <div id="remodPlan"></div>
+            </section>
             <p class="remod-help">Your file is sent securely to the remod service for processing. It is not stored by this website. Result files contain your roster and mods; keep the downloaded archive private.</p>
         </main>
     </div>
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
+<script src="codexremod_results.js"></script>
 <script>
 (function () {
     'use strict';
@@ -126,6 +157,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const actions = document.getElementById('remodActions');
     const downloadButton = document.getElementById('remodDownload');
     const forgetButton = document.getElementById('remodForget');
+    const resultsSection = document.getElementById('remodResults');
+    const resultsContainer = document.getElementById('remodPlan');
     const csrf = form.elements.csrf.value;
     let pollTimer = null;
     let busy = false;
@@ -261,6 +294,16 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 throw new Error(body.error || 'Unable to download results.');
             }
             const blob = await response.blob();
+            try {
+                const planData = await window.codexRemodExtractPlan(blob);
+                const count = window.codexRemodRenderPlan(resultsContainer, planData);
+                resultsSection.hidden = false;
+                showMessage('Remod complete. ' + count + ' character plans loaded below; your ZIP download will start now.');
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (renderError) {
+                resultsSection.hidden = true;
+                showMessage('The ZIP will be downloaded, but its plan could not be displayed: ' + (renderError.message || String(renderError)), true);
+            }
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -271,7 +314,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             window.setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
             actions.hidden = true;
             progressWrap.hidden = true;
-            showMessage('Archive downloaded. The remote result has been cleaned up.');
+            if (resultsSection.hidden) showMessage('Archive downloaded. The remote result has been cleaned up.');
             fileInput.value = '';
             fileName.textContent = 'JSON file, maximum size 30 MB.';
         } catch (error) {
