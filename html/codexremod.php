@@ -318,6 +318,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             if (resultsSection.hidden) showMessage('Archive downloaded. The remote result has been cleaned up.');
             fileInput.value = '';
             fileName.textContent = 'JSON file, maximum size 30 MB.';
+            setBusy(false);
+            submitButton.disabled = false;
         } catch (error) {
             showMessage(error.message || 'Unable to download results.', true);
             setBusy(false);
