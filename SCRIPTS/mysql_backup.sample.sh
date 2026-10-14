@@ -3,7 +3,7 @@ echo SCRIPT_DIR=$SCRIPT_DIR
 
 rm -rf /home/pi/GuionBot/SQLBACKUP
 mkdir /home/pi/GuionBot/SQLBACKUP
-for table in gp_history guilds guild_bot_infos guild_gp_history players player_discord shards statq_table user_bot_infos
+for table in gp_history guilds guild_bot_infos guild_gp_history guild_evolutions mod_config_list mod_config_content players player_discord shards statq_table tb_history tw_history user_bot_infos
 do
     echo $table
 	mysqldump -u<user> -p<password> --opt guionbotdb $table > /home/pi/GuionBot/SQLBACKUP/$table.sql
