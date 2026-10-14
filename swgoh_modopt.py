@@ -396,7 +396,7 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
                 return None
 
         if res.x is None or res.status not in (0, 1):
-            return None, {
+            failure = {
                 "status": int(res.status),
                 "status_name": status_names.get(int(res.status), "unknown"),
                 "message": str(res.message),
@@ -409,7 +409,8 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
                 "mip_dual_bound": finite_float(-res.mip_dual_bound)
                                   if getattr(res, "mip_dual_bound", None) is not None else None,
                 "mip_node_count": getattr(res, "mip_node_count", None),
-            }, f"échec solveur ({res.message})"
+            }
+            return None, f"échec solveur ({res.message}); diagnostics={json.dumps(failure, ensure_ascii=False)}"
 
         chosen = [cand[i] for i in range(len(cand)) if res.x[xs[i]] > 0.5]
         info = {
