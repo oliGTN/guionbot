@@ -52,6 +52,9 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         .remod-option-check input { width: auto; }
         .remod-mode { display:flex; flex-wrap:wrap; gap:16px; margin:16px 0; }
         .remod-mode label { display:flex; align-items:center; gap:7px; font-weight:600; }
+        .remod-mode label { padding:10px 14px; border:2px solid #cbd0d8; border-radius:7px; background:#f5f6f8; color:#343a46; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
+        .remod-mode label.selected { border-color:#d97706; background:#fff0d6; color:#873b08; box-shadow:0 0 0 1px #d97706; }
+        .remod-mode label input { accent-color:#b45309; }
         .remod-mode input { width:auto; }
         .remod-options-toggle { margin:0 0 10px; }
         .remod-options[hidden], .remod-option-group[hidden] { display:none !important; }
@@ -211,6 +214,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     function setGroupEnabled(group, enabled) { group.querySelectorAll('input, select, textarea').forEach(control => { control.disabled = !enabled; }); }
     function updateMode() {
         const light = selectedMode() === 'light';
+        modeInputs.forEach(input => input.closest('label').classList.toggle('selected', input.checked));
         document.getElementById('remodTargetsWrap').hidden = !light;
         targetsInput.disabled = !light;
         targetsInput.required = light;
