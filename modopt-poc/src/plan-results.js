@@ -36,7 +36,8 @@ function modSlots(row, tier) {
   });
 }
 function statLabel(stat) {
-  return ({ speed: "Speed", protection: "Protection", health: "Health", potency: "Potency", tenacity: "Tenacity", critDmg: "Critical Damage", critChance: "Critical Chance", physDmg: "Physical Damage", specDmg: "Special Damage" })[stat] ?? stat ?? "Stat";
+  const statIdLabels = { "5": "Speed", "28": "Protection", "56": "Potency", "17": "Tenacity", "16": "Critical Chance", "18": "Critical Damage", "1": "Health", "6": "Physical Damage", "7": "Special Damage" };
+  return statIdLabels[String(stat)] ?? ({ speed: "Speed", protection: "Protection", health: "Health", potency: "Potency", tenacity: "Tenacity", critDmg: "Critical Damage", critChance: "Critical Chance", physDmg: "Physical Damage", specDmg: "Special Damage" })[stat] ?? stat ?? "Stat";
 }
 function renderCharacter(row, index) {
   const tier = bestTier(row);
