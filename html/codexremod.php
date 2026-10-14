@@ -262,8 +262,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         } else {
             hideMessage();
             submitButton.disabled = busy;
-            // Selecting a valid file immediately starts the server-side upload.
-            if (file && !busy) form.requestSubmit();
+            // Let the user configure the options before explicitly starting the upload.
+            if (file && !busy) showMessage('File selected. Configure the options below, then click Upload and start remod.');
         }
     });
     form.addEventListener('submit', async function (event) {
