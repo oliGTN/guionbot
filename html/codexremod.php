@@ -266,7 +266,11 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         ['special_damage','Special damage / Dégâts spéciaux'], ['offense','Offense / Attaque'],
         ['crit_chance','Critical chance from mods / Chance critique apportée par les mods']
     ];
-    const targetSets = [['health','Health'],['offense','Offense'],['defense','Defense'],['speed','Speed'],['critchance','Critical chance'],['critdamage','Critical damage'],['potency','Potency'],['tenacity','Tenacity']];
+    const targetSets = [
+        ['health','Health',2,3],['offense','Offense',4,1],['defense','Defense',2,3],
+        ['speed','Speed',4,1],['critchance','Critical chance',2,3],['critdamage','Critical damage',4,1],
+        ['potency','Potency',2,3],['tenacity','Tenacity',2,3]
+    ];
     const targetPrimaries = {
         arrow:['Speed','Accuracy %','Critical Avoidance %','Defense %','Health %','Offense %','Protection %'],
         triangle:['Critical Chance %','Critical Damage %','Defense %','Health %','Offense %','Protection %'],
@@ -307,15 +311,34 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             const card = document.createElement('section');
             card.className = 'remod-target-card';
             const statsHtml = hero.stats.map((item, si) => '<div class="remod-target-stat" data-stat-index="'+si+'"><select aria-label="Target stat"><option value="">Choose stat…</option>'+targetStats.map(([key,label])=>'<option value="'+key+'"'+(item.stat===key?' selected':'')+'>'+label+'</option>').join('')+'</select><input type="number" min="0.000001" step="any" aria-label="Final stat value" placeholder="Final value" value="'+esc(item.value)+'"><button type="button" class="remod-button secondary" data-remove-stat="'+si+'" aria-label="Remove stat">×</button></div>').join('');
-            const setsHtml = targetSets.map(([key,label])=>'<div><label>'+label+' sets</label><select data-set="'+key+'"><option value="0">No preference</option>'+[1,2,3].map(n=>'<option value="'+n+'"'+(hero.sets[key]===n?' selected':'')+'>'+n+'</option>').join('')+'</select></div>').join('');
+            const setsHtml = targetSets.map(([key,label,weight,max])=>'<div><label>'+label+' sets ('+weight+' points each)</label><select data-set="'+key+'" data-weight="'+weight+'" data-max="'+max+'"><option value="0">0</option>'+Array.from({length:max},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+(hero.sets[key]===n?' selected':'')+'>'+n+'</option>').join('')+'</select></div>').join('');
             const primaryHtml = Object.entries(targetPrimaries).map(([slot,opts])=>'<div><label>'+slot.charAt(0).toUpperCase()+slot.slice(1)+' primary</label><select data-primary="'+slot+'"><option value="">No preference</option>'+opts.map(v=>'<option value="'+esc(v)+'"'+(hero.primaires[slot]===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></div>').join('');
             const portraitId = hero.id.replace(/[^A-Za-z0-9_-]/g,'');
-            card.innerHTML = '<div class="remod-target-head"><img src="IMAGES/CHARACTERS/'+encodeURIComponent(portraitId)+'.png" alt="" onerror="this.hidden=true"><strong>'+esc(hero.name)+'<br><small>'+esc(hero.id)+'</small></strong><button type="button" class="remod-button secondary" data-remove-hero>Remove</button></div><div class="remod-target-stats">'+statsHtml+'</div><button type="button" class="remod-button secondary" data-add-stat '+(hero.stats.length>=12?'disabled':'')+'>Add stat</button><details><summary>Mod sets (optional)</summary><div class="remod-target-extra">'+setsHtml+'</div></details><details><summary>Mod primaries (optional)</summary><div class="remod-target-extra">'+primaryHtml+'</div></details>';
+            card.innerHTML = '<div class="remod-target-head"><img src="IMAGES/CHARACTERS/'+encodeURIComponent(portraitId)+'.png" alt="" onerror="this.hidden=true"><strong>'+esc(hero.name)+'<br><small>'+esc(hero.id)+'</small></strong><button type="button" class="remod-button secondary" data-remove-hero>Remove</button></div><div class="remod-target-stats">'+statsHtml+'</div><button type="button" class="remod-button secondary" data-add-stat '+(hero.stats.length>=12?'disabled':'')+'>Add stat</button><details><summary>Mod sets (optional)</summary><div class="remod-target-note">Total set weight must not exceed 6.</div><div class="remod-target-extra">'+setsHtml+'</div><div class="remod-target-note" data-set-total></div></details><details><summary>Mod primaries (optional)</summary><div class="remod-target-extra">'+primaryHtml+'</div></details>';
             card.querySelector('[data-remove-hero]').addEventListener('click',()=>{targetHeroes.splice(hi,1);renderTargets();});
             card.querySelector('[data-add-stat]').addEventListener('click',()=>{if(hero.stats.length<12){hero.stats.push({stat:'',value:''});renderTargets();}});
             card.querySelectorAll('[data-remove-stat]').forEach(btn=>btn.addEventListener('click',()=>{if(hero.stats.length>1){hero.stats.splice(Number(btn.dataset.removeStat),1);renderTargets();}}));
             card.querySelectorAll('.remod-target-stat').forEach((row,si)=>{row.querySelector('select').addEventListener('change',e=>hero.stats[si].stat=e.target.value);row.querySelector('input').addEventListener('input',e=>hero.stats[si].value=e.target.value);});
-            card.querySelectorAll('[data-set]').forEach(sel=>sel.addEventListener('change',e=>{const k=e.target.dataset.set,v=Number(e.target.value);if(v)hero.sets[k]=v;else delete hero.sets[k];}));
+            const setTotal = () => targetSets.reduce((sum,[key,label,weight])=>sum+(Number(hero.sets[key]||0)*weight),0);
+            const updateSetTotal = () => {
+                const total = setTotal();
+                const display = card.querySelector('[data-set-total]');
+                display.textContent = 'Set weight: '+total+' / 6';
+                display.style.color = total > 6 ? '#b91c1c' : '';
+                card.querySelectorAll('[data-set]').forEach(sel => {
+                    const key=sel.dataset.set, weight=Number(sel.dataset.weight);
+                    const others=targetSets.reduce((sum,[otherKey,label,otherWeight])=>sum+(otherKey===key?0:Number(hero.sets[otherKey]||0)*otherWeight),0);
+                    Array.from(sel.options).forEach(option => { option.disabled = Number(option.value)*weight+others>6; });
+                });
+            };
+            card.querySelectorAll('[data-set]').forEach(sel=>sel.addEventListener('change',e=>{
+                const k=e.target.dataset.set,v=Number(e.target.value),weight=Number(e.target.dataset.weight);
+                const others=targetSets.reduce((sum,[otherKey,label,otherWeight])=>sum+(otherKey===k?0:Number(hero.sets[otherKey]||0)*otherWeight),0);
+                if(v*weight+others>6){e.target.value=String(hero.sets[k]||0);return;}
+                if(v)hero.sets[k]=v;else delete hero.sets[k];
+                updateSetTotal();
+            }));
+            updateSetTotal();
             card.querySelectorAll('[data-primary]').forEach(sel=>sel.addEventListener('change',e=>{const k=e.target.dataset.primary,v=e.target.value;if(v)hero.primaires[k]=v;else delete hero.primaires[k];}));
             targetList.appendChild(card);
         });
@@ -328,6 +351,12 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             const stats={};
             hero.stats.forEach(item=>{const value=Number(item.value);if(!item.stat||!Number.isFinite(value)||value<=0)throw new Error('Each character needs at least one selected stat with a positive final value.');if(Object.prototype.hasOwnProperty.call(stats,item.stat))throw new Error('Choose each stat only once per character.');stats[item.stat]=value;});
             const output={id:hero.id,stats};
+            const setWeight=targetSets.reduce((sum,[key,label,weight,max])=>{
+                const count=Number(hero.sets[key]||0);
+                if(!Number.isInteger(count)||count<0||count>max)throw new Error('Invalid number of '+label+' sets for '+hero.name+'.');
+                return sum+count*weight;
+            },0);
+            if(setWeight>6)throw new Error('The mod-set weight for '+hero.name+' exceeds 6.');
             if(Object.keys(hero.sets).length)output.sets=hero.sets;
             if(Object.keys(hero.primaires).length)output.primaires=hero.primaires;
             return output;
