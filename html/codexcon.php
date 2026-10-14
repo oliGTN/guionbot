@@ -21,7 +21,8 @@ function codex_json_response($status, $data) {
 }
 
 function codex_api_secret() {
-    $secret = getenv('REMOD_API_SECRET');
+    include 'codex_secret.php'; // defines $REMOD_API_SECRET
+    $secret = $REMOD_API_SECRET;
     if ($secret === false || trim($secret) === '') {
         $secretFile = '/etc/remod-secret.txt';
         if (is_readable($secretFile)) {
