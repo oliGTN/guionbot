@@ -216,8 +216,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         targetsInput.required = light;
         fullOptions.hidden = light;
         lightOptions.hidden = !light;
-        setGroupEnabled(fullOptions, !light && optionsExpanded);
-        setGroupEnabled(lightOptions, light && optionsExpanded);
+        setGroupEnabled(fullOptions, !light);
+        setGroupEnabled(lightOptions, light);
         optionsPanel.hidden = !optionsExpanded;
         optionsToggle.textContent = optionsExpanded ? 'Hide options' : 'Show options';
         optionsToggle.setAttribute('aria-expanded', optionsExpanded ? 'true' : 'false');
