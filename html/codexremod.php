@@ -56,6 +56,23 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         .remod-mode label.selected { border-color:#d97706; background:#fff0d6; color:#873b08; box-shadow:0 0 0 1px #d97706; }
         .remod-mode label input { accent-color:#b45309; }
         .remod-mode input { width:auto; }
+        .remod-target-picker { display:grid; grid-template-columns:minmax(0,1fr) minmax(12rem,2fr) auto; gap:8px; align-items:end; margin:12px 0 18px; }
+        .remod-target-picker label { display:block; font-weight:600; font-size:14px; margin-bottom:5px; }
+        .remod-target-picker input,.remod-target-picker select { width:100%; box-sizing:border-box; padding:9px; border:1px solid #c7cbd4; border-radius:4px; background:white; }
+        .remod-target-list { display:grid; gap:12px; margin:14px 0; }
+        .remod-target-card { border:1px solid #d9dce4; border-radius:7px; padding:14px; background:#fff; }
+        .remod-target-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+        .remod-target-head img { width:42px; height:42px; border-radius:50%; object-fit:cover; }
+        .remod-target-head strong { flex:1; overflow-wrap:anywhere; }
+        .remod-target-stats { display:grid; gap:7px; }
+        .remod-target-stat { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(7rem,1fr) auto; gap:8px; align-items:center; }
+        .remod-target-card select,.remod-target-card input { min-width:0; width:100%; box-sizing:border-box; padding:8px; border:1px solid #c7cbd4; border-radius:4px; background:white; }
+        .remod-target-card details { margin-top:12px; border-top:1px solid #eceef3; padding-top:10px; }
+        .remod-target-card summary { cursor:pointer; font-weight:600; }
+        .remod-target-extra { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:10px; }
+        .remod-target-extra label { display:block; font-size:13px; font-weight:600; margin-bottom:5px; }
+        .remod-target-note { color:#626979; font-size:13px; margin:8px 0; }
+        @media (max-width:650px) { .remod-target-picker { grid-template-columns:1fr; } }
         .remod-options-toggle { margin:0 0 10px; }
         .remod-options[hidden], .remod-option-group[hidden] { display:none !important; }
         .remod-option-group { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
@@ -108,9 +125,16 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                         <label><input type="radio" name="mode" value="light"> Light remod (target stats)</label>
                     </fieldset>
                     <div id="remodTargetsWrap" hidden>
-                        <label for="remodTargets"><strong>Select cibles.json</strong></label>
-                        <input class="remod-file" type="file" id="remodTargets" name="cibles" accept=".json,application/json">
-                        <div id="remodTargetsName" class="remod-help">Required for light remod, maximum size 256 KB. JSON must contain 1–40 unique heroes.</div>
+                        <strong>Light-remod targets</strong>
+                        <p class="remod-help">Choose characters from your restoreMyProgress file. For each character, add at least one target stat and its final in-game value. Sets and primaries are optional.</p>
+                        <div class="remod-target-picker">
+                            <div><label for="remodHeroSearch">Search characters</label><input type="search" id="remodHeroSearch" placeholder="Name or character ID" autocomplete="off"></div>
+                            <div><label for="remodHeroSelect">Characters in your roster</label><select id="remodHeroSelect"><option value="">Select a roster file first</option></select></div>
+                            <button class="remod-button secondary" type="button" id="remodAddHero" disabled>Add character</button>
+                        </div>
+                        <div id="remodRosterNote" class="remod-target-note">Select a restoreMyProgress.json file to load your characters.</div>
+                        <div id="remodTargetList" class="remod-target-list"></div>
+                        <div id="remodTargetCount" class="remod-help">0 / 40 characters added.</div>
                     </div>
                     <button class="remod-button secondary remod-options-toggle" id="remodOptionsToggle" type="button" aria-expanded="false">Show options</button>
                     <div class="remod-options" id="remodOptions" hidden>
@@ -183,8 +207,14 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const form = document.getElementById('remodForm');
     const fileInput = document.getElementById('remodFile');
     const fileName = document.getElementById('remodFileName');
-    const targetsInput = document.getElementById('remodTargets');
-    const targetsName = document.getElementById('remodTargetsName');
+    const heroSearch = document.getElementById('remodHeroSearch');
+    const heroSelect = document.getElementById('remodHeroSelect');
+    const addHeroButton = document.getElementById('remodAddHero');
+    const rosterNote = document.getElementById('remodRosterNote');
+    const targetList = document.getElementById('remodTargetList');
+    const targetCount = document.getElementById('remodTargetCount');
+    let rosterCharacters = [];
+    let targetHeroes = [];
     const modeInputs = Array.from(form.querySelectorAll('input[name="mode"]'));
     const optionsToggle = document.getElementById('remodOptionsToggle');
     const optionsPanel = document.getElementById('remodOptions');
@@ -216,8 +246,9 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         const light = selectedMode() === 'light';
         modeInputs.forEach(input => input.closest('label').classList.toggle('selected', input.checked));
         document.getElementById('remodTargetsWrap').hidden = !light;
-        targetsInput.disabled = !light;
-        targetsInput.required = light;
+        heroSearch.disabled = !light || !rosterCharacters.length;
+        heroSelect.disabled = !light || !rosterCharacters.length;
+        addHeroButton.disabled = !light || !heroSelect.value || targetHeroes.length >= 40;
         fullOptions.hidden = light;
         lightOptions.hidden = !light;
         setGroupEnabled(fullOptions, !light);
@@ -227,6 +258,82 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         optionsToggle.setAttribute('aria-expanded', optionsExpanded ? 'true' : 'false');
     }
 
+    const targetStats = [
+        ['speed','Speed / Vitesse'], ['health','Health / Santé'], ['protection','Protection'],
+        ['armor','Armor % / Armure %'], ['resistance','Resistance % / Résistance %'],
+        ['crit_damage','Critical damage % / Dégâts critiques %'], ['potency','Potency % / Pouvoir %'],
+        ['tenacity','Tenacity % / Ténacité %'], ['physical_damage','Physical damage / Dégâts physiques'],
+        ['special_damage','Special damage / Dégâts spéciaux'], ['offense','Offense / Attaque'],
+        ['crit_chance','Critical chance from mods / Chance critique apportée par les mods']
+    ];
+    const targetSets = [['health','Health'],['offense','Offense'],['defense','Defense'],['speed','Speed'],['critchance','Critical chance'],['critdamage','Critical damage'],['potency','Potency'],['tenacity','Tenacity']];
+    const targetPrimaries = {
+        arrow:['Speed','Accuracy %','Critical Avoidance %','Defense %','Health %','Offense %','Protection %'],
+        triangle:['Critical Chance %','Critical Damage %','Defense %','Health %','Offense %','Protection %'],
+        circle:['Health %','Protection %'],
+        cross:['Tenacity %','Potency %','Defense %','Health %','Offense %','Protection %']
+    };
+    function esc(value) { return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+    function extractCharacters(data) {
+        const roots = [data];
+        if (data && data.profiles && typeof data.profiles === 'object') roots.push(...(Array.isArray(data.profiles) ? data.profiles : Object.values(data.profiles)));
+        const found = new Map();
+        for (const root of roots) {
+            const chars = root && root.characters;
+            if (!chars || typeof chars !== 'object') continue;
+            const entries = Array.isArray(chars) ? chars.map(ch => [ch && (ch.baseId || ch.definitionId || ch.defId || ch.id), ch]) : Object.entries(chars);
+            for (const [key, ch] of entries) {
+                if (!key || !ch || typeof ch !== 'object') continue;
+                const id = String(key);
+                if (found.has(id.toUpperCase())) continue;
+                const name = ch.displayName || ch.localizedName || ch.characterName || ch.name || id;
+                found.set(id.toUpperCase(), {id, name:String(name), search:(id+' '+name).toLowerCase()});
+            }
+        }
+        return [...found.values()].sort((a,b) => a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+    }
+    function refreshCharacterSelect() {
+        const query = heroSearch.value.trim().toLowerCase();
+        const added = new Set(targetHeroes.map(h => h.id.toUpperCase()));
+        const available = rosterCharacters.filter(h => !added.has(h.id.toUpperCase()) && (!query || h.search.includes(query)));
+        const previous = heroSelect.value;
+        heroSelect.innerHTML = '<option value="">Choose a character…</option>' + available.map(h => '<option value="'+esc(h.id)+'">'+esc(h.name)+(h.name.toUpperCase()===h.id.toUpperCase()?'':' ('+esc(h.id)+')')+'</option>').join('');
+        if (available.some(h => h.id === previous)) heroSelect.value = previous;
+        addHeroButton.disabled = selectedMode() !== 'light' || !heroSelect.value || targetHeroes.length >= 40;
+    }
+    function renderTargets() {
+        targetList.innerHTML = '';
+        targetHeroes.forEach((hero, hi) => {
+            const card = document.createElement('section');
+            card.className = 'remod-target-card';
+            const statsHtml = hero.stats.map((item, si) => '<div class="remod-target-stat" data-stat-index="'+si+'"><select aria-label="Target stat"><option value="">Choose stat…</option>'+targetStats.map(([key,label])=>'<option value="'+key+'"'+(item.stat===key?' selected':'')+'>'+label+'</option>').join('')+'</select><input type="number" min="0.000001" step="any" aria-label="Final stat value" placeholder="Final value" value="'+esc(item.value)+'"><button type="button" class="remod-button secondary" data-remove-stat="'+si+'" aria-label="Remove stat">×</button></div>').join('');
+            const setsHtml = targetSets.map(([key,label])=>'<div><label>'+label+' sets</label><select data-set="'+key+'"><option value="0">No preference</option>'+[1,2,3].map(n=>'<option value="'+n+'"'+(hero.sets[key]===n?' selected':'')+'>'+n+'</option>').join('')+'</select></div>').join('');
+            const primaryHtml = Object.entries(targetPrimaries).map(([slot,opts])=>'<div><label>'+slot.charAt(0).toUpperCase()+slot.slice(1)+' primary</label><select data-primary="'+slot+'"><option value="">No preference</option>'+opts.map(v=>'<option value="'+esc(v)+'"'+(hero.primaires[slot]===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></div>').join('');
+            const portraitId = hero.id.replace(/[^A-Za-z0-9_-]/g,'');
+            card.innerHTML = '<div class="remod-target-head"><img src="IMAGES/CHARACTERS/'+encodeURIComponent(portraitId)+'.png" alt="" onerror="this.hidden=true"><strong>'+esc(hero.name)+'<br><small>'+esc(hero.id)+'</small></strong><button type="button" class="remod-button secondary" data-remove-hero>Remove</button></div><div class="remod-target-stats">'+statsHtml+'</div><button type="button" class="remod-button secondary" data-add-stat '+(hero.stats.length>=12?'disabled':'')+'>Add stat</button><details><summary>Mod sets (optional)</summary><div class="remod-target-extra">'+setsHtml+'</div></details><details><summary>Mod primaries (optional)</summary><div class="remod-target-extra">'+primaryHtml+'</div></details>';
+            card.querySelector('[data-remove-hero]').addEventListener('click',()=>{targetHeroes.splice(hi,1);renderTargets();});
+            card.querySelector('[data-add-stat]').addEventListener('click',()=>{if(hero.stats.length<12){hero.stats.push({stat:'',value:''});renderTargets();}});
+            card.querySelectorAll('[data-remove-stat]').forEach(btn=>btn.addEventListener('click',()=>{if(hero.stats.length>1){hero.stats.splice(Number(btn.dataset.removeStat),1);renderTargets();}}));
+            card.querySelectorAll('.remod-target-stat').forEach((row,si)=>{row.querySelector('select').addEventListener('change',e=>hero.stats[si].stat=e.target.value);row.querySelector('input').addEventListener('input',e=>hero.stats[si].value=e.target.value);});
+            card.querySelectorAll('[data-set]').forEach(sel=>sel.addEventListener('change',e=>{const k=e.target.dataset.set,v=Number(e.target.value);if(v)hero.sets[k]=v;else delete hero.sets[k];}));
+            card.querySelectorAll('[data-primary]').forEach(sel=>sel.addEventListener('change',e=>{const k=e.target.dataset.primary,v=e.target.value;if(v)hero.primaires[k]=v;else delete hero.primaires[k];}));
+            targetList.appendChild(card);
+        });
+        targetCount.textContent=targetHeroes.length+' / 40 characters added.';
+        refreshCharacterSelect();
+    }
+    function makeTargetsJson() {
+        if(targetHeroes.length<1||targetHeroes.length>40)throw new Error('Add between 1 and 40 characters for light remod.');
+        const heroes=targetHeroes.map(hero=>{
+            const stats={};
+            hero.stats.forEach(item=>{const value=Number(item.value);if(!item.stat||!Number.isFinite(value)||value<=0)throw new Error('Each character needs at least one selected stat with a positive final value.');if(Object.prototype.hasOwnProperty.call(stats,item.stat))throw new Error('Choose each stat only once per character.');stats[item.stat]=value;});
+            const output={id:hero.id,stats};
+            if(Object.keys(hero.sets).length)output.sets=hero.sets;
+            if(Object.keys(hero.primaires).length)output.primaires=hero.primaires;
+            return output;
+        });
+        return JSON.stringify({heroes},null,2);
+    }
     function showMessage(message, isError) {
         statusBox.textContent = message;
         statusBox.className = 'remod-status visible' + (isError ? ' error' : '');
@@ -305,11 +412,14 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     }
     optionsToggle.addEventListener('click', function () { optionsExpanded = !optionsExpanded; updateMode(); });
     modeInputs.forEach(input => input.addEventListener('change', function () { updateMode(); hideMessage(); }));
-    targetsInput.addEventListener('change', function () {
-        const f = targetsInput.files && targetsInput.files[0];
-        targetsName.textContent = f ? f.name + ' (' + (f.size / 1024).toFixed(1) + ' KB)' : 'Required for light remod, maximum size 256 KB. JSON must contain 1–40 unique heroes.';
-        if (f && (f.size > 256 * 1024 || !f.name.toLowerCase().endsWith('.json'))) showMessage('Choose a cibles.json file no larger than 256 KB.', true);
-        else if (f) hideMessage();
+    heroSearch.addEventListener('input', refreshCharacterSelect);
+    heroSelect.addEventListener('change', refreshCharacterSelect);
+    addHeroButton.addEventListener('click', function () {
+        const character=rosterCharacters.find(h=>h.id===heroSelect.value);
+        if(!character||targetHeroes.length>=40)return;
+        targetHeroes.push({id:character.id,name:character.name,stats:[{stat:'',value:''}],sets:{},primaires:{}});
+        heroSearch.value='';
+        renderTargets();
     });
     fileInput.addEventListener('change', function () {
         const file = fileInput.files && fileInput.files[0];
@@ -320,8 +430,22 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         } else {
             hideMessage();
             submitButton.disabled = busy;
-            // Let the user configure the options before explicitly starting the upload.
-            if (file && !busy) showMessage('File selected. Configure the options below, then click Upload and start remod.');
+            rosterCharacters = [];
+            targetHeroes = [];
+            renderTargets();
+            if (file) {
+                try {
+                    const parsed = JSON.parse(await file.text());
+                    rosterCharacters = extractCharacters(parsed);
+                    rosterNote.textContent = rosterCharacters.length ? 'Loaded '+rosterCharacters.length+' characters from this roster.' : 'No characters found. Make sure this is a restoreMyProgress.json file.';
+                    refreshCharacterSelect();
+                    if (!rosterCharacters.length && selectedMode()==='light') showMessage(rosterNote.textContent,true);
+                    else if (!busy) showMessage('File selected. Configure the options below, then click Upload and start remod.');
+                } catch (error) {
+                    rosterNote.textContent='Could not parse this JSON file.';
+                    if(selectedMode()==='light')showMessage('Could not parse restoreMyProgress.json to list characters.',true);
+                }
+            } else rosterNote.textContent='Select a restoreMyProgress.json file to load your characters.';
         }
     });
     form.addEventListener('submit', async function (event) {
@@ -333,23 +457,12 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             showMessage('Choose a .json file no larger than 30 MB.', true); return;
         }
         const light = selectedMode() === 'light';
-        const targetsFile = targetsInput.files && targetsInput.files[0];
-        if (light && !targetsFile) { showMessage('Select cibles.json for light remod.', true); return; }
-        if (light && (!targetsFile.name.toLowerCase().endsWith('.json') || targetsFile.size > 256 * 1024)) { showMessage('Choose a cibles.json file no larger than 256 KB.', true); return; }
+        let targetsJson = null;
         if (light) {
-            try {
-                const targets = JSON.parse(await targetsFile.text());
-                if (!targets || !Array.isArray(targets.heroes) || targets.heroes.length < 1 || targets.heroes.length > 40) throw new Error();
-                const ids = new Set();
-                for (const hero of targets.heroes) {
-                    if (!hero || typeof hero.id !== 'string' || !hero.id.trim() || !hero.stats || typeof hero.stats !== 'object' || Array.isArray(hero.stats)) throw new Error();
-                    const id = hero.id.trim().toLowerCase();
-                    if (ids.has(id)) throw new Error();
-                    ids.add(id);
-                    const stats = Object.entries(hero.stats);
-                    if (stats.length < 1 || stats.length > 12 || stats.some(([key, value]) => !key || typeof value !== 'number' || !Number.isFinite(value) || value <= 0)) throw new Error();
-                }
-            } catch (error) { showMessage('cibles.json must contain 1–40 unique heroes, each with an id and 1–12 positive numeric stats.', true); return; }
+            if (!rosterCharacters.length) { showMessage('Select a valid restoreMyProgress.json file to load the character list.', true); return; }
+            try { targetsJson = makeTargetsJson(); }
+            catch (error) { showMessage(error.message || 'Check your target characters and stats.', true); return; }
+            if (new Blob([targetsJson]).size > 256 * 1024) { showMessage('Generated targets exceed the 256 KB limit.', true); return; }
         }
         stopPolling();
         actions.hidden = true;
@@ -368,8 +481,11 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 ['cible', 'max_heroes', 'suppr_vitesse_max', 'depart_stats'].forEach(key => data.delete(key));
                 data.delete('sans_bot');
                 data.delete('time_limit');
+                data.set('cibles', new Blob([targetsJson], {type:'application/json'}), 'cibles.json');
+                data.set('lang', document.getElementById('remodLang').value);
                 data.set('time_limit', document.getElementById('remodLightTime').value);
                 data.set('sans_bot', document.getElementById('remodSansBot').checked ? 'true' : 'false');
+                data.set('sans_emprunt', document.getElementById('remodSansEmprunt').checked ? 'true' : 'false');
             } else {
                 data.delete('cibles');
                 data.delete('lang');
