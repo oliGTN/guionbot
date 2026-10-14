@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GuionBot mod optimizer — browser POC</title>
-    <link rel="stylesheet" href="/src/plan-results.css" />
   </head>
   <body>
     <main>
@@ -51,17 +50,12 @@
         <label for="batch-limit">Maximum heroes (0 = all available)</label>
         <input id="batch-limit" type="number" min="0" step="1" value="10" />
         <button id="run-parity-batch" type="button" disabled>Run batch parity test</button>
-        <label for="reference-file">Python results (plan.json or ZIP archive containing plan.json, optional)</label>
-        <input id="reference-file" type="file" accept=".json,.zip,application/json,application/zip" />
+        <label for="reference-file">Python reference results (JSON, optional)</label>
+        <input id="reference-file" type="file" accept=".json,application/json" />
         <label for="reference-hero-id">Hero ID for a single Python result without an ID (optional)</label>
         <input id="reference-hero-id" type="text" placeholder="e.g. GRANDMASTERLUKE" />
         <p id="parity-status" role="status" aria-live="polite">Load the four input files to enable batch testing.</p>
         <pre id="parity-output"></pre>
-        <section id="plan-results-section" class="plan-results" hidden>
-          <h2>Optimization plan</h2>
-          <p>Click a character row to expand its stat comparison and mod recommendations. All rows start collapsed.</p>
-          <div id="plan-results"></div>
-        </section>
         <button id="download-parity" type="button" disabled>Download batch results JSON</button>
         <p id="optimizer-status" role="status" aria-live="polite">Load the Grandivory progress file and all three data files.</p>
         <pre id="optimizer-output"></pre>
