@@ -360,7 +360,7 @@ function solveOnce(highs, input, lock, F0, P0, strict) {
   const currentIdsForDiagnostics = new Set(input.currentIds || []);
   const modObjectiveDetails = chosen.map(mod => {
     const isCurrent = currentIdsForDiagnostics.has(mod.id);
-    const keepBonus = isCurrent ? number(opts.keepBonus, 150) : 0;
+    const keepBonus = isCurrent ? number(input.keepBonus, 150) : 0;
     const qualityPenalty = 6 * number(mod.quality);
     const virtualPenalty = mod.virtual ? VIRTUAL_PENALTY : 0;
     return {
