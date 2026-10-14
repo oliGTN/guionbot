@@ -421,7 +421,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         heroSearch.value='';
         renderTargets();
     });
-    fileInput.addEventListener('change', function () {
+    fileInput.addEventListener('change', async function () {
         const file = fileInput.files && fileInput.files[0];
         fileName.textContent = file ? file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB)' : 'JSON file, maximum size 30 MB.';
         if (file && (file.size > 30 * 1024 * 1024 || !file.name.toLowerCase().endsWith('.json'))) {
