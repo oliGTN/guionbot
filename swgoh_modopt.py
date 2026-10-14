@@ -374,11 +374,60 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
         for i, m in enumerate(cand):
             P.obj[xs[i]] += keep_bonus * (1.0 if m["id"] in current_ids else 0.0) - 6.0 * m["quality"] \
                 - (VIRTUAL_PENALTY if m.get("virtual") else 0.0)
+        solve_started = time.monotonic()
         res = P.solve(time_limit)
+        solve_seconds = time.monotonic() - solve_started
+
+        # Keep enough HiGHS diagnostics in plan.json to distinguish a proven
+        # optimum from a merely feasible incumbent returned at the time limit.
+        status_names = {
+            0: "optimal",
+            1: "limit_reached",
+            2: "infeasible",
+            3: "unbounded",
+            4: "solver_error",
+        }
+
+        def finite_float(value):
+            try:
+                value = float(value)
+                return value if math.isfinite(value) else None
+            except (TypeError, ValueError):
+                return None
+
         if res.x is None or res.status not in (0, 1):
-            return None, f"infaisable ({res.message})"
+            return None, {
+                "status": int(res.status),
+                "status_name": status_names.get(int(res.status), "unknown"),
+                "message": str(res.message),
+                "n_candidates": len(cand),
+                "n_variables": len(P.obj),
+                "n_constraints": len(P.rows),
+                "solve_seconds": round(solve_seconds, 3),
+                "objective": finite_float(-res.fun) if res.fun is not None else None,
+                "mip_gap": finite_float(getattr(res, "mip_gap", None)),
+                "mip_dual_bound": finite_float(-res.mip_dual_bound)
+                                  if getattr(res, "mip_dual_bound", None) is not None else None,
+                "mip_node_count": getattr(res, "mip_node_count", None),
+            }, f"échec solveur ({res.message})"
+
         chosen = [cand[i] for i in range(len(cand)) if res.x[xs[i]] > 0.5]
-        return chosen, {"status": res.status, "n_candidates": len(cand)}
+        info = {
+            "status": int(res.status),
+            "status_name": status_names.get(int(res.status), "unknown"),
+            "message": str(res.message),
+            "n_candidates": len(cand),
+            "n_variables": len(P.obj),
+            "n_constraints": len(P.rows),
+            "solve_seconds": round(solve_seconds, 3),
+            # P.solve maximizes by minimizing the negated objective.
+            "objective": finite_float(-res.fun) if res.fun is not None else None,
+            "mip_gap": finite_float(getattr(res, "mip_gap", None)),
+            "mip_dual_bound": finite_float(-res.mip_dual_bound)
+                              if getattr(res, "mip_dual_bound", None) is not None else None,
+            "mip_node_count": getattr(res, "mip_node_count", None),
+        }
+        return chosen, info
 
     # point de linéarisation de la santé : mods actuels du héros (ou 0)
     cur = [m for m in mods_avail if m["id"] in current_ids]
