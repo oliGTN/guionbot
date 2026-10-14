@@ -131,12 +131,13 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                     <button class="remod-button secondary" id="remodForget" type="button">Clear this result</button>
                 </div>
             </section>
+
+            <p class="remod-help">Your file is sent securely to the remod service for processing. It is not stored by this website. Result files contain your roster and mods; keep the downloaded archive private.</p>
             <section id="remodResults" class="remod-results" hidden>
                 <h2>Remod results</h2>
                 <p class="remod-help">Click a character row to expand its StatQ, stat changes and mod recommendations.</p>
                 <div id="remodPlan"></div>
             </section>
-            <p class="remod-help">Your file is sent securely to the remod service for processing. It is not stored by this website. Result files contain your roster and mods; keep the downloaded archive private.</p>
         </main>
     </div>
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
