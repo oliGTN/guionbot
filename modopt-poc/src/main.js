@@ -1,5 +1,6 @@
 import { EMBEDDED_OPTIMIZER_DATA } from "./optimizer-data.generated.js";
 import { prepareHeroInput, summarizePreparedHero } from "./grandivory-normalize.js";
+import { renderPlanResults } from "./plan-results.js";
 const fileInput = document.querySelector("#progress-file");
 const status = document.querySelector("#file-status");
 const summary = document.querySelector("#summary");
@@ -644,6 +645,49 @@ const parityOutput = document.querySelector("#parity-output");
 const downloadParityButton = document.querySelector("#download-parity");
 let pythonReference = null;
 let lastParityReport = null;
+const planResultsSection = document.querySelector("#plan-results-section");
+const planResultsContainer = document.querySelector("#plan-results");
+
+async function readZipPlan(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const u32 = offset => view.getUint32(offset, true);
+  const u16 = offset => view.getUint16(offset, true);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+    if (u32(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("This ZIP archive has no valid end-of-directory record.");
+  const entries = u16(eocd + 10);
+  let offset = u32(eocd + 16);
+  for (let i = 0; i < entries; i++) {
+    if (u32(offset) !== 0x02014b50) throw new Error("Invalid ZIP central directory.");
+    const method = u16(offset + 10);
+    const compressedSize = u32(offset + 20);
+    const nameLength = u16(offset + 28);
+    const extraLength = u16(offset + 30);
+    const commentLength = u16(offset + 32);
+    const localOffset = u32(offset + 42);
+    const name = new TextDecoder().decode(bytes.subarray(offset + 46, offset + 46 + nameLength));
+    if (name.toLowerCase() === "plan.json" || name.toLowerCase().endsWith("/plan.json")) {
+      if (u32(localOffset) !== 0x04034b50) throw new Error("Invalid plan.json ZIP entry.");
+      const localNameLength = u16(localOffset + 26);
+      const localExtraLength = u16(localOffset + 28);
+      const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+      const compressed = bytes.slice(dataStart, dataStart + compressedSize);
+      let payload;
+      if (method === 0) payload = compressed;
+      else if (method === 8) {
+        if (typeof DecompressionStream === "undefined") throw new Error("This browser cannot decompress ZIP entries; please select plan.json directly.");
+        const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+        payload = new Uint8Array(await new Response(stream).arrayBuffer());
+      } else throw new Error("Unsupported ZIP compression method " + method + " for plan.json.");
+      return JSON.parse(new TextDecoder().decode(payload));
+    }
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+  throw new Error("No plan.json file was found in this ZIP archive.");
+}
 
 referenceFileInput?.addEventListener("change", async () => {
   pythonReference = null;
@@ -653,10 +697,21 @@ referenceFileInput?.addEventListener("change", async () => {
     return;
   }
   try {
-    pythonReference = JSON.parse(await file.text());
-    parityStatus.textContent = "Python reference loaded locally: " + file.name;
-  } catch {
-    parityStatus.textContent = "Reference file is not valid JSON.";
+    const isZip = file.name.toLowerCase().endsWith(".zip") || file.type === "application/zip";
+    pythonReference = isZip ? await readZipPlan(file) : JSON.parse(await file.text());
+    const planCount = Array.isArray(pythonReference?.plan) ? pythonReference.plan.length : null;
+    if (planCount !== null) {
+      renderPlanResults(planResultsContainer, pythonReference);
+      planResultsSection.hidden = false;
+      parityStatus.textContent = "Python plan loaded locally: " + file.name + " (" + planCount + " characters).";
+    } else {
+      planResultsSection.hidden = true;
+      parityStatus.textContent = "Python reference loaded locally: " + file.name + " (no top-level plan array; parity comparison only).";
+    }
+  } catch (error) {
+    pythonReference = null;
+    planResultsSection.hidden = true;
+    parityStatus.textContent = "Could not load plan results: " + (error instanceof Error ? error.message : String(error));
   }
 });
 
