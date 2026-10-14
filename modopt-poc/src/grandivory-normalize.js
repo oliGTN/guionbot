@@ -23,6 +23,14 @@ const LABEL_TO_STAT = {
   "critical damage %": 16, "crit damage %": 16, "potency %": 17, "tenacity %": 18,
 };
 const PCT_IDS = new Set([16, 17, 18, 48, 49, 52, 53, 54, 55, 56, 57]);
+const ROLL_K = {
+  "1,5": 2141.0, "1,6": 2698.6, "5,5": 28.7, "5,6": 31.0,
+  "17,5": 11.25, "17,6": 15.0, "18,5": 11.25, "18,6": 15.0,
+  "28,5": 4150.8, "28,6": 4598.6, "41,5": 230.0, "41,6": 251.4,
+  "42,5": 47.0, "42,6": 78.3, "48,5": 2.81, "48,6": 8.5,
+  "49,5": 8.5, "49,6": 20.0, "53,5": 11.25, "53,6": 11.75,
+  "55,5": 5.62, "55,6": 10.0, "56,5": 11.25, "56,6": 15.0,
+};
 const SLOT_NAME = Object.fromEntries(Object.entries(SLOT_ID).map(([k, v]) => [v, k]));
 
 function obj(v) { return v !== null && typeof v === "object" && !Array.isArray(v); }
@@ -101,8 +109,16 @@ function normalizeMod(raw, index) {
     const sid = statId(type);
     if (!sid) throw new Error("Unsupported secondary stat on mod " + (raw.mod_uid ?? index) + ": " + type);
     (PCT_IDS.has(sid) ? pct : flat)[sid] = (PCT_IDS.has(sid) ? (pct[sid] || 0) : (flat[sid] || 0)) + numeric(value, "secondaryValue_" + i);
-    const roll = firstNumber(raw, ["secondaryRoll_" + i]);
-    if (roll !== null) quality += roll * (sid === 5 ? 2 : 1);
+    // Match progress_adapter.py::convert_mod exactly: infer fractional rolls
+    // from the Grandivory value, round each fraction to 5 decimal places,
+    // repeat it by roll count, then weight Speed twice.
+    const rollCountValue = firstNumber(raw, ["secondaryRoll_" + i]);
+    const rollCount = Math.max(Math.trunc(rollCountValue ?? 1), 1);
+    const pips = Number(raw.pips ?? 5);
+    const k = ROLL_K[`${sid},${pips}`] ?? ROLL_K[`${sid},5`] ?? 1.0;
+    const fraction = (numeric(value, "secondaryValue_" + i) / rollCount) / k;
+    const roundedFraction = Number(fraction.toFixed(5));
+    quality += roundedFraction * rollCount * (sid === 5 ? 2 : 1);
   }
   const id = String(raw.mod_uid ?? raw.id ?? "grandivory-mod-" + index);
   return {
