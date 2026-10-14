@@ -438,6 +438,23 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
                            - set_combo_rewards - also_stat_progression, 6),
             "total": round(objective_total, 6) if objective_total is not None else None,
         }
+        selected_mod_objective_terms = []
+        for i, m in enumerate(cand):
+            if res.x[xs[i]] <= 0.5:
+                continue
+            keep = keep_bonus if m["id"] in current_ids else 0.0
+            quality_penalty = 6.0 * m["quality"]
+            virtual_penalty = VIRTUAL_PENALTY if m.get("virtual") else 0.0
+            selected_mod_objective_terms.append({
+                "id": m["id"],
+                "slot": SLOT_NAME[m["slot"]],
+                "is_current": m["id"] in current_ids,
+                "quality": round(float(m["quality"]), 6),
+                "keep_bonus": round(float(keep), 6),
+                "quality_penalty": round(float(quality_penalty), 6),
+                "virtual_penalty": round(float(virtual_penalty), 6),
+                "contribution": round(float(P.obj[xs[i]]), 6),
+            })
         candidate_counts_by_slot = {
             SLOT_NAME[slot]: sum(1 for m in cand if m["slot"] == slot)
             for slot in SLOTS
@@ -462,6 +479,7 @@ def solve_hero(unit: dict, base: dict, kh: dict, mods_avail: list, current_ids: 
                               if getattr(res, "mip_dual_bound", None) is not None else None,
             "mip_node_count": getattr(res, "mip_node_count", None),
             "objective_breakdown": objective_breakdown,
+            "selected_mod_objective_terms": selected_mod_objective_terms,
             "candidate_counts_by_slot": candidate_counts_by_slot,
             "candidate_counts_by_slot_and_set": candidate_counts_by_slot_and_set,
         }
