@@ -357,11 +357,28 @@ function solveOnce(highs, input, lock, F0, P0, strict) {
   }
   const referenceIds = new Set(input.referenceMods || []);
   const referenceCandidates = model.candidates.filter(mod => referenceIds.has(mod.id)).map(mod => mod.id);
+  const modObjectiveDetails = chosen.map(mod => {
+    const isCurrent = currentIds.has(mod.id);
+    const keepBonus = isCurrent ? number(opts.keepBonus, 150) : 0;
+    const qualityPenalty = 6 * number(mod.quality);
+    const virtualPenalty = mod.virtual ? VIRTUAL_PENALTY : 0;
+    return {
+      id: mod.id,
+      slot: Number(mod.slot),
+      isCurrent,
+      quality: Number(number(mod.quality).toFixed(6)),
+      keepBonus: Number(keepBonus.toFixed(6)),
+      qualityPenalty: Number(qualityPenalty.toFixed(6)),
+      virtualPenalty: Number(virtualPenalty.toFixed(6)),
+      contribution: Number((keepBonus - qualityPenalty - virtualPenalty).toFixed(6)),
+    };
+  });
   return { chosen, info: {
     status: result.Status,
     n_candidates: model.candidates.length,
     objectiveValue: result.ObjectiveValue,
     objectiveBreakdown,
+    modObjectiveDetails,
     activeStatBands: Object.keys(activeStatBands),
     statDiagnostics,
     referenceCandidateCount: referenceCandidates.length,
