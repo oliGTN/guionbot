@@ -188,11 +188,13 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 progressBar.value = 100;
                 progressText.textContent = '100% — calculation complete';
                 actions.hidden = false;
+                downloadButton.hidden = false;
                 showMessage('Remod complete. Download the ZIP archive to get your results.');
             } else if (name === 'error') {
                 setBusy(false);
                 progressWrap.hidden = true;
                 actions.hidden = false;
+                downloadButton.hidden = true;
                 showMessage('The remod calculation failed: ' + (state.error || 'No further details were provided.'), true);
             } else {
                 throw new Error('Unknown remod status: ' + name);
@@ -283,6 +285,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         try {
             await request('forget');
             actions.hidden = true;
+            downloadButton.hidden = false;
             progressWrap.hidden = true;
             showMessage('Remod job cleared.');
             setBusy(false);
@@ -294,7 +297,6 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     });
 
     <?php if ($hasJob): ?>
-    actions.hidden = false;
     setBusy(true);
     showMessage('Restoring your remod job status…');
     pollTimer = window.setTimeout(pollStatus, 300);
