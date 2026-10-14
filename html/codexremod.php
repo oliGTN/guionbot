@@ -180,6 +180,13 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const form = document.getElementById('remodForm');
     const fileInput = document.getElementById('remodFile');
     const fileName = document.getElementById('remodFileName');
+    const targetsInput = document.getElementById('remodTargets');
+    const targetsName = document.getElementById('remodTargetsName');
+    const modeInputs = Array.from(form.querySelectorAll('input[name="mode"]'));
+    const optionsToggle = document.getElementById('remodOptionsToggle');
+    const optionsPanel = document.getElementById('remodOptions');
+    const fullOptions = document.getElementById('remodFullOptions');
+    const lightOptions = document.getElementById('remodLightOptions');
     const submitButton = document.getElementById('remodSubmit');
     const statusBox = document.getElementById('remodStatus');
     const progressWrap = document.getElementById('remodProgressWrap');
@@ -198,6 +205,23 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const csrf = form.elements.csrf.value;
     let pollTimer = null;
     let busy = false;
+    let optionsExpanded = false;
+
+    function selectedMode() { return modeInputs.find(input => input.checked).value; }
+    function setGroupEnabled(group, enabled) { group.querySelectorAll('input, select, textarea').forEach(control => { control.disabled = !enabled; }); }
+    function updateMode() {
+        const light = selectedMode() === 'light';
+        document.getElementById('remodTargetsWrap').hidden = !light;
+        targetsInput.disabled = !light;
+        targetsInput.required = light;
+        fullOptions.hidden = light;
+        lightOptions.hidden = !light;
+        setGroupEnabled(fullOptions, !light && optionsExpanded);
+        setGroupEnabled(lightOptions, light && optionsExpanded);
+        optionsPanel.hidden = !optionsExpanded;
+        optionsToggle.textContent = optionsExpanded ? 'Hide options' : 'Show options';
+        optionsToggle.setAttribute('aria-expanded', optionsExpanded ? 'true' : 'false');
+    }
 
     function showMessage(message, isError) {
         statusBox.textContent = message;
@@ -275,6 +299,14 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             showMessage(error.message || 'Unable to retrieve the job status.', true);
         }
     }
+    optionsToggle.addEventListener('click', function () { optionsExpanded = !optionsExpanded; updateMode(); });
+    modeInputs.forEach(input => input.addEventListener('change', function () { updateMode(); hideMessage(); }));
+    targetsInput.addEventListener('change', function () {
+        const f = targetsInput.files && targetsInput.files[0];
+        targetsName.textContent = f ? f.name + ' (' + (f.size / 1024).toFixed(1) + ' KB)' : 'Required for light remod, maximum size 256 KB. JSON must contain 1–40 unique heroes.';
+        if (f && (f.size > 256 * 1024 || !f.name.toLowerCase().endsWith('.json'))) showMessage('Choose a cibles.json file no larger than 256 KB.', true);
+        else if (f) hideMessage();
+    });
     fileInput.addEventListener('change', function () {
         const file = fileInput.files && fileInput.files[0];
         fileName.textContent = file ? file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB)' : 'JSON file, maximum size 30 MB.';
@@ -296,6 +328,25 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         if (!file.name.toLowerCase().endsWith('.json') || file.size > 30 * 1024 * 1024) {
             showMessage('Choose a .json file no larger than 30 MB.', true); return;
         }
+        const light = selectedMode() === 'light';
+        const targetsFile = targetsInput.files && targetsInput.files[0];
+        if (light && !targetsFile) { showMessage('Select cibles.json for light remod.', true); return; }
+        if (light && (!targetsFile.name.toLowerCase().endsWith('.json') || targetsFile.size > 256 * 1024)) { showMessage('Choose a cibles.json file no larger than 256 KB.', true); return; }
+        if (light) {
+            try {
+                const targets = JSON.parse(await targetsFile.text());
+                if (!targets || !Array.isArray(targets.heroes) || targets.heroes.length < 1 || targets.heroes.length > 40) throw new Error();
+                const ids = new Set();
+                for (const hero of targets.heroes) {
+                    if (!hero || typeof hero.id !== 'string' || !hero.id.trim() || !hero.stats || typeof hero.stats !== 'object' || Array.isArray(hero.stats)) throw new Error();
+                    const id = hero.id.trim().toLowerCase();
+                    if (ids.has(id)) throw new Error();
+                    ids.add(id);
+                    const stats = Object.entries(hero.stats);
+                    if (stats.length < 1 || stats.length > 12 || stats.some(([key, value]) => !key || typeof value !== 'number' || !Number.isFinite(value) || value <= 0)) throw new Error();
+                }
+            } catch (error) { showMessage('cibles.json must contain 1–40 unique heroes, each with an id and 1–12 positive numeric stats.', true); return; }
+        }
         stopPolling();
         actions.hidden = true;
         resultsSection.hidden = true;
@@ -308,9 +359,21 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         showMessage('Uploading your file and creating the remod job…');
         try {
             const data = new FormData(form);
-            const departStats = document.getElementById('remodDepartStats').value.trim();
-            if (departStats === '') data.delete('depart_stats');
-            else if (!/^\d+$/.test(departStats) || Number(departStats) > 9999) throw new Error('depart_stats must be an integer between 0 and 9999.');
+            data.set('mode', selectedMode());
+            if (light) {
+                ['cible', 'max_heroes', 'suppr_vitesse_max', 'depart_stats'].forEach(key => data.delete(key));
+                data.delete('sans_bot');
+                data.delete('time_limit');
+                data.set('time_limit', document.getElementById('remodLightTime').value);
+                data.set('sans_bot', document.getElementById('remodSansBot').checked ? 'true' : 'false');
+            } else {
+                data.delete('cibles');
+                data.delete('lang');
+                data.delete('sans_emprunt');
+                const departStats = document.getElementById('remodDepartStats').value.trim();
+                if (departStats === '') data.delete('depart_stats');
+                else if (!/^\\d+$/.test(departStats) || Number(departStats) > 9999) throw new Error('depart_stats must be an integer between 0 and 9999.');
+            }
             data.set('action', 'submit');
             const response = await fetch('codexcon.php', { method: 'POST', body: data, credentials: 'same-origin' });
             const body = await response.json();
@@ -391,6 +454,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         }
     });
 
+    updateMode();
     <?php if ($hasJob): ?>
     setBusy(true);
     showMessage('Restoring your remod job status…');
