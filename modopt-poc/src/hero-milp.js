@@ -357,8 +357,9 @@ function solveOnce(highs, input, lock, F0, P0, strict) {
   }
   const referenceIds = new Set(input.referenceMods || []);
   const referenceCandidates = model.candidates.filter(mod => referenceIds.has(mod.id)).map(mod => mod.id);
+  const currentIdsForDiagnostics = new Set(input.currentIds || []);
   const modObjectiveDetails = chosen.map(mod => {
-    const isCurrent = currentIds.has(mod.id);
+    const isCurrent = currentIdsForDiagnostics.has(mod.id);
     const keepBonus = isCurrent ? number(opts.keepBonus, 150) : 0;
     const qualityPenalty = 6 * number(mod.quality);
     const virtualPenalty = mod.virtual ? VIRTUAL_PENALTY : 0;
