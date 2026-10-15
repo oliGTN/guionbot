@@ -150,12 +150,21 @@ if ($action === 'submit') {
     unset($raw, $progress);
 
     $mode = $_POST['mode'] ?? 'full';
-    if (!is_string($mode) || !in_array($mode, ['full', 'light'], true)) {
-        codex_json_response(400, ['error' => 'Choose full or light remod.']);
+    if (!is_string($mode) || !in_array($mode, ['full', 'light', 'statq'], true)) {
+        codex_json_response(400, ['error' => 'Choose full remod, light remod, or StatQ.']);
     }
     $fields = ['file' => new CURLFile($file['tmp_name'], 'application/json', 'restoreMyProgress.json')];
 
-    if ($mode === 'light') {
+    if ($mode === 'statq') {
+        $options = ['mode' => 'statq', 'cible' => 'moyenne', 'tri' => 'alpha', 'lang' => 'fr'];
+        foreach ($options as $key => $default) {
+            if (!isset($_POST[$key]) || !is_string($_POST[$key])) continue;
+            $value = $_POST[$key];
+            if ($key === 'cible' && in_array($value, ['moyenne', 'mediane', 'p75'], true)) $options[$key] = $value;
+            if ($key === 'tri' && in_array($value, ['alpha', 'points'], true)) $options[$key] = $value;
+            if ($key === 'lang' && in_array($value, ['fr', 'en'], true)) $options[$key] = $value;
+        }
+    } elseif ($mode === 'light') {
         if (!isset($_FILES['cibles']) || !is_array($_FILES['cibles']) || ($_FILES['cibles']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
             codex_json_response(400, ['error' => 'Light remod requires cibles.json.']);
         }
@@ -222,7 +231,7 @@ if ($action === 'submit') {
         error_log('Codex Remod API returned an invalid job ID.');
         codex_json_response(502, ['error' => 'The remod service returned an invalid job identifier.']);
     }
-    $_SESSION['codex_remod_job'] = ['id' => $job['id'], 'status' => $job['status'] ?? 'queued', 'created_at' => time()];
+    $_SESSION['codex_remod_job'] = ['id' => $job['id'], 'status' => $job['status'] ?? 'queued', 'mode' => $mode, 'created_at' => time()];
     codex_json_response(202, [
         'id' => $job['id'],
         'status' => $job['status'] ?? 'queued',
