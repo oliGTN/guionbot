@@ -249,6 +249,14 @@ if ($action === 'portraits') {
         codex_json_response(400, ['error' => 'Invalid portrait list.']);
     }
     require_once __DIR__ . '/portrait.php';
+    $unitsFile = __DIR__ . '/../DATA/unitsList_dict.json';
+    $units = [];
+    if (is_readable($unitsFile)) {
+        $decodedUnits = json_decode(file_get_contents($unitsFile), true);
+        if (is_array($decodedUnits)) {
+            $units = $decodedUnits;
+        }
+    }
     $portraits = [];
     foreach ($characters as $character) {
         if (!is_array($character) || !isset($character['id']) || !is_string($character['id']) ||
@@ -259,8 +267,9 @@ if ($action === 'portraits') {
         $stars = max(0, min(7, (int)($character['stars'] ?? 0)));
         $gear = max(0, min(13, (int)($character['gearLevel'] ?? 0)));
         $relicTier = max(0, min(11, (int)($character['relicTier'] ?? 0)));
+        $alignment = (int)($units[$id]['forceAlignment'] ?? 0);
         ob_start();
-        display_portrait($id, 0, $stars, $gear, $relicTier, 0, 0, false, true);
+        display_portrait($id, $alignment, $stars, $gear, $relicTier, 0, 0, false, true);
         $portraits[$id] = ob_get_clean();
     }
     codex_json_response(200, ['portraits' => $portraits]);
