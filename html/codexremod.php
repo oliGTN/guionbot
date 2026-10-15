@@ -227,6 +227,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 </div>
                 <div id="statqResults" hidden>
                     <p class="remod-help" id="statqSummary"></p>
+                    <button class="remod-button" type="button" id="statqShowResults">Show results</button>
+                    <div id="statqCsvResults" hidden></div>
                     <div class="remod-delete-toolbar">
                         <button class="remod-button" type="button" id="statqDownloadPng">Download StatQ PNG</button>
                         <button class="remod-button secondary" type="button" id="statqDownloadCsv">Download StatQ CSV</button>
@@ -269,6 +271,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const statqLang = document.getElementById('statqLang');
     const statqResults = document.getElementById('statqResults');
     const statqSummary = document.getElementById('statqSummary');
+    const statqShowResults = document.getElementById('statqShowResults');
+    const statqCsvResults = document.getElementById('statqCsvResults');
     const statqImage = document.getElementById('statqImage');
     const statqHtmlFrame = document.getElementById('statqHtmlFrame');
     const statqDownloadPng = document.getElementById('statqDownloadPng');
@@ -673,13 +677,19 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             if (activeJobMode === 'statq') {
                 statqPngBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.png');
                 statqCsvBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.csv');
+                const statqCsvText = await statqCsvBlob.text();
                 statqHtmlBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.html');
                 const resumeText = await window.codexRemodExtractArchiveText(resultsZipBlob, 'statq_resume.json').catch(() => '');
                 if (statqPngUrl) URL.revokeObjectURL(statqPngUrl);
                 statqPngUrl = URL.createObjectURL(statqPngBlob);
                 statqImage.src = statqPngUrl;
                 statqHtmlFrame.srcdoc = await statqHtmlBlob.text();
-                statqSummary.textContent = resumeText ? 'StatQ summary: ' + resumeText : 'StatQ score table, detailed report and CSV are ready.';
+                statqSummary.textContent = resumeText ? 'StatQ summary: ' + resumeText : 'StatQ CSV is ready. Click Show results to display characters and their stats.';
+                statqCsvResults.hidden = true;
+                statqCsvResults.replaceChildren();
+                statqCsvResults.dataset.csvText = statqCsvText;
+                statqShowResults.hidden = false;
+                statqShowResults.textContent = 'Show results';
                 document.getElementById('remodResultsHeading').textContent = 'StatQ results';
                 document.getElementById('remodResultsIntro').textContent = 'Current equipped mods compared with the selected Kyber 1 target. Only characters at relic 3 or above are counted.';
                 statqResults.hidden = false;
@@ -749,6 +759,17 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     });
     downloadPlanButton.addEventListener('click', function () {
         if (planJsonText !== null) downloadBlob(new Blob([planJsonText], { type: 'application/json;charset=utf-8' }), 'plan.json');
+    });
+    statqShowResults.addEventListener('click', function () {
+        if (!statqCsvBlob) { showMessage('StatQ CSV is not available in the results ZIP.', true); return; }
+        try {
+            const stats = window.codexRemodRenderStatq(statqCsvResults, statqCsvResults.dataset.csvText || '');
+            statqCsvResults.hidden = false;
+            statqShowResults.hidden = true;
+            statqSummary.textContent = 'Loaded ' + stats.characters + ' characters and ' + stats.stats + ' stat rows. Total StatQ: ' + stats.points + ' / ' + stats.max + '.';
+        } catch (error) {
+            showMessage(error.message || 'Unable to display StatQ CSV results.', true);
+        }
     });
     statqDownloadPng.addEventListener('click', () => { if (statqPngBlob) downloadBlob(statqPngBlob, 'statq.png'); });
     statqDownloadCsv.addEventListener('click', () => { if (statqCsvBlob) downloadBlob(statqCsvBlob, 'statq.csv'); });
