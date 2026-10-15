@@ -176,6 +176,173 @@
     throw new Error('The ZIP archive does not contain plan.json.');
   }
 
+
+  async function extractArchiveText(blob, targetName) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const u16 = offset => view.getUint16(offset, true);
+    const u32 = offset => view.getUint32(offset, true);
+    let eocd = -1;
+    for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+      if (u32(i) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error('The downloaded file is not a valid ZIP archive.');
+    const wanted = String(targetName).toLowerCase();
+    const count = u16(eocd + 10);
+    let offset = u32(eocd + 16);
+    for (let i = 0; i < count; i++) {
+      if (u32(offset) !== 0x02014b50) throw new Error('Invalid ZIP directory entry.');
+      const method = u16(offset + 10), compressedSize = u32(offset + 20);
+      const nameLength = u16(offset + 28), extraLength = u16(offset + 30), commentLength = u16(offset + 32);
+      const localOffset = u32(offset + 42);
+      const name = new TextDecoder().decode(bytes.subarray(offset + 46, offset + 46 + nameLength));
+      if (name.toLowerCase() === wanted || name.toLowerCase().endsWith('/' + wanted)) {
+        if (u32(localOffset) !== 0x04034b50) throw new Error('Invalid ' + targetName + ' ZIP entry.');
+        const localNameLength = u16(localOffset + 26), localExtraLength = u16(localOffset + 28);
+        const start = localOffset + 30 + localNameLength + localExtraLength;
+        const compressed = bytes.slice(start, start + compressedSize);
+        let payload;
+        if (method === 0) payload = compressed;
+        else if (method === 8 && typeof DecompressionStream !== 'undefined') {
+          payload = new Uint8Array(await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+        } else throw new Error('Unsupported ZIP compression or browser. Please use a recent Chrome/Edge/Firefox browser.');
+        return new TextDecoder().decode(payload);
+      }
+      offset += 46 + nameLength + extraLength + commentLength;
+    }
+    throw new Error('The results archive does not contain ' + targetName + '.');
+  }
+
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], cell = '', quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '"') {
+        if (quoted && text[i + 1] === '"') { cell += '"'; i++; }
+        else quoted = !quoted;
+      } else if (!quoted && (ch === ',' || ch === ';' || ch === '\\t')) {
+        row.push(cell.trim()); cell = '';
+      } else if (!quoted && (ch === '\\n' || ch === '\\r')) {
+        if (ch === '\\r' && text[i + 1] === '\\n') i++;
+        row.push(cell.trim()); cell = '';
+        if (row.some(v => v !== '')) rows.push(row);
+        row = [];
+      } else cell += ch;
+    }
+    row.push(cell.trim());
+    if (row.some(v => v !== '')) rows.push(row);
+    return rows;
+  }
+
+  function collectInventoryMods(restoreData) {
+    const roots = [restoreData];
+    if (restoreData && restoreData.profiles && typeof restoreData.profiles === 'object') {
+      roots.push(...(Array.isArray(restoreData.profiles) ? restoreData.profiles : Object.values(restoreData.profiles)));
+    }
+    const found = new Map();
+    roots.forEach(root => {
+      const mods = root && root.mods;
+      if (!mods || typeof mods !== 'object') return;
+      const entries = Array.isArray(mods) ? mods.map((mod, i) => [String(i), mod]) : Object.entries(mods);
+      entries.forEach(([key, mod]) => {
+        if (!mod || typeof mod !== 'object') return;
+        const id = String(mod.id || mod.modId || mod.mod_id || mod.uid || key || '').trim();
+        if (id && !found.has(id)) found.set(id, mod);
+      });
+    });
+    return found;
+  }
+
+  function csvModIds(csvText) {
+    const rows = parseCsv(csvText);
+    const ids = [];
+    rows.forEach((row, index) => {
+      if (row.length < 2) return;
+      const id = String(row[1] || '').trim();
+      if (!id) return;
+      if (index === 0 && /mod.?id|identifiant|(^id$)/i.test(id)) return;
+      if (!ids.includes(id)) ids.push(id);
+    });
+    return ids;
+  }
+
+  function modDisplayEntries(mod) {
+    const entries = [];
+    const add = (label, value) => {
+      if (value === undefined || value === null || value === '') return;
+      if (typeof value === 'object') {
+        if (Array.isArray(value)) {
+          if (value.length && value.every(v => v === null || typeof v !== 'object')) entries.push([label, value.join(', ')]);
+          else value.forEach((v, i) => add(label + ' ' + (i + 1), v));
+        } else Object.entries(value).forEach(([key, nested]) => add(label ? label + ' · ' + key : key, nested));
+      } else entries.push([label, String(value)]);
+    };
+    Object.entries(mod).forEach(([key, value]) => add(key, value));
+    return entries;
+  }
+
+  function modField(mod, keys) {
+    for (const key of keys) if (mod[key] !== undefined && mod[key] !== null && mod[key] !== '') return mod[key];
+    return null;
+  }
+
+  function renderDeleteMods(container, csvText, restoreData) {
+    const ids = csvModIds(csvText);
+    const inventory = collectInventoryMods(restoreData);
+    const matches = ids.map(id => ({ id, mod: inventory.get(id) })).filter(item => item.mod);
+    const slotNames = { 2:'Square', 3:'Arrow', 4:'Diamond', 5:'Triangle', 6:'Circle', 7:'Cross', square:'Square', arrow:'Arrow', diamond:'Diamond', triangle:'Triangle', circle:'Circle', cross:'Cross' };
+    const setNames = { 1:'Health', 2:'Offense', 3:'Defense', 4:'Speed', 5:'Critical Chance', 6:'Critical Damage', 7:'Potency', 8:'Tenacity', health:'Health', offense:'Offense', defense:'Defense', speed:'Speed', critchance:'Critical Chance', critdamage:'Critical Damage', potency:'Potency', tenacity:'Tenacity' };
+    const stats = mod => {
+      const primary = modField(mod, ['primaryStat','primary','primary_stat']);
+      const secondary = modField(mod, ['secondaryStat','secondaryStats','secondary','secondary_stats']);
+      const other = {};
+      Object.entries(mod).forEach(([key,value]) => {
+        if (/^(id|modid|mod_id|uid|slot|set|modset|mod_set|pips|dots|level|tier|characterid|character_id|character|owner|assignedto|assigned_to|primarystat|primary|primary_stat|secondarystat|secondarystats|secondary|secondary_stats)$/i.test(key)) return;
+        other[key] = value;
+      });
+      const entries = [];
+      if (primary !== null) entries.push(['Primary', primary]);
+      if (secondary !== null) entries.push(['Secondary stats', secondary]);
+      Object.entries(other).forEach(([key,value]) => entries.push([key,value]));
+      return entries.map(([key,value]) => '<div><strong>'+esc(key)+':</strong> '+esc(typeof value === 'object' ? JSON.stringify(value) : String(value))+'</div>').join('');
+    };
+    container.replaceChildren();
+    const toolbar = document.createElement('div');
+    toolbar.className = 'remod-delete-toolbar';
+    toolbar.innerHTML = '<strong>'+matches.length+' matching mods</strong><span class="remod-muted">'+(ids.length-matches.length)+' CSV IDs not found in the inventory</span><input type="search" aria-label="Search mods to delete" placeholder="Search mod, character, stat…">';
+    const grid = document.createElement('div');
+    grid.className = 'remod-delete-grid';
+    grid.innerHTML = matches.map(({id,mod}) => {
+      const slotRaw = modField(mod,['slot','slotId','slot_id']);
+      const slot = String(slotRaw == null ? '' : slotRaw).toLowerCase();
+      const slotNum = /^\\d+$/.test(slot) ? Number(slot) : ({square:2,arrow:3,diamond:4,triangle:5,circle:6,cross:7}[slot] || 0);
+      const setRaw = modField(mod,['set','modSet','mod_set','setId','set_id']);
+      const setKey = String(setRaw == null ? '' : setRaw).toLowerCase();
+      const setNum = /^\\d+$/.test(setKey) ? Number(setKey) : 0;
+      const pips = Number(modField(mod,['pips','dots','dotCount','dot_count']) || 5);
+      const tier = Math.max(1,Math.min(5,Number(modField(mod,['tier','rarity','colorTier','color_tier']) || 1)));
+      const shapeIndex = Math.max(0,Math.min(5,slotNum-2)) + (pips >= 6 ? 6 : 0);
+      const iconIndex = Math.max(0,Math.min(7,(setNum || ({health:1,offense:2,defense:3,speed:4,critchance:5,critdamage:6,potency:7,tenacity:8}[setKey] || 1))-1));
+      const charRaw = modField(mod,['characterID','characterId','character_id','defId','def_id','owner','assignedTo','assigned_to']);
+      const character = charRaw && typeof charRaw === 'object' ? (charRaw.baseId || charRaw.defId || charRaw.id || '') : String(charRaw || '');
+      const level = modField(mod,['level','lvl']);
+      const title = (setNames[setNum] || setNames[setKey] || 'Mod')+' · '+(slotNames[slotNum] || slotNames[slot] || 'Unknown slot');
+      const detail = [pips+' dots',level != null ? 'Level '+level : '',modField(mod,['id','modId','mod_id','uid']) || id].filter(Boolean).join(' · ');
+      const flat = modDisplayEntries(mod).map(([key,value])=>key+': '+(typeof value==='object'?JSON.stringify(value):String(value))).join(' ').toLowerCase();
+      return '<article class="remod-delete-card" data-search="'+esc((title+' '+detail+' '+character+' '+flat).toLowerCase())+'" data-slot="'+slotNum+'"><div class="remod-delete-title">'+esc(title)+'</div><div class="remod-delete-meta">'+esc(detail)+'</div><div class="remod-delete-art" style="--shape-x:'+shapeIndex+';--shape-y:'+(tier-1)+';--icon-x:'+iconIndex+';--icon-y:'+(tier-1)+'">'+(character?'<img class="remod-delete-portrait" src="IMAGES/CHARACTERS/'+encodeURIComponent(character)+'.png" alt="" loading="lazy" onerror="this.hidden=true">':'')+'</div><div class="remod-delete-stats">'+stats(mod)+'</div></article>';
+    }).join('');
+    const search = toolbar.querySelector('input');
+    search.addEventListener('input', () => {
+      const query = search.value.trim().toLowerCase();
+      grid.querySelectorAll('.remod-delete-card').forEach(card => { card.hidden = !card.dataset.search.includes(query); });
+    });
+    container.append(toolbar,grid);
+    return matches.length;
+  }
+
   window.codexRemodRenderPlan = renderPlan;
   window.codexRemodExtractPlan = extractPlanFromZip;
+  window.codexRemodExtractArchiveText = extractArchiveText;
+  window.codexRemodRenderDeleteMods = renderDeleteMods;
 })();
