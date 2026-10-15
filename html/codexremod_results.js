@@ -177,7 +177,7 @@
   }
 
 
-  async function extractArchiveText(blob, targetName) {
+  async function extractArchiveFile(blob, targetName) {
     const bytes = new Uint8Array(await blob.arrayBuffer());
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     const u16 = offset => view.getUint16(offset, true);
@@ -206,11 +206,15 @@
         else if (method === 8 && typeof DecompressionStream !== 'undefined') {
           payload = new Uint8Array(await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
         } else throw new Error('Unsupported ZIP compression or browser. Please use a recent Chrome/Edge/Firefox browser.');
-        return new TextDecoder().decode(payload);
+        return new Blob([payload]);
       }
       offset += 46 + nameLength + extraLength + commentLength;
     }
     throw new Error('The results archive does not contain ' + targetName + '.');
+  }
+
+  async function extractArchiveText(blob, targetName) {
+    return new TextDecoder().decode(await (await extractArchiveFile(blob, targetName)).arrayBuffer());
   }
 
   function parseCsv(text) {
@@ -367,5 +371,6 @@
   window.codexRemodRenderPlan = renderPlan;
   window.codexRemodExtractPlan = extractPlanFromZip;
   window.codexRemodExtractArchiveText = extractArchiveText;
+  window.codexRemodExtractArchiveFile = extractArchiveFile;
   window.codexRemodRenderDeleteMods = renderDeleteMods;
 })();
