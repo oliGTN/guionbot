@@ -19,6 +19,28 @@ if (empty($_SESSION['codex_remod_csrf'])) {
 }
 $csrf = $_SESSION['codex_remod_csrf'];
 $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod_job']);
+$codex_unit_search_metadata = [];
+$codex_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
+$codex_categories_file = __DIR__ . '/../DATA/categoryList_dict.json';
+if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
+    $codex_units = json_decode(file_get_contents($codex_units_file), true) ?: [];
+    $codex_categories = json_decode(file_get_contents($codex_categories_file), true) ?: [];
+    foreach ($codex_units as $unit_id => $unit) {
+        $tags = [];
+        $category_ids = $unit['categoryId'] ?? [];
+        if (!is_array($category_ids)) {
+            $category_ids = [$category_ids];
+        }
+        foreach ($category_ids as $category_id) {
+            $desc = $codex_categories[$category_id]['descKey'] ?? null;
+            if (is_string($desc) && trim($desc) !== '') {
+                $tags[] = $desc;
+            }
+        }
+        $codex_unit_search_metadata[strtolower((string) $unit_id)] = implode(' ', array_unique($tags));
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -246,7 +268,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script src="codexremod_results.js?v=20261016-metadata1"></script>
+<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
+<script src="codexremod_results.js?v=20261016-metadata2"></script>
 <script>
 (function () {
     'use strict';
