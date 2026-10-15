@@ -221,10 +221,10 @@
       if (ch === '"') {
         if (quoted && text[i + 1] === '"') { cell += '"'; i++; }
         else quoted = !quoted;
-      } else if (!quoted && (ch === ',' || ch === ';' || ch === '\\t')) {
+      } else if (!quoted && (ch === ',' || ch === ';' || ch === '\t')) {
         row.push(cell.trim()); cell = '';
-      } else if (!quoted && (ch === '\\n' || ch === '\\r')) {
-        if (ch === '\\r' && text[i + 1] === '\\n') i++;
+      } else if (!quoted && (ch === '\n' || ch === '\r')) {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
         row.push(cell.trim()); cell = '';
         if (row.some(v => v !== '')) rows.push(row);
         row = [];
@@ -316,10 +316,10 @@
     grid.innerHTML = matches.map(({id,mod}) => {
       const slotRaw = modField(mod,['slot','slotId','slot_id']);
       const slot = String(slotRaw == null ? '' : slotRaw).toLowerCase();
-      const slotNum = /^\\d+$/.test(slot) ? Number(slot) : ({square:2,arrow:3,diamond:4,triangle:5,circle:6,cross:7}[slot] || 0);
+      const slotNum = /^\d+$/.test(slot) ? Number(slot) : ({square:2,arrow:3,diamond:4,triangle:5,circle:6,cross:7}[slot] || 0);
       const setRaw = modField(mod,['set','modSet','mod_set','setId','set_id']);
       const setKey = String(setRaw == null ? '' : setRaw).toLowerCase();
-      const setNum = /^\\d+$/.test(setKey) ? Number(setKey) : 0;
+      const setNum = /^\d+$/.test(setKey) ? Number(setKey) : 0;
       const pips = Number(modField(mod,['pips','dots','dotCount','dot_count']) || 5);
       const tier = Math.max(1,Math.min(5,Number(modField(mod,['tier','rarity','colorTier','color_tier']) || 1)));
       const shapeIndex = Math.max(0,Math.min(5,slotNum-2)) + (pips >= 6 ? 6 : 0);
