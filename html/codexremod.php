@@ -252,7 +252,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script src="codexremod_results.js"></script>
+<script src="codexremod_results.js?v=20261015-statq1"></script>
 <script>
 (function () {
     'use strict';
