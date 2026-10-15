@@ -287,6 +287,26 @@
     return null;
   }
 
+  function resolveCharacterPortraitId(restoreData, rawId) {
+    const candidate = String(rawId == null ? '' : rawId).trim();
+    if (!candidate) return '';
+    const roots = [restoreData];
+    if (restoreData && restoreData.profiles && typeof restoreData.profiles === 'object') {
+      roots.push(...(Array.isArray(restoreData.profiles) ? restoreData.profiles : Object.values(restoreData.profiles)));
+    }
+    for (const root of roots) {
+      const chars = root && root.characters;
+      if (!chars || typeof chars !== 'object') continue;
+      const entries = Array.isArray(chars) ? chars.map(ch => [ch && (ch.baseId || ch.definitionId || ch.defId || ch.id), ch]) : Object.entries(chars);
+      for (const [key, ch] of entries) {
+        if (!ch || typeof ch !== 'object') continue;
+        const baseId = String(ch.baseId || ch.definitionId || ch.defId || key || '');
+        if ([key, ch.id, ch.characterID, ch.characterId, ch.baseId, ch.definitionId, ch.defId].some(value => value != null && String(value) === candidate)) return baseId;
+      }
+    }
+    return candidate;
+  }
+
   function renderDeleteMods(container, csvText, restoreData) {
     const ids = csvModIds(csvText);
     const inventory = collectInventoryMods(restoreData);
@@ -325,7 +345,8 @@
       const shapeIndex = Math.max(0,Math.min(5,slotNum-2)) + (pips >= 6 ? 6 : 0);
       const iconIndex = Math.max(0,Math.min(7,(setNum || ({health:1,offense:2,defense:3,speed:4,critchance:5,critdamage:6,potency:7,tenacity:8}[setKey] || 1))-1));
       const charRaw = modField(mod,['characterID','characterId','character_id','defId','def_id','owner','assignedTo','assigned_to']);
-      const character = charRaw && typeof charRaw === 'object' ? (charRaw.baseId || charRaw.defId || charRaw.id || '') : String(charRaw || '');
+      const characterRaw = charRaw && typeof charRaw === 'object' ? (charRaw.baseId || charRaw.defId || charRaw.id || '') : String(charRaw || '');
+      const character = resolveCharacterPortraitId(restoreData, characterRaw);
       const level = modField(mod,['level','lvl']);
       const title = (setNames[setNum] || setNames[setKey] || 'Mod')+' · '+(slotNames[slotNum] || slotNames[slot] || 'Unknown slot');
       const detail = [pips+' dots',level != null ? 'Level '+level : '',modField(mod,['id','modId','mod_id','uid']) || id].filter(Boolean).join(' · ');
