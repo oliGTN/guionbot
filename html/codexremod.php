@@ -219,8 +219,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
 
             <p class="remod-help">Your file is sent securely to the remod service for processing. It is not stored by this website. Result files contain your roster and mods; keep the downloaded archive private.</p>
             <section id="remodResults" class="remod-results" hidden>
-                <h2>Remod results</h2>
-                <p class="remod-help">Click a character row to expand its StatQ, stat changes and mod recommendations.</p>
+                <h2 id="remodResultsHeading">Remod results</h2>
+                <p class="remod-help" id="remodResultsIntro">Click a character row to expand its StatQ, stat changes and mod recommendations.</p>
                 <div id="remodResultDownloads" hidden>
                     <button class="remod-button" id="remodDownloadZip" type="button">Download results.zip</button>
                     <button class="remod-button secondary" id="remodDownloadPlan" type="button">Download plan.json</button>
@@ -680,6 +680,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 statqImage.src = statqPngUrl;
                 statqHtmlFrame.srcdoc = await statqHtmlBlob.text();
                 statqSummary.textContent = resumeText ? 'StatQ summary: ' + resumeText : 'StatQ score table, detailed report and CSV are ready.';
+                document.getElementById('remodResultsHeading').textContent = 'StatQ results';
+                document.getElementById('remodResultsIntro').textContent = 'Current equipped mods compared with the selected Kyber 1 target. Only characters at relic 3 or above are counted.';
                 statqResults.hidden = false;
                 remodResultsTabs.hidden = true;
                 downloadButtons.hidden = false;
@@ -698,6 +700,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             const extracted = await window.codexRemodExtractPlan(resultsZipBlob);
             planJsonText = extracted.text;
             const count = window.codexRemodRenderPlan(resultsContainer, extracted.data);
+            document.getElementById('remodResultsHeading').textContent = 'Remod results';
+            document.getElementById('remodResultsIntro').textContent = 'Click a character row to expand its StatQ, stat changes and mod recommendations.';
             statqResults.hidden = true;
             remodResultsTabs.hidden = false;
             downloadPlanButton.hidden = false;
