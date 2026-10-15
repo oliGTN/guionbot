@@ -148,7 +148,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-decision.replace { background:#fff0e8; color:#a43f0b; } .remod-decision.keep { background:#eaf7ee; color:#176b35; }
         .remod-alternatives,.remod-technical { margin-top:12px; } .remod-alternatives > summary,.remod-technical > summary { cursor:pointer; padding:6px 0; font-weight:600; }
         .remod-technical pre { max-height:400px; overflow:auto; background:#f5f6f8; padding:10px; font-size:12px; }
-        @media (max-width:650px) { .remod-panel { padding:16px; } .remod-wrap { margin-top:16px; } .remod-plan-toolbar { grid-template-columns:1fr 1fr; } .remod-plan-toolbar .remod-plan-search { grid-column:1 / -1; } .remod-plan-summary { grid-template-columns:20px 36px minmax(0,1fr) auto; gap:6px; padding:8px; } .remod-portrait { width:34px; height:34px; } .remod-gain { grid-column:3; grid-row:2; justify-self:start; } .remod-chevron { grid-column:4; grid-row:1 / span 2; } .remod-identity { grid-column:3; } .remod-plan-table { min-width:560px; } }
+        @media (max-width:650px) { .remod-panel { padding:16px; } .remod-wrap { margin-top:16px; } .remod-plan-toolbar { grid-template-columns:1fr 1fr; } .remod-plan-toolbar .remod-plan-search { grid-column:1 / -1; } .remod-plan-summary { grid-template-columns:20px 36px minmax(0,1fr) auto; gap:6px; padding:8px; } .remod-portrait-wrap { width:34px; height:34px; } .remod-portrait { width:34px; height:34px; } .remod-gain { grid-column:3; grid-row:2; justify-self:start; } .remod-chevron { grid-column:4; grid-row:1 / span 2; } .remod-identity { grid-column:3; } .remod-plan-table { min-width:560px; } }
     </style>
 </head>
 <body>
