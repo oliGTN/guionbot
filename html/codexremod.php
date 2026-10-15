@@ -229,13 +229,6 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                     <p class="remod-help" id="statqSummary"></p>
                     <button class="remod-button" type="button" id="statqShowResults">Show results</button>
                     <div id="statqCsvResults" hidden></div>
-                    <div class="remod-delete-toolbar">
-                        <button class="remod-button" type="button" id="statqDownloadPng">Download StatQ PNG</button>
-                        <button class="remod-button secondary" type="button" id="statqDownloadCsv">Download StatQ CSV</button>
-                        <button class="remod-button secondary" type="button" id="statqDownloadHtml">Download StatQ HTML</button>
-                    </div>
-                    <div id="statqImageWrap" style="overflow-x:auto"><img id="statqImage" alt="StatQ score table" style="display:block;max-width:none;width:1000px;height:auto"></div>
-                    <details style="margin-top:16px"><summary>StatQ detailed HTML report</summary><iframe id="statqHtmlFrame" title="StatQ detailed report" sandbox="" style="width:100%;height:650px;border:1px solid #d9dce4;background:#171923"></iframe></details>
                 </div>
                 <div id="remodResultsTabs">
                 <div class="remod-result-tabs" role="tablist" aria-label="Remod results">
@@ -254,7 +247,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script src="codexremod_results.js?v=20261015-statq2"></script>
+<script src="codexremod_results.js?v=20261015-statq3"></script>
 <script>
 (function () {
     'use strict';
@@ -273,13 +266,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const statqSummary = document.getElementById('statqSummary');
     const statqShowResults = document.getElementById('statqShowResults');
     const statqCsvResults = document.getElementById('statqCsvResults');
-    const statqImage = document.getElementById('statqImage');
-    const statqHtmlFrame = document.getElementById('statqHtmlFrame');
-    const statqDownloadPng = document.getElementById('statqDownloadPng');
-    const statqDownloadCsv = document.getElementById('statqDownloadCsv');
-    const statqDownloadHtml = document.getElementById('statqDownloadHtml');
     const remodResultsTabs = document.getElementById('remodResultsTabs');
-    let statqPngBlob = null, statqCsvBlob = null, statqHtmlBlob = null, statqPngUrl = null;
+    let statqCsvBlob = null;
     let selectedInputTab = 'remod';
     let activeJobMode = <?php echo json_encode($_SESSION['codex_remod_job']['mode'] ?? 'full'); ?>;
     const planTab = document.getElementById('remodPlanTab');
@@ -330,6 +318,9 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         statqInputTab.setAttribute('aria-selected', isStatq ? 'true' : 'false');
         remodInputPane.hidden = isStatq;
         statqInputPane.hidden = !isStatq;
+        statqResults.hidden = !isStatq || !statqCsvBlob;
+        remodResultsTabs.hidden = isStatq || planJsonText === null;
+        resultsSection.hidden = isStatq ? !statqCsvBlob : planJsonText === null;
         submitButton.disabled = busy || isStatq;
         statqSubmit.disabled = busy || !isStatq;
         hideMessage();
@@ -675,15 +666,9 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             }
             resultsZipBlob = await response.blob();
             if (activeJobMode === 'statq') {
-                statqPngBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.png');
                 statqCsvBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.csv');
                 const statqCsvText = await statqCsvBlob.text();
-                statqHtmlBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.html');
                 const resumeText = await window.codexRemodExtractArchiveText(resultsZipBlob, 'statq_resume.json').catch(() => '');
-                if (statqPngUrl) URL.revokeObjectURL(statqPngUrl);
-                statqPngUrl = URL.createObjectURL(statqPngBlob);
-                statqImage.src = statqPngUrl;
-                statqHtmlFrame.srcdoc = await statqHtmlBlob.text();
                 statqSummary.textContent = resumeText ? 'StatQ summary: ' + resumeText : 'StatQ CSV is ready. Click Show results to display characters and their stats.';
                 statqCsvResults.hidden = true;
                 statqCsvResults.replaceChildren();
@@ -771,9 +756,6 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             showMessage(error.message || 'Unable to display StatQ CSV results.', true);
         }
     });
-    statqDownloadPng.addEventListener('click', () => { if (statqPngBlob) downloadBlob(statqPngBlob, 'statq.png'); });
-    statqDownloadCsv.addEventListener('click', () => { if (statqCsvBlob) downloadBlob(statqCsvBlob, 'statq.csv'); });
-    statqDownloadHtml.addEventListener('click', () => { if (statqHtmlBlob) downloadBlob(statqHtmlBlob, 'statq.html'); });
     forgetButton.addEventListener('click', async function () {
         if (busy) return;
         if (!window.confirm('Clear this remod job and delete its remote results if they are ready?')) return;
