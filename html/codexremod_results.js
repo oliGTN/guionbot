@@ -368,7 +368,93 @@
     return matches.length;
   }
 
+
+  function parseSemicolonCsv(text) {
+    text = String(text || '').replace(/^\\uFEFF/, '');
+    const rows = [];
+    let row = [], field = '', quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+        else if (ch === '"') quoted = false;
+        else field += ch;
+      } else if (ch === '"' && field === '') quoted = true;
+      else if (ch === ';') { row.push(field); field = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(field); field = '';
+        if (row.some(value => value !== '')) rows.push(row);
+        row = [];
+      } else field += ch;
+    }
+    if (field !== '' || row.length) { row.push(field); if (row.some(value => value !== '')) rows.push(row); }
+    if (!rows.length) return [];
+    const headers = rows.shift().map(value => value.trim());
+    return rows.map(values => Object.fromEntries(headers.map((header, index) => [header, String(values[index] == null ? '' : values[index]).trim()])));
+  }
+
+  function renderStatq(container, csvText) {
+    const rows = parseSemicolonCsv(csvText);
+    if (!rows.length) throw new Error('statq.csv contains no StatQ rows.');
+    const grouped = new Map();
+    rows.forEach(row => {
+      const id = row.id || row.personnage || 'unknown';
+      const key = id + '|' + (row.personnage || '');
+      if (!grouped.has(key)) grouped.set(key, { id, name: row.personnage || id, rows: [] });
+      grouped.get(key).rows.push(row);
+    });
+    const statLabelFr = {
+      vitesse: 'Vitesse', speed: 'Speed', santé: 'Santé', health: 'Health',
+      protection: 'Protection', pouvoir: 'Pouvoir', potency: 'Potency',
+      ténacité: 'Ténacité', tenacity: 'Tenacity', 'dégâts critiques': 'Dégâts critiques',
+      crit_damage: 'Critical damage', degphys: 'Dégâts physiques', physical_damage: 'Physical damage',
+      degspec: 'Dégâts spéciaux', special_damage: 'Special damage', armure: 'Armure',
+      armor: 'Armor', résistance: 'Résistance', resistance: 'Resistance',
+      'chance critique': 'Chance critique', crit_chance: 'Critical chance'
+    };
+    const cards = Array.from(grouped.values());
+    const totalPoints = rows.reduce((sum, row) => sum + (Number(row.points) || 0), 0);
+    const totalMax = rows.reduce((sum, row) => sum + (Number(row.points_max) || 0), 0);
+    const fmt = (value, digits = 1) => {
+      const n = Number(value);
+      return value !== '' && Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: digits }) : '—';
+    };
+    const pct = totalMax ? (100 * totalPoints / totalMax) : 0;
+    const cardHtml = cards.map((hero, index) => {
+      const points = hero.rows.reduce((sum, row) => sum + (Number(row.points) || 0), 0);
+      const max = hero.rows.reduce((sum, row) => sum + (Number(row.points_max) || 0), 0);
+      const pctHero = max ? 100 * points / max : 0;
+      const summary = hero.rows.map(row => (statLabelFr[String(row.stat || '').toLowerCase()] || row.stat || 'Stat') + ' ' + (row.points || '0') + '/' + (row.points_max || '4')).join(' · ');
+      const portrait = hero.id ? 'IMAGES/CHARACTERS/' + encodeURIComponent(hero.id) + '.png' : '';
+      const statRows = hero.rows.map(row => {
+        const pointsNow = Number(row.points);
+        const maxNow = Number(row.points_max);
+        const pctNow = Number(row.avancement_pct);
+        const scoreClass = pointsNow >= 3 ? 'remod-positive' : pointsNow === 0 ? 'remod-negative' : '';
+        const statName = statLabelFr[String(row.stat || '').toLowerCase()] || row.stat || 'Stat';
+        return '<tr><th>' + esc(statName) + '</th><td>' + esc(fmt(row.valeur_totale, 2)) + '</td><td>' + esc(fmt(row.apport_mods, 2)) + '</td><td>' + esc(fmt(row.objectif, 2)) + '</td><td>' + esc(fmt(row.cible_mods_k1, 2)) + '</td><td>' + esc(row.avancement_pct === '' ? '—' : fmt(row.avancement_pct, 1) + '%') + '</td><td class="' + scoreClass + '"><strong>' + esc(Number.isFinite(pointsNow) ? pointsNow : '—') + '/' + esc(Number.isFinite(maxNow) ? maxNow : '—') + '</strong></td></tr>';
+      }).join('');
+      return '<details class="remod-plan-card statq-character-card" data-search="' + esc((hero.name + ' ' + hero.id + ' ' + summary).toLowerCase()) + '">' +
+        '<summary class="remod-plan-summary"><span class="remod-rank">' + (index + 1) + '</span>' +
+        (portrait ? '<img class="remod-portrait" src="' + esc(portrait) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '') +
+        '<span class="remod-identity"><strong>' + esc(hero.name) + '</strong><small>' + esc(hero.id) + ' · ' + hero.rows.length + ' stat(s)</small><small class="remod-stat-summary">' + esc(summary) + '</small></span>' +
+        '<span class="remod-gain ' + (pctHero >= 75 ? 'remod-positive' : pctHero < 25 ? 'remod-negative' : '') + '">' + esc(points + '/' + max + ' StatQ · ' + fmt(pctHero, 1) + '%') + '</span><span class="remod-chevron">⌄</span></summary>' +
+        '<div class="remod-plan-expanded"><div class="remod-table-wrap"><table class="remod-plan-table"><thead><tr><th>Stat</th><th>Current total</th><th>Mods contribution</th><th>Target</th><th>K1 mods target</th><th>Progress</th><th>StatQ</th></tr></thead><tbody>' + statRows + '</tbody></table></div></div></details>';
+    }).join('');
+    container.innerHTML = '<div class="remod-plan-toolbar"><div class="remod-plan-search"><label for="statqCharacterSearch">Search characters</label><input id="statqCharacterSearch" type="search" placeholder="Character name or ID"></div><div class="remod-plan-count">' + cards.length + ' characters</div></div>' +
+      '<p class="remod-help"><strong>Total StatQ:</strong> ' + esc(totalPoints + ' / ' + totalMax + ' (' + fmt(pct, 1) + '%)') + ' · ' + rows.length + ' stat rows</p>' +
+      '<div class="remod-plan-list">' + cardHtml + '</div>';
+    const search = container.querySelector('#statqCharacterSearch');
+    search.addEventListener('input', () => {
+      const query = search.value.trim().toLowerCase();
+      container.querySelectorAll('.statq-character-card').forEach(card => { card.hidden = !card.dataset.search.includes(query); });
+    });
+    return { characters: cards.length, stats: rows.length, points: totalPoints, max: totalMax };
+  }
+
   window.codexRemodRenderPlan = renderPlan;
+  window.codexRemodRenderStatq = renderStatq;
   window.codexRemodExtractPlan = extractPlanFromZip;
   window.codexRemodExtractArchiveText = extractArchiveText;
   window.codexRemodExtractArchiveFile = extractArchiveFile;
