@@ -89,11 +89,13 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
     }
 
     echo "<div class='star-rating'>";
-    foreach (range(1, $rarity) as $value) {
-        echo "<img class='star' src='IMAGES/PORTRAIT_FRAME/star.png' alt='Active Star'>";
+    if ($rarity > 0) {
+        foreach (range(1, min(7, (int) $rarity)) as $value) {
+            echo "<img class='star' src='IMAGES/PORTRAIT_FRAME/star.png' alt='Active Star'>";
+        }
     }
     if ($rarity < 7) {
-        foreach (range($rarity + 1, 7) as $value) {
+        foreach (range(max(1, (int) $rarity + 1), 7) as $value) {
             echo "<img class='star' src='IMAGES/PORTRAIT_FRAME/star-inactive.png' alt='Inactive Star'>";
         }
     }
