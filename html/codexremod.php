@@ -247,7 +247,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script src="codexremod_results.js?v=20261015-statq3"></script>
+<script src="codexremod_results.js?v=20261015-statq4"></script>
 <script>
 (function () {
     'use strict';
@@ -686,7 +686,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 resultsSection.hidden = false;
                 actions.hidden = true;
                 progressWrap.hidden = true;
-                showMessage('StatQ results loaded. You can view the score table or download the PNG, CSV, HTML report or complete ZIP.');
+                showMessage('StatQ results loaded. Open the StatQ tab to view the character list and expand each character for its stats.');
                 resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 fileInput.value = '';
                 fileName.textContent = 'JSON file, maximum size 30 MB.';
