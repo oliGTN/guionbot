@@ -78,7 +78,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         .remod-option-group { grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
         .remod-option-group > .remod-option-check { grid-column:1 / -1; }
         #remodFileName { margin: 8px 0; overflow-wrap: anywhere; }
-        .remod-results { max-width: 1200px; margin: 24px auto 40px; padding: 0 14px; }
+        .remod-results { max-width: 900px; margin: 24px auto 40px; padding: 24px; box-sizing:border-box; background:#fff; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.10); }
         .remod-plan-toolbar { display:grid; grid-template-columns:minmax(12rem,2fr) minmax(10rem,1fr) minmax(10rem,1fr); gap:8px; align-items:center; margin:14px 0; }
         .remod-plan-count { grid-column:1 / -1; }
         .remod-plan-toolbar input,.remod-plan-toolbar select { width:100%; box-sizing:border-box; padding:9px; border:1px solid #c7cbd4; border-radius:4px; background:white; }
@@ -227,7 +227,6 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 </div>
                 <div id="statqResults" hidden>
                     <p class="remod-help" id="statqSummary"></p>
-                    <button class="remod-button" type="button" id="statqShowResults">Show results</button>
                     <div id="statqCsvResults" hidden></div>
                 </div>
                 <div id="remodResultsTabs">
@@ -247,7 +246,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script src="codexremod_results.js?v=20261015-statq4"></script>
+<script src="codexremod_results.js?v=20261015-statq5"></script>
 <script>
 (function () {
     'use strict';
@@ -264,7 +263,6 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const statqLang = document.getElementById('statqLang');
     const statqResults = document.getElementById('statqResults');
     const statqSummary = document.getElementById('statqSummary');
-    const statqShowResults = document.getElementById('statqShowResults');
     const statqCsvResults = document.getElementById('statqCsvResults');
     const remodResultsTabs = document.getElementById('remodResultsTabs');
     let statqCsvBlob = null;
@@ -670,11 +668,10 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 const statqCsvText = await statqCsvBlob.text();
                 const resumeText = await window.codexRemodExtractArchiveText(resultsZipBlob, 'statq_resume.json').catch(() => '');
                 statqSummary.textContent = resumeText ? 'StatQ summary: ' + resumeText : 'StatQ CSV is ready. Click Show results to display characters and their stats.';
-                statqCsvResults.hidden = true;
                 statqCsvResults.replaceChildren();
-                statqCsvResults.dataset.csvText = statqCsvText;
-                statqShowResults.hidden = false;
-                statqShowResults.textContent = 'Show results';
+                const statqStats = window.codexRemodRenderStatq(statqCsvResults, statqCsvText);
+                statqCsvResults.hidden = false;
+                statqSummary.textContent = 'Loaded ' + statqStats.characters + ' characters and ' + statqStats.stats + ' stat rows. Total StatQ: ' + statqStats.points + ' / ' + statqStats.max + '.';
                 document.getElementById('remodResultsHeading').textContent = 'StatQ results';
                 document.getElementById('remodResultsIntro').textContent = 'Current equipped mods compared with the selected Kyber 1 target. Only characters at relic 3 or above are counted.';
                 statqResults.hidden = false;
@@ -688,8 +685,6 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 progressWrap.hidden = true;
                 showMessage('StatQ results loaded. Open the StatQ tab to view the character list and expand each character for its stats.');
                 resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                fileInput.value = '';
-                fileName.textContent = 'JSON file, maximum size 30 MB.';
                 return;
             }
             const extracted = await window.codexRemodExtractPlan(resultsZipBlob);
@@ -721,8 +716,6 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             showResultsButton.textContent = 'Show results';
             showMessage('Loaded ' + count + ' character plans. Choose whether to download the full ZIP or only plan.json.');
             resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            fileInput.value = '';
-            fileName.textContent = 'JSON file, maximum size 30 MB.';
         } catch (error) {
             showMessage(error.message || 'Unable to show remod results.', true);
         } finally {
@@ -744,17 +737,6 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     });
     downloadPlanButton.addEventListener('click', function () {
         if (planJsonText !== null) downloadBlob(new Blob([planJsonText], { type: 'application/json;charset=utf-8' }), 'plan.json');
-    });
-    statqShowResults.addEventListener('click', function () {
-        if (!statqCsvBlob) { showMessage('StatQ CSV is not available in the results ZIP.', true); return; }
-        try {
-            const stats = window.codexRemodRenderStatq(statqCsvResults, statqCsvResults.dataset.csvText || '');
-            statqCsvResults.hidden = false;
-            statqShowResults.hidden = true;
-            statqSummary.textContent = 'Loaded ' + stats.characters + ' characters and ' + stats.stats + ' stat rows. Total StatQ: ' + stats.points + ' / ' + stats.max + '.';
-        } catch (error) {
-            showMessage(error.message || 'Unable to display StatQ CSV results.', true);
-        }
     });
     forgetButton.addEventListener('click', async function () {
         if (busy) return;
