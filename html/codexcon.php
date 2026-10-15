@@ -248,6 +248,7 @@ if ($action === 'status') {
     $_SESSION['codex_remod_job']['status'] = $data['status'] ?? 'unknown';
     $safe = [
         'status' => $data['status'] ?? 'unknown',
+        'mode' => $_SESSION['codex_remod_job']['mode'] ?? 'full',
         'queue_position' => $data['queue_position'] ?? null,
         'progress' => $data['progress'] ?? null,
         'error' => $data['error'] ?? null,
