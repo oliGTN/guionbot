@@ -5,6 +5,48 @@
   const SLOT_LABELS = { square: 'Square', arrow: 'Arrow', diamond: 'Diamond', triangle: 'Triangle', circle: 'Circle', cross: 'Cross' };
   const STAT_LABELS = { speed: 'Speed', protection: 'Protection', health: 'Health', potency: 'Potency', tenacity: 'Tenacity', critDmg: 'Critical Damage', critChance: 'Critical Chance', physDmg: 'Physical Damage', specDmg: 'Special Damage', '1': 'Health', '5': 'Speed', '6': 'Physical Damage', '7': 'Special Damage', '16': 'Critical Chance', '17': 'Tenacity', '18': 'Critical Damage', '28': 'Protection', '56': 'Potency' };
 
+  let unitSearchMetadataPromise = null;
+  function loadUnitSearchMetadata() {
+    if (!unitSearchMetadataPromise) {
+      unitSearchMetadataPromise = Promise.all([
+        fetch('../DATA/unitsList_dict.json', { credentials: 'same-origin' }).then(response => {
+          if (!response.ok) throw new Error('Unable to load unit metadata');
+          return response.json();
+        }),
+        fetch('../DATA/categoryList_dict.json', { credentials: 'same-origin' }).then(response => {
+          if (!response.ok) throw new Error('Unable to load category metadata');
+          return response.json();
+        })
+      ]).then(([units, categories]) => {
+        const metadata = {};
+        Object.entries(units || {}).forEach(([id, unit]) => {
+          const categoryIds = Array.isArray(unit.categoryId)
+            ? unit.categoryId
+            : unit.categoryId == null ? [] : [unit.categoryId];
+          metadata[String(id).toLowerCase()] = categoryIds
+            .map(categoryId => categories && categories[categoryId] && categories[categoryId].descKey)
+            .filter(value => typeof value === 'string' && value.trim() !== '')
+            .join(' ');
+        });
+        return metadata;
+      });
+    }
+    return unitSearchMetadataPromise;
+  }
+  function addMetadataToCardSearch(container, selector) {
+    loadUnitSearchMetadata().then(metadata => {
+      container.querySelectorAll(selector).forEach(card => {
+        const id = String(card.dataset.unitId || '').toLowerCase();
+        const tags = metadata[id] || '';
+        if (tags) card.dataset.search = (card.dataset.search + ' ' + tags).toLocaleLowerCase();
+      });
+      const search = container.querySelector('input[type="search"]');
+      if (search) search.dispatchEvent(new Event('input', { bubbles: true }));
+    }).catch(error => {
+      console.warn('Codex Remod: unit metadata search is unavailable.', error);
+    });
+  }
+
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
@@ -89,7 +131,7 @@
     const tierRows = alternatives.map(t => '<tr><td>' + esc(t.pts == null ? '—' : t.pts) + '</td><td>' + esc(t.gain == null ? '—' : t.gain) + '</td><td>' + esc(t.n_replace == null ? '—' : t.n_replace) + '</td><td>' + esc(Array.isArray(t.sets_after) ? t.sets_after.map(s => Array.isArray(s) ? s[1] + ' ' + s[0] : '').filter(Boolean).join(' + ') : '—') + '</td></tr>').join('');
     const maxQ = (row.advice && row.advice.max) || (row.after && row.after.max) || (row.before && row.before.max) || '—';
     const search = (name + ' ' + base + ' ' + statSummary + ' ' + setText).toLowerCase();
-    return '<details class="remod-plan-card" data-name="' + esc(String(name).toLowerCase()) + '" data-replacements="' + replacements + '" data-gain="' + (Number.isFinite(gain) ? gain : -999) + '" data-search="' + esc(search) + '">' +
+    return '<details class="remod-plan-card" data-unit-id="' + esc(base) + '" data-name="' + esc(String(name).toLowerCase()) + '" data-replacements="' + replacements + '" data-gain="' + (Number.isFinite(gain) ? gain : -999) + '" data-search="' + esc(search) + '">' +
       '<summary class="remod-plan-summary"><span class="remod-rank">' + (index + 1) + '</span>' +
       (portrait ? '<img class="remod-portrait" src="' + esc(portrait) + '" alt="" loading="lazy">' : '<span class="remod-portrait remod-initials">' + esc(String(name).split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase()) + '</span>') +
       '<span class="remod-identity"><strong>' + esc(name) + '</strong><small>' + esc(base) + ' · ' + replacements + ' mod(s) to replace</small><small class="remod-stat-summary">' + esc(statSummary || 'Stat comparison unavailable') + '</small></span>' +
@@ -130,9 +172,11 @@
       cards.slice().sort((a, b) => sort.value === 'gain' ? Number(b.dataset.gain) - Number(a.dataset.gain) : sort.value === 'replace' ? Number(b.dataset.replacements) - Number(a.dataset.replacements) : sort.value === 'name' ? a.dataset.name.localeCompare(b.dataset.name) : Number(a.dataset.order) - Number(b.dataset.order)).forEach(card => list.appendChild(card));
     }
     cards.forEach((card, i) => { card.dataset.order = String(i); });
+    search.placeholder = 'Search character, stat or metadata…';
     search.addEventListener('input', update);
     filter.addEventListener('change', update);
     sort.addEventListener('change', update);
+    addMetadataToCardSearch(container, '.remod-plan-card');
     toolbar.querySelector('.remod-expand-all').addEventListener('click', () => cards.filter(c => !c.hidden).forEach(c => { c.open = true; }));
     toolbar.querySelector('.remod-collapse-all').addEventListener('click', () => cards.forEach(c => { c.open = false; }));
     update();
@@ -435,7 +479,7 @@
         const statName = statLabelFr[String(row.stat || '').toLowerCase()] || row.stat || 'Stat';
         return '<tr><th>' + esc(statName) + '</th><td>' + esc(fmt(row.valeur_totale, 2)) + '</td><td>' + esc(fmt(row.apport_mods, 2)) + '</td><td>' + esc(fmt(row.objectif, 2)) + '</td><td>' + esc(fmt(row.cible_mods_k1, 2)) + '</td><td>' + esc(row.avancement_pct === '' ? '—' : fmt(row.avancement_pct, 1) + '%') + '</td><td class="' + scoreClass + '"><strong>' + esc(Number.isFinite(pointsNow) ? pointsNow : '—') + '/' + esc(Number.isFinite(maxNow) ? maxNow : '—') + '</strong></td></tr>';
       }).join('');
-      return '<details class="remod-plan-card statq-character-card" data-search="' + esc((hero.name + ' ' + hero.id + ' ' + summary).toLowerCase()) + '">' +
+      return '<details class="remod-plan-card statq-character-card" data-unit-id="' + esc(hero.id) + '" data-search="' + esc((hero.name + ' ' + hero.id + ' ' + summary).toLowerCase()) + '">' +
         '<summary class="remod-plan-summary"><span class="remod-rank">' + (index + 1) + '</span>' +
         (portrait ? '<img class="remod-portrait" src="' + esc(portrait) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '') +
         '<span class="remod-identity"><strong>' + esc(hero.name) + '</strong><small>' + esc(hero.id) + ' · ' + hero.rows.length + ' stat(s)</small><small class="remod-stat-summary">' + esc(summary) + '</small></span>' +
@@ -446,10 +490,12 @@
       '<p class="remod-help"><strong>Total StatQ:</strong> ' + esc(totalPoints + ' / ' + totalMax + ' (' + fmt(pct, 1) + '%)') + ' · ' + rows.length + ' stat rows</p>' +
       '<div class="remod-plan-list">' + cardHtml + '</div>';
     const search = container.querySelector('#statqCharacterSearch');
+    search.placeholder = 'Character name, ID or metadata';
     search.addEventListener('input', () => {
       const query = search.value.trim().toLowerCase();
       container.querySelectorAll('.statq-character-card').forEach(card => { card.hidden = !card.dataset.search.includes(query); });
     });
+    addMetadataToCardSearch(container, '.statq-character-card');
     return { characters: cards.length, stats: rows.length, points: totalPoints, max: totalMax };
   }
 
