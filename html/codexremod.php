@@ -279,7 +279,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261016-progression2"></script>
+<script src="codexremod_results.js?v=20261016-sharedportrait1"></script>
 <script>
 (function () {
     'use strict';
@@ -719,7 +719,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 const resumeText = await window.codexRemodExtractArchiveText(resultsZipBlob, 'statq_resume.json').catch(() => '');
                 statqSummary.textContent = resumeText ? 'StatQ summary: ' + resumeText : 'StatQ CSV is ready. Click Show results to display characters and their stats.';
                 statqCsvResults.replaceChildren();
-                const statqStats = window.codexRemodRenderStatq(statqCsvResults, statqCsvText, restoreProgressData);
+                const statqStats = window.codexRemodRenderStatq(statqCsvResults, statqCsvText, restoreProgressData, csrf);
                 statqCsvResults.hidden = false;
                 statqSummary.textContent = 'Loaded ' + statqStats.characters + ' characters and ' + statqStats.stats + ' stat rows. Total StatQ: ' + statqStats.points + ' / ' + statqStats.max + '.';
                 document.getElementById('remodResultsHeading').textContent = 'StatQ results';
@@ -739,7 +739,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
             }
             const extracted = await window.codexRemodExtractPlan(resultsZipBlob);
             planJsonText = extracted.text;
-            const count = window.codexRemodRenderPlan(resultsContainer, extracted.data, restoreProgressData);
+            const count = window.codexRemodRenderPlan(resultsContainer, extracted.data, restoreProgressData, csrf);
             document.getElementById('remodResultsHeading').textContent = 'Remod results';
             document.getElementById('remodResultsIntro').textContent = 'Click a character row to expand its StatQ, stat changes and mod recommendations.';
             statqResults.hidden = true;
