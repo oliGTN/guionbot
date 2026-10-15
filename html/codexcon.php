@@ -252,6 +252,10 @@ if ($action === 'status') {
         'queue_position' => $data['queue_position'] ?? null,
         'progress' => $data['progress'] ?? null,
         'error' => $data['error'] ?? null,
+        // Forward only bounded diagnostic fields if the service exposes them.
+        'log' => $data['log'] ?? $data['logs'] ?? null,
+        'error_detail' => $data['error_detail'] ?? $data['detail'] ?? null,
+        'traceback' => $data['traceback'] ?? null,
         'files' => $data['files'] ?? null,
         'expires_at' => $data['expires_at'] ?? null,
     ];
