@@ -93,29 +93,46 @@
         const baseId = String(character.baseID || character.baseId || character.definitionId || character.defId || key || '').toUpperCase();
         if (baseId !== candidate && String(key || '').toUpperCase() !== candidate) continue;
         const values = character.playerValues && typeof character.playerValues === 'object' ? character.playerValues : character;
-        const stars = Number(values.stars), gear = Number(values.gearLevel), relicTier = Number(values.relicTier);
         return {
-          stars: Number.isFinite(stars) && stars > 0 ? stars : null,
-          gear: Number.isFinite(gear) && gear > 0 ? gear : null,
-          relic: Number.isFinite(relicTier) && relicTier > 2 ? relicTier - 2 : null
+          stars: Number(values.stars) || 0,
+          gearLevel: Number(values.gearLevel) || 0,
+          relicTier: Number(values.relicTier) || 0
         };
       }
     }
-    return null;
+    return { stars: 0, gearLevel: 0, relicTier: 0 };
   }
 
-  function portraitMarkup(unitId, restoreData, altName) {
+  function portraitMarkup(unitId, altName) {
     if (!unitId) return '';
-    const progress = findCharacterProgress(restoreData, unitId);
-    const portrait = '<img class="remod-portrait" src="IMAGES/CHARACTERS/' + esc(encodeURIComponent(unitId)) + '.png" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">';
-    if (!progress) return portrait;
-    const badges = [
-      progress.stars !== null ? '<span class="remod-progression-stars">' + progress.stars + '★</span>' : '',
-      progress.gear !== null ? '<span class="remod-progression-gear">G' + progress.gear + '</span>' : '',
-      progress.relic !== null ? '<span class="remod-progression-relic">R' + progress.relic + '</span>' : ''
-    ].filter(Boolean).join('');
-    const description = (altName || unitId) + (progress.stars !== null ? ' · ' + progress.stars + ' stars' : '') + (progress.gear !== null ? ' · Gear ' + progress.gear : '') + (progress.relic !== null ? ' · Relic ' + progress.relic : '');
-    return '<span class="remod-portrait-wrap" title="' + esc(description) + '">' + portrait + '<span class="remod-progression-badges">' + badges + '</span></span>';
+    return '<span class="remod-server-portrait" data-portrait-unit-id="' + esc(unitId) + '" aria-label="' + esc(altName || unitId) + '"><span class="remod-portrait-loading"></span></span>';
+  }
+
+  async function hydratePortraits(container, restoreData, csrfToken) {
+    if (!container || !restoreData) return;
+    const placeholders = Array.from(container.querySelectorAll('[data-portrait-unit-id]'));
+    const uniqueIds = Array.from(new Set(placeholders.map(el => el.dataset.portraitUnitId).filter(Boolean)));
+    if (!uniqueIds.length) return;
+    const characters = uniqueIds.map(id => Object.assign({ id }, findCharacterProgress(restoreData, id)));
+    try {
+      const body = new FormData();
+      body.append('action', 'portraits');
+      body.append('csrf', csrfToken || '');
+      body.append('characters', JSON.stringify(characters));
+      const response = await fetch('codexcon.php', { method: 'POST', body, credentials: 'same-origin' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to load character portraits.');
+      placeholders.forEach(el => {
+        const markup = result.portraits && result.portraits[el.dataset.portraitUnitId];
+        if (markup) el.innerHTML = markup;
+        else el.textContent = el.dataset.portraitUnitId;
+      });
+    } catch (error) {
+      console.warn('Codex Remod: could not load shared portrait renderer.', error);
+      placeholders.forEach(el => {
+        if (!el.firstChild) el.textContent = el.dataset.portraitUnitId;
+      });
+    }
   }
 
   function renderCard(row, index, restoreData) {
@@ -169,7 +186,7 @@
       '<details class="remod-technical"><summary>Technical details</summary><pre>' + esc(JSON.stringify({ solver: row.solver, advice: row.advice }, null, 2)) + '</pre></details></div></details>';
   }
 
-  function renderPlan(container, planData, restoreData) {
+  function renderPlan(container, planData, restoreData, csrfToken) {
     const rows = Array.isArray(planData) ? planData : planData && Array.isArray(planData.plan) ? planData.plan : null;
     if (!rows) throw new Error('The archive does not contain a plan.json with a top-level "plan" array.');
     const toolbar = document.createElement('div');
@@ -182,7 +199,7 @@
     const list = document.createElement('div');
     list.className = 'remod-plan-list';
     list.innerHTML = rows.map((row, index) => renderCard(row, index, restoreData)).join('');
-    container.replaceChildren(toolbar, list);
+    container.replaceChildren(toolbar, list);\n    hydratePortraits(container, restoreData, csrfToken);
     const search = toolbar.querySelector('.remod-plan-search');
     const filter = toolbar.querySelector('.remod-plan-filter');
     const sort = toolbar.querySelector('.remod-plan-sort');
@@ -464,7 +481,7 @@
     return rows.map(values => Object.fromEntries(headers.map((header, index) => [header, String(values[index] == null ? '' : values[index]).trim()])));
   }
 
-  function renderStatq(container, csvText, restoreData) {
+  function renderStatq(container, csvText, restoreData, csrfToken) {
     const rows = parseSemicolonCsv(csvText);
     if (!rows.length) throw new Error('statq.csv contains no StatQ rows.');
     const grouped = new Map();
@@ -515,7 +532,7 @@
     container.innerHTML = '<div class="remod-plan-toolbar"><div class="remod-plan-search"><label for="statqCharacterSearch">Search characters</label><input id="statqCharacterSearch" type="search" placeholder="Character name or ID"></div><div class="remod-plan-count">' + cards.length + ' characters</div></div>' +
       '<p class="remod-help"><strong>Total StatQ:</strong> ' + esc(totalPoints + ' / ' + totalMax + ' (' + fmt(pct, 1) + '%)') + ' · ' + rows.length + ' stat rows</p>' +
       '<div class="remod-plan-list">' + cardHtml + '</div>';
-    const search = container.querySelector('#statqCharacterSearch');
+    hydratePortraits(container, restoreData, csrfToken);\n    const search = container.querySelector('#statqCharacterSearch');
     search.placeholder = 'Character name, ID or metadata';
     search.addEventListener('input', () => {
       const query = search.value.trim().toLowerCase();
