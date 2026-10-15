@@ -76,7 +76,49 @@
     if (/garder|keep/i.test(decision)) return false;
     return Boolean(move);
   }
-  function renderCard(row, index) {
+
+  function findCharacterProgress(restoreData, unitId) {
+    const candidate = String(unitId || '').trim().toUpperCase();
+    if (!candidate || !restoreData || typeof restoreData !== 'object') return null;
+    const roots = [restoreData];
+    if (restoreData.profiles && typeof restoreData.profiles === 'object') {
+      roots.push(...(Array.isArray(restoreData.profiles) ? restoreData.profiles : Object.values(restoreData.profiles)));
+    }
+    for (const root of roots) {
+      const chars = root && root.characters;
+      if (!chars || typeof chars !== 'object') continue;
+      const entries = Array.isArray(chars) ? chars.map(ch => [ch && (ch.baseID || ch.baseId || ch.definitionId || ch.defId || ch.id), ch]) : Object.entries(chars);
+      for (const [key, character] of entries) {
+        if (!character || typeof character !== 'object') continue;
+        const baseId = String(character.baseID || character.baseId || character.definitionId || character.defId || key || '').toUpperCase();
+        if (baseId !== candidate && String(key || '').toUpperCase() !== candidate) continue;
+        const values = character.playerValues && typeof character.playerValues === 'object' ? character.playerValues : character;
+        const stars = Number(values.stars), gear = Number(values.gearLevel), relicTier = Number(values.relicTier);
+        return {
+          stars: Number.isFinite(stars) && stars > 0 ? stars : null,
+          gear: Number.isFinite(gear) && gear > 0 ? gear : null,
+          relic: Number.isFinite(relicTier) && relicTier > 2 ? relicTier - 2 : null
+        };
+      }
+    }
+    return null;
+  }
+
+  function portraitMarkup(unitId, restoreData, altName) {
+    if (!unitId) return '';
+    const progress = findCharacterProgress(restoreData, unitId);
+    const portrait = '<img class="remod-portrait" src="IMAGES/CHARACTERS/' + esc(encodeURIComponent(unitId)) + '.png" alt="" loading="lazy">';
+    if (!progress) return portrait;
+    const badges = [
+      progress.stars !== null ? '<span class="remod-progression-stars">' + progress.stars + '★</span>' : '',
+      progress.gear !== null ? '<span class="remod-progression-gear">G' + progress.gear + '</span>' : '',
+      progress.relic !== null ? '<span class="remod-progression-relic">R' + progress.relic + '</span>' : ''
+    ].filter(Boolean).join('');
+    const description = (altName || unitId) + (progress.stars !== null ? ' · ' + progress.stars + ' stars' : '') + (progress.gear !== null ? ' · Gear ' + progress.gear : '') + (progress.relic !== null ? ' · Relic ' + progress.relic : '');
+    return '<span class="remod-portrait-wrap" title="' + esc(description) + '">' + portrait + '<span class="remod-progression-badges">' + badges + '</span></span>';
+  }
+
+  function renderCard(row, index, restoreData) {
     row = row && typeof row === 'object' ? row : {};
     const tier = bestTier(row);
     const stats = getStats(row, tier);
@@ -117,7 +159,7 @@
     const search = (name + ' ' + base + ' ' + statSummary + ' ' + setText).toLowerCase();
     return '<details class="remod-plan-card" data-unit-id="' + esc(base) + '" data-name="' + esc(String(name).toLowerCase()) + '" data-replacements="' + replacements + '" data-gain="' + (Number.isFinite(gain) ? gain : -999) + '" data-search="' + esc(search) + '">' +
       '<summary class="remod-plan-summary"><span class="remod-rank">' + (index + 1) + '</span>' +
-      (portrait ? '<img class="remod-portrait" src="' + esc(portrait) + '" alt="" loading="lazy">' : '<span class="remod-portrait remod-initials">' + esc(String(name).split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase()) + '</span>') +
+      (portrait ? portraitMarkup(base, restoreData, name) : '<span class="remod-portrait remod-initials">' + esc(String(name).split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase()) + '</span>') +
       '<span class="remod-identity"><strong>' + esc(name) + '</strong><small>' + esc(base) + ' · ' + replacements + ' mod(s) to replace</small><small class="remod-stat-summary">' + esc(statSummary || 'Stat comparison unavailable') + '</small></span>' +
       '<span class="remod-gain ' + (gain > 0 ? 'remod-positive' : gain < 0 ? 'remod-negative' : '') + '">' + (Number.isFinite(gain) ? esc(signed(gain, 0) + ' StatQ') : 'StatQ —') + '</span><span class="remod-chevron">⌄</span></summary>' +
       '<div class="remod-plan-expanded"><div class="remod-plan-meta"><span><strong>StatQ:</strong> ' + esc(beforeQ == null ? '—' : beforeQ) + ' → ' + esc(afterQ == null ? '—' : afterQ) + ' / ' + esc(maxQ) + '</span><span><strong>Sets:</strong> ' + esc(setText || 'Not specified') + '</span><span><strong>Time:</strong> ' + esc(row.seconds == null ? '—' : num(row.seconds, 2) + ' s') + '</span></div>' +
@@ -127,7 +169,7 @@
       '<details class="remod-technical"><summary>Technical details</summary><pre>' + esc(JSON.stringify({ solver: row.solver, advice: row.advice }, null, 2)) + '</pre></details></div></details>';
   }
 
-  function renderPlan(container, planData) {
+  function renderPlan(container, planData, restoreData) {
     const rows = Array.isArray(planData) ? planData : planData && Array.isArray(planData.plan) ? planData.plan : null;
     if (!rows) throw new Error('The archive does not contain a plan.json with a top-level "plan" array.');
     const toolbar = document.createElement('div');
@@ -139,7 +181,7 @@
       '<button type="button" class="remod-button secondary remod-expand-all">Expand all</button><button type="button" class="remod-button secondary remod-collapse-all">Collapse all</button>';
     const list = document.createElement('div');
     list.className = 'remod-plan-list';
-    list.innerHTML = rows.map(renderCard).join('');
+    list.innerHTML = rows.map((row, index) => renderCard(row, index, restoreData)).join('');
     container.replaceChildren(toolbar, list);
     const search = toolbar.querySelector('.remod-plan-search');
     const filter = toolbar.querySelector('.remod-plan-filter');
@@ -422,7 +464,7 @@
     return rows.map(values => Object.fromEntries(headers.map((header, index) => [header, String(values[index] == null ? '' : values[index]).trim()])));
   }
 
-  function renderStatq(container, csvText) {
+  function renderStatq(container, csvText, restoreData) {
     const rows = parseSemicolonCsv(csvText);
     if (!rows.length) throw new Error('statq.csv contains no StatQ rows.');
     const grouped = new Map();
@@ -465,7 +507,7 @@
       }).join('');
       return '<details class="remod-plan-card statq-character-card" data-unit-id="' + esc(hero.id) + '" data-search="' + esc((hero.name + ' ' + hero.id + ' ' + summary).toLowerCase()) + '">' +
         '<summary class="remod-plan-summary"><span class="remod-rank">' + (index + 1) + '</span>' +
-        (portrait ? '<img class="remod-portrait" src="' + esc(portrait) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '') +
+        (portrait ? portraitMarkup(hero.id, restoreData, hero.name) : '') +
         '<span class="remod-identity"><strong>' + esc(hero.name) + '</strong><small>' + esc(hero.id) + ' · ' + hero.rows.length + ' stat(s)</small><small class="remod-stat-summary">' + esc(summary) + '</small></span>' +
         '<span class="remod-gain ' + (pctHero >= 75 ? 'remod-positive' : pctHero < 25 ? 'remod-negative' : '') + '">' + esc(points + '/' + max + ' StatQ · ' + fmt(pctHero, 1) + '%') + '</span><span class="remod-chevron">⌄</span></summary>' +
         '<div class="remod-plan-expanded"><div class="remod-table-wrap"><table class="remod-plan-table"><thead><tr><th>Stat</th><th>Current total</th><th>Mods contribution</th><th>Target</th><th>K1 mods target</th><th>Progress</th><th>StatQ</th></tr></thead><tbody>' + statRows + '</tbody></table></div></div></details>';
