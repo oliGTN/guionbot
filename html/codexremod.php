@@ -137,6 +137,11 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                     <label for="remodFile"><strong>Select a restoreMyProgress.json file</strong></label>
                     <input class="remod-file" type="file" id="remodFile" name="file" accept=".json,application/json" required>
                     <div id="remodFileName" class="remod-help">JSON file, maximum size 30 MB.</div>
+                    <div class="remod-result-tabs remod-input-tabs" role="tablist" aria-label="Computation type">
+                        <button type="button" class="remod-result-tab" id="remodInputTab" role="tab" aria-selected="true" aria-controls="remodInputPane">Remod</button>
+                        <button type="button" class="remod-result-tab" id="statqInputTab" role="tab" aria-selected="false" aria-controls="statqInputPane">StatQ</button>
+                    </div>
+                    <div id="remodInputPane" role="tabpanel" aria-labelledby="remodInputTab">
                     <fieldset class="remod-mode"><legend><strong>Remod type</strong></legend>
                         <label><input type="radio" name="mode" value="full" checked> Full remod</label>
                         <label><input type="radio" name="mode" value="light"> Light remod (target stats)</label>
@@ -190,6 +195,16 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                       </div>
                     </div>
                     <button class="remod-button" id="remodSubmit" type="submit">Upload and start remod</button>
+                    </div>
+                    <div id="statqInputPane" role="tabpanel" aria-labelledby="statqInputTab" hidden>
+                        <p class="remod-help">Calculate StatQ from your currently equipped mods. Only characters at relic 3 or above are counted; no remod is performed.</p>
+                        <div class="remod-options">
+                            <div><label for="statqTarget">Kyber 1 target</label><select id="statqTarget"><option value="moyenne" selected>Average</option><option value="mediane">Median</option><option value="p75">75th percentile (harder target)</option></select></div>
+                            <div><label for="statqSort">Sort characters</label><select id="statqSort"><option value="alpha" selected>Alphabetical</option><option value="points">Points percentage, best first</option></select></div>
+                            <div><label for="statqLang">Language</label><select id="statqLang"><option value="fr" selected>Français</option><option value="en">English</option></select></div>
+                        </div>
+                        <button class="remod-button" id="statqSubmit" type="submit">Upload and calculate StatQ</button>
+                    </div>
                 </form>
                 <div id="remodStatus" class="remod-status" role="status" aria-live="polite"></div>
                 <div id="remodProgressWrap" hidden>
@@ -210,6 +225,17 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                     <button class="remod-button" id="remodDownloadZip" type="button">Download results.zip</button>
                     <button class="remod-button secondary" id="remodDownloadPlan" type="button">Download plan.json</button>
                 </div>
+                <div id="statqResults" hidden>
+                    <p class="remod-help" id="statqSummary"></p>
+                    <div class="remod-delete-toolbar">
+                        <button class="remod-button" type="button" id="statqDownloadPng">Download StatQ PNG</button>
+                        <button class="remod-button secondary" type="button" id="statqDownloadCsv">Download StatQ CSV</button>
+                        <button class="remod-button secondary" type="button" id="statqDownloadHtml">Download StatQ HTML</button>
+                    </div>
+                    <div id="statqImageWrap" style="overflow-x:auto"><img id="statqImage" alt="StatQ score table" style="display:block;max-width:none;width:1000px;height:auto"></div>
+                    <details style="margin-top:16px"><summary>StatQ detailed HTML report</summary><iframe id="statqHtmlFrame" title="StatQ detailed report" sandbox="" style="width:100%;height:650px;border:1px solid #d9dce4;background:#171923"></iframe></details>
+                </div>
+                <div id="remodResultsTabs">
                 <div class="remod-result-tabs" role="tablist" aria-label="Remod results">
                     <button type="button" class="remod-result-tab" id="remodPlanTab" role="tab" aria-selected="true" aria-controls="remodPlanPane">Plan</button>
                     <button type="button" class="remod-result-tab" id="remodDeleteTab" role="tab" aria-selected="false" aria-controls="remodDeletePane">Mods to delete</button>
@@ -218,6 +244,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 <div class="remod-result-pane" id="remodDeletePane" role="tabpanel" aria-labelledby="remodDeleteTab" hidden>
                     <p class="remod-help" id="remodDeleteNote">Mods listed in mods_a_supprimer.csv, matched by the ID in its second column.</p>
                     <div id="remodDeleteMods"></div>
+                </div>
                 </div>
             </section>
         </main>
