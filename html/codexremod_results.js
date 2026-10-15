@@ -103,13 +103,13 @@
     return { stars: 0, gearLevel: 0, relicTier: 0 };
   }
 
-  function portraitMarkup(unitId, altName) {
+  function portraitMarkup(unitId, restoreData, altName) {
     if (!unitId) return '';
     return '<span class="remod-server-portrait" data-portrait-unit-id="' + esc(unitId) + '" aria-label="' + esc(altName || unitId) + '"><span class="remod-portrait-loading"></span></span>';
   }
 
   async function hydratePortraits(container, restoreData, csrfToken) {
-    if (!container || !restoreData) return;
+    if (!container) return;
     const placeholders = Array.from(container.querySelectorAll('[data-portrait-unit-id]'));
     const uniqueIds = Array.from(new Set(placeholders.map(el => el.dataset.portraitUnitId).filter(Boolean)));
     if (!uniqueIds.length) return;
@@ -120,8 +120,14 @@
       body.append('csrf', csrfToken || '');
       body.append('characters', JSON.stringify(characters));
       const response = await fetch('codexcon.php', { method: 'POST', body, credentials: 'same-origin' });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Unable to load character portraits.');
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (_) {
+        throw new Error('Portrait endpoint returned non-JSON (HTTP ' + response.status + '): ' + responseText.slice(0, 300));
+      }
+      if (!response.ok) throw new Error(result.error || 'Unable to load character portraits (HTTP ' + response.status + ').');
       placeholders.forEach(el => {
         const markup = result.portraits && result.portraits[el.dataset.portraitUnitId];
         if (markup) el.innerHTML = markup;
@@ -130,7 +136,9 @@
     } catch (error) {
       console.warn('Codex Remod: could not load shared portrait renderer.', error);
       placeholders.forEach(el => {
-        if (!el.firstChild) el.textContent = el.dataset.portraitUnitId;
+        const id = el.dataset.portraitUnitId;
+        el.innerHTML = '<img class="remod-portrait" src="IMAGES/CHARACTERS/' + esc(encodeURIComponent(id)) + '.png" alt="' + esc(id) + '" loading="lazy" onerror="this.style.visibility=\'hidden\'">';
+        el.title = 'Shared portrait renderer unavailable; showing basic portrait. ' + error.message;
       });
     }
   }
