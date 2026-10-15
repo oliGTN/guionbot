@@ -8,28 +8,12 @@
   let unitSearchMetadataPromise = null;
   function loadUnitSearchMetadata() {
     if (!unitSearchMetadataPromise) {
-      unitSearchMetadataPromise = Promise.all([
-        fetch('../DATA/unitsList_dict.json', { credentials: 'same-origin' }).then(response => {
-          if (!response.ok) throw new Error('Unable to load unit metadata');
-          return response.json();
-        }),
-        fetch('../DATA/categoryList_dict.json', { credentials: 'same-origin' }).then(response => {
-          if (!response.ok) throw new Error('Unable to load category metadata');
-          return response.json();
-        })
-      ]).then(([units, categories]) => {
-        const metadata = {};
-        Object.entries(units || {}).forEach(([id, unit]) => {
-          const categoryIds = Array.isArray(unit.categoryId)
-            ? unit.categoryId
-            : unit.categoryId == null ? [] : [unit.categoryId];
-          metadata[String(id).toLowerCase()] = categoryIds
-            .map(categoryId => categories && categories[categoryId] && categories[categoryId].descKey)
-            .filter(value => typeof value === 'string' && value.trim() !== '')
-            .join(' ');
-        });
-        return metadata;
-      });
+      // codexremod.php loads the metadata from its filesystem paths and injects it here.
+      // This avoids browser URL/path assumptions for files outside the public document root.
+      const supplied = window.codexRemodUnitMetadata;
+      unitSearchMetadataPromise = Promise.resolve(
+        supplied && typeof supplied === 'object' ? supplied : {}
+      );
     }
     return unitSearchMetadataPromise;
   }
