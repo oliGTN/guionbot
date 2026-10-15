@@ -83,6 +83,23 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         .remod-plan-count { grid-column:1 / -1; }
         .remod-plan-toolbar input,.remod-plan-toolbar select { width:100%; box-sizing:border-box; padding:9px; border:1px solid #c7cbd4; border-radius:4px; background:white; }
         .remod-plan-list { display:grid; gap:6px; }
+        .remod-result-tabs { display:flex; gap:8px; border-bottom:2px solid #e2e5eb; margin:16px 0; }
+        .remod-result-tab { border:0; border-bottom:3px solid transparent; background:transparent; padding:11px 16px; font-weight:700; cursor:pointer; color:#50586b; margin-bottom:-2px; }
+        .remod-result-tab[aria-selected="true"] { color:#5536b7; border-bottom-color:#6c4bd2; }
+        .remod-result-pane[hidden] { display:none !important; }
+        .remod-delete-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:14px 0; }
+        .remod-delete-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
+        .remod-delete-card { border:1px solid #d9dce4; border-radius:7px; padding:12px; background:#fff; min-width:0; }
+        .remod-delete-art { width:90px; height:90px; margin:6px auto 10px; position:relative; background-image:url('IMAGES/MODS/mod-shape-atlas.png'); background-size:1080px 450px; background-position:calc(var(--shape-x) * -90px) calc(var(--shape-y) * -90px); background-repeat:no-repeat; }
+        .remod-delete-art::after { content:''; position:absolute; width:32px; height:32px; left:29px; top:29px; background-image:url('IMAGES/MODS/mod-icon-atlas.png'); background-size:256px 160px; background-position:calc(var(--icon-x) * -32px) calc(var(--icon-y) * -32px); background-repeat:no-repeat; }
+        .remod-delete-card[data-slot="2"] .remod-delete-art::after { left:36px;top:23px; }
+        .remod-delete-card[data-slot="3"] .remod-delete-art::after { left:39px;top:20px; }
+        .remod-delete-card[data-slot="5"] .remod-delete-art::after { left:29px;top:34px; }
+        .remod-delete-portrait { position:absolute; z-index:3; left:-5px; bottom:-5px; width:48px; height:48px; border-radius:50%; overflow:hidden; background:rgba(0,0,0,.75); border:2px solid rgba(255,255,255,.9); box-shadow:0 1px 4px rgba(0,0,0,.65); object-fit:cover; }
+        .remod-delete-title { text-align:center; font-weight:700; margin-bottom:5px; }
+        .remod-delete-meta { text-align:center; font-size:13px; color:#626979; margin-bottom:8px; }
+        .remod-delete-stats { font-size:13px; display:grid; gap:4px; overflow-wrap:anywhere; }
+        .remod-delete-stats div { border-top:1px solid #eceef3; padding-top:4px; }
         .remod-plan-card { border:1px solid #d9dce4; border-radius:7px; overflow:hidden; background:#fff; }
         .remod-plan-card[hidden] { display:none; }
         .remod-plan-summary { list-style:none; display:grid; grid-template-columns:28px 44px minmax(0,1fr) auto 16px; gap:10px; align-items:center; padding:10px 12px; cursor:pointer; }
@@ -193,7 +210,15 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                     <button class="remod-button" id="remodDownloadZip" type="button">Download results.zip</button>
                     <button class="remod-button secondary" id="remodDownloadPlan" type="button">Download plan.json</button>
                 </div>
-                <div id="remodPlan"></div>
+                <div class="remod-result-tabs" role="tablist" aria-label="Remod results">
+                    <button type="button" class="remod-result-tab" id="remodPlanTab" role="tab" aria-selected="true" aria-controls="remodPlanPane">Plan</button>
+                    <button type="button" class="remod-result-tab" id="remodDeleteTab" role="tab" aria-selected="false" aria-controls="remodDeletePane">Mods to delete</button>
+                </div>
+                <div class="remod-result-pane" id="remodPlanPane" role="tabpanel" aria-labelledby="remodPlanTab"><div id="remodPlan"></div></div>
+                <div class="remod-result-pane" id="remodDeletePane" role="tabpanel" aria-labelledby="remodDeleteTab" hidden>
+                    <p class="remod-help" id="remodDeleteNote">Mods listed in mods_a_supprimer.csv, matched by the ID in its second column.</p>
+                    <div id="remodDeleteMods"></div>
+                </div>
             </section>
         </main>
     </div>
@@ -207,6 +232,13 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const form = document.getElementById('remodForm');
     const fileInput = document.getElementById('remodFile');
     const fileName = document.getElementById('remodFileName');
+    const planTab = document.getElementById('remodPlanTab');
+    const deleteTab = document.getElementById('remodDeleteTab');
+    const planPane = document.getElementById('remodPlanPane');
+    const deletePane = document.getElementById('remodDeletePane');
+    const deleteModsContainer = document.getElementById('remodDeleteMods');
+    const deleteNote = document.getElementById('remodDeleteNote');
+    let restoreProgressData = null;
     const heroSearch = document.getElementById('remodHeroSearch');
     const heroSelect = document.getElementById('remodHeroSelect');
     const addHeroButton = document.getElementById('remodAddHero');
@@ -465,6 +497,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             if (file) {
                 try {
                     const parsed = JSON.parse(await file.text());
+                    restoreProgressData = parsed;
                     rosterCharacters = extractCharacters(parsed);
                     rosterNote.textContent = rosterCharacters.length ? 'Loaded '+rosterCharacters.length+' characters from this roster.' : 'No characters found. Make sure this is a restoreMyProgress.json file.';
                     refreshCharacterSelect();
@@ -537,6 +570,23 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             showMessage(error.message || 'Unable to start remod.', true);
         }
     });
+    function selectResultTab(tab) {
+        const showPlan = tab === 'plan';
+        planTab.setAttribute('aria-selected', showPlan ? 'true' : 'false');
+        deleteTab.setAttribute('aria-selected', showPlan ? 'false' : 'true');
+        planPane.hidden = !showPlan;
+        deletePane.hidden = showPlan;
+    }
+    planTab.addEventListener('click', () => selectResultTab('plan'));
+    deleteTab.addEventListener('click', () => selectResultTab('delete'));
+    [planTab, deleteTab].forEach((button, index) => button.addEventListener('keydown', event => {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            event.preventDefault();
+            const next = index === 0 ? deleteTab : planTab;
+            next.focus();
+            selectResultTab(index === 0 ? 'delete' : 'plan');
+        }
+    }));
     showResultsButton.addEventListener('click', async function () {
         if (busy) return;
         setBusy(true);
@@ -554,6 +604,20 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             const extracted = await window.codexRemodExtractPlan(resultsZipBlob);
             planJsonText = extracted.text;
             const count = window.codexRemodRenderPlan(resultsContainer, extracted.data);
+            if (restoreProgressData) {
+                try {
+                    const csvText = await window.codexRemodExtractArchiveText(resultsZipBlob, 'mods_a_supprimer.csv');
+                    const deleteCount = window.codexRemodRenderDeleteMods(deleteModsContainer, csvText, restoreProgressData);
+                    deleteNote.textContent = deleteCount + ' mods found in mods_a_supprimer.csv and matched against your restoreMyProgress inventory.';
+                } catch (error) {
+                    deleteModsContainer.replaceChildren();
+                    deleteNote.textContent = error.message || 'Unable to read mods_a_supprimer.csv from the results archive.';
+                }
+            } else {
+                deleteModsContainer.replaceChildren();
+                deleteNote.textContent = 'Select your restoreMyProgress.json file again to display mod characteristics and stats.';
+            }
+            selectResultTab('plan');
             resultsSection.hidden = false;
             downloadButtons.hidden = false;
             actions.hidden = true;
