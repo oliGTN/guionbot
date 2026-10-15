@@ -259,6 +259,25 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     const form = document.getElementById('remodForm');
     const fileInput = document.getElementById('remodFile');
     const fileName = document.getElementById('remodFileName');
+    const remodInputTab = document.getElementById('remodInputTab');
+    const statqInputTab = document.getElementById('statqInputTab');
+    const remodInputPane = document.getElementById('remodInputPane');
+    const statqInputPane = document.getElementById('statqInputPane');
+    const statqSubmit = document.getElementById('statqSubmit');
+    const statqTarget = document.getElementById('statqTarget');
+    const statqSort = document.getElementById('statqSort');
+    const statqLang = document.getElementById('statqLang');
+    const statqResults = document.getElementById('statqResults');
+    const statqSummary = document.getElementById('statqSummary');
+    const statqImage = document.getElementById('statqImage');
+    const statqHtmlFrame = document.getElementById('statqHtmlFrame');
+    const statqDownloadPng = document.getElementById('statqDownloadPng');
+    const statqDownloadCsv = document.getElementById('statqDownloadCsv');
+    const statqDownloadHtml = document.getElementById('statqDownloadHtml');
+    const remodResultsTabs = document.getElementById('remodResultsTabs');
+    let statqPngBlob = null, statqCsvBlob = null, statqHtmlBlob = null, statqPngUrl = null;
+    let selectedInputTab = 'remod';
+    let activeJobMode = <?php echo json_encode($_SESSION['codex_remod_job']['mode'] ?? 'full'); ?>;
     const planTab = document.getElementById('remodPlanTab');
     const deleteTab = document.getElementById('remodDeleteTab');
     const planPane = document.getElementById('remodPlanPane');
@@ -300,6 +319,19 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     let optionsExpanded = false;
 
     function selectedMode() { return modeInputs.find(input => input.checked).value; }
+    function selectInputTab(tab) {
+        selectedInputTab = tab;
+        const isStatq = tab === 'statq';
+        remodInputTab.setAttribute('aria-selected', isStatq ? 'false' : 'true');
+        statqInputTab.setAttribute('aria-selected', isStatq ? 'true' : 'false');
+        remodInputPane.hidden = isStatq;
+        statqInputPane.hidden = !isStatq;
+        submitButton.disabled = busy || isStatq;
+        statqSubmit.disabled = busy || !isStatq;
+        hideMessage();
+    }
+    remodInputTab.addEventListener('click', () => selectInputTab('remod'));
+    statqInputTab.addEventListener('click', () => selectInputTab('statq'));
     function setGroupEnabled(group, enabled) { group.querySelectorAll('input, select, textarea').forEach(control => { control.disabled = !enabled; }); }
     function updateMode() {
         const light = selectedMode() === 'light';
@@ -432,7 +464,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     }
     function setBusy(value) {
         busy = value;
-        submitButton.disabled = value;
+        submitButton.disabled = value || selectedInputTab === 'statq';
+        statqSubmit.disabled = value || selectedInputTab !== 'statq';
         showResultsButton.disabled = value;
         downloadZipButton.disabled = value;
         downloadPlanButton.disabled = value;
@@ -463,7 +496,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             const name = state.status || 'unknown';
             if (name === 'queued') {
                 const position = Number(state.queue_position);
-                showMessage('Your remod is queued' + (Number.isFinite(position) && position > 0 ? ' (position ' + position + ')' : '') + '. Waiting for a calculation slot…');
+                activeJobMode = state.mode || activeJobMode;
+                showMessage((activeJobMode === 'statq' ? 'Your StatQ calculation is queued' : 'Your remod is queued') + (Number.isFinite(position) && position > 0 ? ' (position ' + position + ')' : '') + '. Waiting for a calculation slot…');
                 progressWrap.hidden = false;
                 progressBar.removeAttribute('value');
                 progressText.textContent = 'Waiting in queue';
@@ -474,7 +508,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 progressWrap.hidden = false;
                 progressBar.value = pct;
                 progressText.textContent = (Number(progress.done) || 0) + ' / ' + (Number(progress.total) || 0) + ' heroes (' + Math.round(pct) + '%)';
-                showMessage('Remod calculation in progress…');
+                showMessage(activeJobMode === 'statq' ? 'StatQ calculation in progress…' : 'Remod calculation in progress…');
                 pollTimer = window.setTimeout(pollStatus, 4000);
             } else if (name === 'done') {
                 setBusy(false);
@@ -483,7 +517,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 progressText.textContent = '100% — calculation complete';
                 actions.hidden = false;
                 showResultsButton.hidden = false;
-                showMessage('Remod complete. Click Show results to display the character cards.');
+                showResultsButton.textContent = activeJobMode === 'statq' ? 'Show StatQ results' : 'Show results';
+                showMessage(activeJobMode === 'statq' ? 'StatQ complete. Click Show StatQ results to view the score table.' : 'Remod complete. Click Show results to display the character cards.');
             } else if (name === 'error') {
                 setBusy(false);
                 progressWrap.hidden = true;
@@ -545,7 +580,8 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         if (!file.name.toLowerCase().endsWith('.json') || file.size > 30 * 1024 * 1024) {
             showMessage('Choose a .json file no larger than 30 MB.', true); return;
         }
-        const light = selectedMode() === 'light';
+        const statq = selectedInputTab === 'statq';
+        const light = !statq && selectedMode() === 'light';
         let targetsJson = null;
         if (light) {
             if (!rosterCharacters.length) { showMessage('Select a valid restoreMyProgress.json file to load the character list.', true); return; }
@@ -562,11 +598,17 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         progressWrap.hidden = true;
         hideMessage();
         setBusy(true);
-        showMessage('Uploading your file and creating the remod job…');
+        showMessage(selectedInputTab === 'statq' ? 'Uploading your file and creating the StatQ job…' : 'Uploading your file and creating the remod job…');
         try {
             const data = new FormData(form);
-            data.set('mode', selectedMode());
-            if (light) {
+            activeJobMode = selectedInputTab === 'statq' ? 'statq' : selectedMode();
+            data.set('mode', activeJobMode);
+            if (activeJobMode === 'statq') {
+                ['cibles','sans_bot','sans_emprunt','time_limit','max_heroes','suppr_vitesse_max','depart_stats'].forEach(key => data.delete(key));
+                data.set('cible', statqTarget.value);
+                data.set('tri', statqSort.value);
+                data.set('lang', statqLang.value);
+            } else if (light) {
                 ['cible', 'max_heroes', 'suppr_vitesse_max', 'depart_stats'].forEach(key => data.delete(key));
                 data.delete('sans_bot');
                 data.delete('time_limit');
@@ -617,7 +659,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     showResultsButton.addEventListener('click', async function () {
         if (busy) return;
         setBusy(true);
-        showMessage('Loading the completed plan from the remod service…');
+        showMessage(activeJobMode === 'statq' ? 'Loading StatQ results from the service…' : 'Loading the completed plan from the remod service…');
         try {
             const data = new FormData();
             data.append('action', 'download');
@@ -628,9 +670,37 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
                 throw new Error(body.error || 'Unable to retrieve results.');
             }
             resultsZipBlob = await response.blob();
+            if (activeJobMode === 'statq') {
+                statqPngBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.png');
+                statqCsvBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.csv');
+                statqHtmlBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.html');
+                const resumeText = await window.codexRemodExtractArchiveText(resultsZipBlob, 'statq_resume.json').catch(() => '');
+                if (statqPngUrl) URL.revokeObjectURL(statqPngUrl);
+                statqPngUrl = URL.createObjectURL(statqPngBlob);
+                statqImage.src = statqPngUrl;
+                statqHtmlFrame.srcdoc = await statqHtmlBlob.text();
+                statqSummary.textContent = resumeText ? 'StatQ summary: ' + resumeText : 'StatQ score table, detailed report and CSV are ready.';
+                statqResults.hidden = false;
+                remodResultsTabs.hidden = true;
+                downloadButtons.hidden = false;
+                downloadZipButton.hidden = false;
+                downloadPlanButton.hidden = true;
+                selectResultTab('plan');
+                resultsSection.hidden = false;
+                actions.hidden = true;
+                progressWrap.hidden = true;
+                showMessage('StatQ results loaded. You can view the score table or download the PNG, CSV, HTML report or complete ZIP.');
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                fileInput.value = '';
+                fileName.textContent = 'JSON file, maximum size 30 MB.';
+                return;
+            }
             const extracted = await window.codexRemodExtractPlan(resultsZipBlob);
             planJsonText = extracted.text;
             const count = window.codexRemodRenderPlan(resultsContainer, extracted.data);
+            statqResults.hidden = true;
+            remodResultsTabs.hidden = false;
+            downloadPlanButton.hidden = false;
             if (restoreProgressData) {
                 try {
                     const csvText = await window.codexRemodExtractArchiveText(resultsZipBlob, 'mods_a_supprimer.csv');
@@ -649,6 +719,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
             downloadButtons.hidden = false;
             actions.hidden = true;
             progressWrap.hidden = true;
+            showResultsButton.textContent = 'Show results';
             showMessage('Loaded ' + count + ' character plans. Choose whether to download the full ZIP or only plan.json.');
             resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             fileInput.value = '';
@@ -675,6 +746,9 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
     downloadPlanButton.addEventListener('click', function () {
         if (planJsonText !== null) downloadBlob(new Blob([planJsonText], { type: 'application/json;charset=utf-8' }), 'plan.json');
     });
+    statqDownloadPng.addEventListener('click', () => { if (statqPngBlob) downloadBlob(statqPngBlob, 'statq.png'); });
+    statqDownloadCsv.addEventListener('click', () => { if (statqCsvBlob) downloadBlob(statqCsvBlob, 'statq.csv'); });
+    statqDownloadHtml.addEventListener('click', () => { if (statqHtmlBlob) downloadBlob(statqHtmlBlob, 'statq.html'); });
     forgetButton.addEventListener('click', async function () {
         if (busy) return;
         if (!window.confirm('Clear this remod job and delete its remote results if they are ready?')) return;
@@ -694,6 +768,7 @@ $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod
         }
     });
 
+    selectInputTab('remod');
     updateMode();
     <?php if ($hasJob): ?>
     setBusy(true);
