@@ -241,11 +241,11 @@ if ($action === 'submit') {
 
 if ($action === 'portraits') {
     $raw = $_POST['characters'] ?? '';
-    if (!is_string($raw) || strlen($raw) > 65536) {
+    if (!is_string($raw) || strlen($raw) > 262144) {
         codex_json_response(400, ['error' => 'Invalid portrait request.']);
     }
     $characters = json_decode($raw, true);
-    if (!is_array($characters) || count($characters) > 100) {
+    if (!is_array($characters) || count($characters) > 500) {
         codex_json_response(400, ['error' => 'Invalid portrait list.']);
     }
     require_once __DIR__ . '/portrait.php';
