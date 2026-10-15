@@ -282,7 +282,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261016-sharedportrait2"></script>
+<script src="codexremod_results.js?v=20261016-sharedportrait3"></script>
 <script>
 (function () {
     'use strict';
