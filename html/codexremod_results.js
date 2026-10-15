@@ -247,7 +247,7 @@
       const entries = Array.isArray(mods) ? mods.map((mod, i) => [String(i), mod]) : Object.entries(mods);
       entries.forEach(([key, mod]) => {
         if (!mod || typeof mod !== 'object') return;
-        [mod.id, mod.modId, mod.mod_id, mod.uid, key].forEach(rawId => {
+        [mod.id, mod.modId, mod.mod_id, mod.mod_uid, mod.modUid, mod.uid, key].forEach(rawId => {
           const id = String(rawId == null ? '' : rawId).trim();
           if (id && !found.has(id)) found.set(id, mod);
         });
@@ -263,7 +263,7 @@
       if (row.length < 2) return;
       const id = String(row[1] || '').trim();
       if (!id) return;
-      if (index === 0 && /mod.?id|identifiant|(^id$)/i.test(id)) return;
+      if (index === 0 && /^(?:id_?mod|mod_?id|mod_?uid|identifiant|id)$/i.test(id)) return;
       if (!ids.includes(id)) ids.push(id);
     });
     return ids;
@@ -351,7 +351,7 @@
       const character = resolveCharacterPortraitId(restoreData, characterRaw);
       const level = modField(mod,['level','lvl']);
       const title = (setNames[setNum] || setNames[setKey] || 'Mod')+' · '+(slotNames[slotNum] || slotNames[slot] || 'Unknown slot');
-      const detail = [pips+' dots',level != null ? 'Level '+level : '',modField(mod,['id','modId','mod_id','uid']) || id].filter(Boolean).join(' · ');
+      const detail = [pips+' dots',level != null ? 'Level '+level : '',modField(mod,['id','modId','mod_id','mod_uid','modUid','uid']) || id].filter(Boolean).join(' · ');
       const flat = modDisplayEntries(mod).map(([key,value])=>key+': '+(typeof value==='object'?JSON.stringify(value):String(value))).join(' ').toLowerCase();
       return '<article class="remod-delete-card" data-search="'+esc((title+' '+detail+' '+character+' '+flat).toLowerCase())+'" data-slot="'+slotNum+'"><div class="remod-delete-title">'+esc(title)+'</div><div class="remod-delete-meta">'+esc(detail)+'</div><div class="remod-delete-art" style="--shape-x:'+shapeIndex+';--shape-y:'+(tier-1)+';--icon-x:'+iconIndex+';--icon-y:'+(tier-1)+'">'+(character?'<img class="remod-delete-portrait" src="IMAGES/CHARACTERS/'+encodeURIComponent(character)+'.png" alt="" loading="lazy" onerror="this.hidden=true">':'')+'</div><div class="remod-delete-stats">'+stats(mod)+'</div></article>';
     }).join('');
