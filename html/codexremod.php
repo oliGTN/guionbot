@@ -65,6 +65,10 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-status { display: none; margin-top: 20px; padding: 15px; border-radius: 6px; background: #f2f0fa; }
         .remod-status.error { display: block; color: #8b1d1d; background: #fff0f0; }
         .remod-status.visible { display: block; }
+        .remod-error-log { margin-top:12px; padding-top:10px; border-top:1px solid #e5b8b8; }
+        .remod-error-log summary { cursor:pointer; font-weight:700; }
+        .remod-error-log pre { max-height:420px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; background:#fff; color:#4b1d1d; border:1px solid #edcccc; border-radius:4px; padding:10px; font-size:12px; }
+        .remod-error-log-note { margin:10px 0 0; font-size:13px; }
         .remod-progress { width: 100%; height: 18px; margin: 12px 0; }
         .remod-progress-text { font-weight: 600; }
         .remod-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 14px; margin: 20px 0; }
@@ -547,6 +551,23 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 actions.hidden = false;
                 showResultsButton.hidden = true;
                 showMessage('The remod calculation failed: ' + (state.error || 'No further details were provided.'), true);
+                const diagnostic = state.log || state.logs || state.error_detail || state.traceback || state.detail;
+                if (diagnostic) {
+                    const details = document.createElement('details');
+                    details.className = 'remod-error-log';
+                    const summary = document.createElement('summary');
+                    summary.textContent = 'Show calculation log / technical details';
+                    const pre = document.createElement('pre');
+                    const text = typeof diagnostic === 'string' ? diagnostic : JSON.stringify(diagnostic, null, 2);
+                    pre.textContent = text.slice(0, 30000);
+                    details.append(summary, pre);
+                    statusBox.appendChild(details);
+                } else {
+                    const note = document.createElement('p');
+                    note.className = 'remod-error-log-note';
+                    note.textContent = 'The status response did not include a calculation log. The detailed log must be retrieved from the remod service/server logs.';
+                    statusBox.appendChild(note);
+                }
             } else {
                 throw new Error('Unknown remod status: ' + name);
             }
