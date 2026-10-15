@@ -199,7 +199,8 @@
     const list = document.createElement('div');
     list.className = 'remod-plan-list';
     list.innerHTML = rows.map((row, index) => renderCard(row, index, restoreData)).join('');
-    container.replaceChildren(toolbar, list);\n    hydratePortraits(container, restoreData, csrfToken);
+    container.replaceChildren(toolbar, list);
+    hydratePortraits(container, restoreData, csrfToken);
     const search = toolbar.querySelector('.remod-plan-search');
     const filter = toolbar.querySelector('.remod-plan-filter');
     const sort = toolbar.querySelector('.remod-plan-sort');
@@ -532,7 +533,8 @@
     container.innerHTML = '<div class="remod-plan-toolbar"><div class="remod-plan-search"><label for="statqCharacterSearch">Search characters</label><input id="statqCharacterSearch" type="search" placeholder="Character name or ID"></div><div class="remod-plan-count">' + cards.length + ' characters</div></div>' +
       '<p class="remod-help"><strong>Total StatQ:</strong> ' + esc(totalPoints + ' / ' + totalMax + ' (' + fmt(pct, 1) + '%)') + ' · ' + rows.length + ' stat rows</p>' +
       '<div class="remod-plan-list">' + cardHtml + '</div>';
-    hydratePortraits(container, restoreData, csrfToken);\n    const search = container.querySelector('#statqCharacterSearch');
+    hydratePortraits(container, restoreData, csrfToken);
+    const search = container.querySelector('#statqCharacterSearch');
     search.placeholder = 'Character name, ID or metadata';
     search.addEventListener('input', () => {
       const query = search.value.trim().toLowerCase();
