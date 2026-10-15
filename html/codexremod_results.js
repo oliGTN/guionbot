@@ -107,7 +107,7 @@
   function portraitMarkup(unitId, restoreData, altName) {
     if (!unitId) return '';
     const progress = findCharacterProgress(restoreData, unitId);
-    const portrait = '<img class="remod-portrait" src="IMAGES/CHARACTERS/' + esc(encodeURIComponent(unitId)) + '.png" alt="" loading="lazy">';
+    const portrait = '<img class="remod-portrait" src="IMAGES/CHARACTERS/' + esc(encodeURIComponent(unitId)) + '.png" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">';
     if (!progress) return portrait;
     const badges = [
       progress.stars !== null ? '<span class="remod-progression-stars">' + progress.stars + '★</span>' : '',
