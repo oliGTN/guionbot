@@ -247,8 +247,10 @@
       const entries = Array.isArray(mods) ? mods.map((mod, i) => [String(i), mod]) : Object.entries(mods);
       entries.forEach(([key, mod]) => {
         if (!mod || typeof mod !== 'object') return;
-        const id = String(mod.id || mod.modId || mod.mod_id || mod.uid || key || '').trim();
-        if (id && !found.has(id)) found.set(id, mod);
+        [mod.id, mod.modId, mod.mod_id, mod.uid, key].forEach(rawId => {
+          const id = String(rawId == null ? '' : rawId).trim();
+          if (id && !found.has(id)) found.set(id, mod);
+        });
       });
     });
     return found;
