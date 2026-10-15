@@ -50,7 +50,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="basic.css">
     <link rel="stylesheet" href="navbar.css">
-    <link rel="stylesheet" href="main.1.008.css">
+    <link rel="stylesheet" href="main.1.008.css">\n    <link rel="stylesheet" href="portrait.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
         .remod-wrap { max-width: 900px; margin: 28px auto; padding: 0 14px 36px; }
@@ -132,6 +132,9 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-plan-summary::-webkit-details-marker { display:none; } .remod-plan-summary:hover { background:#f8f8fb; }
         .remod-rank { color:#7a7f8b; text-align:center; font-size:13px; }
         .remod-portrait { width:42px; height:42px; object-fit:cover; border-radius:50%; }
+        .remod-server-portrait { display:inline-flex; align-items:center; justify-content:center; width:42px; height:53px; flex:none; overflow:visible; }
+        .remod-server-portrait .portrait-container, .remod-server-portrait .portrait-container.portrait-small { width:42px; margin:0; flex:none; }
+        .remod-server-portrait .portrait-name { display:none; }
         .remod-portrait-wrap { position:relative; display:inline-block; width:42px; height:42px; flex:none; }
         .remod-portrait-wrap .remod-portrait { display:block; }
         .remod-progression-badges span { position:absolute; z-index:2; font-size:9px; line-height:13px; font-weight:800; padding:0 3px; border:1px solid #fff; border-radius:5px; white-space:nowrap; box-shadow:0 1px 2px #0005; }
@@ -279,7 +282,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261016-sharedportrait1"></script>
+<script src="codexremod_results.js?v=20261016-sharedportrait2"></script>
 <script>
 (function () {
     'use strict';
