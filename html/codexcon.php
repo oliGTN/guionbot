@@ -239,6 +239,33 @@ if ($action === 'submit') {
     ]);
 }
 
+if ($action === 'portraits') {
+    $raw = $_POST['characters'] ?? '';
+    if (!is_string($raw) || strlen($raw) > 65536) {
+        codex_json_response(400, ['error' => 'Invalid portrait request.']);
+    }
+    $characters = json_decode($raw, true);
+    if (!is_array($characters) || count($characters) > 100) {
+        codex_json_response(400, ['error' => 'Invalid portrait list.']);
+    }
+    require_once __DIR__ . '/portrait.php';
+    $portraits = [];
+    foreach ($characters as $character) {
+        if (!is_array($character) || !isset($character['id']) || !is_string($character['id']) ||
+            !preg_match('/^[A-Za-z0-9_]+$/', $character['id'])) {
+            continue;
+        }
+        $id = $character['id'];
+        $stars = max(0, min(7, (int)($character['stars'] ?? 0)));
+        $gear = max(0, min(13, (int)($character['gearLevel'] ?? 0)));
+        $relicTier = max(0, min(11, (int)($character['relicTier'] ?? 0)));
+        ob_start();
+        display_portrait($id, 0, $stars, $gear, $relicTier, 0, 0, false, true);
+        $portraits[$id] = ob_get_clean();
+    }
+    codex_json_response(200, ['portraits' => $portraits]);
+}
+
 if ($action === 'status') {
     $job = $_SESSION['codex_remod_job'] ?? null;
     if (!is_array($job) || empty($job['id'])) codex_json_response(404, ['error' => 'No remod job was found in this session.']);
