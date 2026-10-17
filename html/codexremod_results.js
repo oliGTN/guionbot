@@ -448,6 +448,9 @@
     const matches = rows.map(row => ({ ...row, mod: inventory.get(row.id) })).filter(item => item.mod);
     const slotNames = { 2:'Square', 3:'Arrow', 4:'Diamond', 5:'Triangle', 6:'Circle', 7:'Cross', square:'Square', arrow:'Arrow', diamond:'Diamond', triangle:'Triangle', circle:'Circle', cross:'Cross' };
     const setNames = { 1:'Health', 2:'Offense', 3:'Defense', 4:'Speed', 5:'Critical Chance', 6:'Critical Damage', 7:'Potency', 8:'Tenacity', health:'Health', offense:'Offense', defense:'Defense', speed:'Speed', critchance:'Critical Chance', critdamage:'Critical Damage', potency:'Potency', tenacity:'Tenacity' };
+    const allyCode = String((restoreData && restoreData.allyCode) || (restoreData && restoreData.profiles && restoreData.profiles[0] && restoreData.profiles[0].allyCode) || '');
+    const confirmedAllyCodes = Array.isArray(window.codexRemodConfirmedAllyCodes) ? window.codexRemodConfirmedAllyCodes.map(String) : [];
+    const canSellMods = !!allyCode && confirmedAllyCodes.includes(allyCode);
     const renderStats = mod => {
       let primary = modField(mod, ['primaryStat','primary','primary_stat']);
       if (primary === null) {
@@ -485,7 +488,7 @@
       '<label class="remod-delete-filter"><input type="checkbox" id="remodUnequippedOnly"> Unequipped mods</label>' +
       '<button type="button" id="remodDeleteSelectAll">Select all</button>' +
       '<button type="button" id="remodDeleteUnselectAll">Unselect all</button>' +
-      '<button type="button" id="remodSellMods" hidden>Sell mods</button>' +
+      '<button type="button" id="remodSellMods" hidden disabled>sell 0 mods</button>' +
       '<span class="remod-delete-feedback" role="status" aria-live="polite"></span>';
     const grid = document.createElement('div');
     grid.className = 'remod-delete-grid';
@@ -507,7 +510,7 @@
       const title = (setNames[setNum] || setNames[setKey] || 'Mod')+' · '+(slotNames[slotNum] || slotNames[slot] || 'Unknown slot');
       const assigned = portePar.trim() !== '';
       return '<article class="remod-delete-card" data-porte-par="' + esc(portePar) + '" data-mod-id="' + esc(id) + '" data-assigned="' + (assigned ? '1' : '0') + '">' +
-        '<label class="remod-delete-select"><input type="checkbox" class="remod-delete-checkbox" value="' + esc(id) + '" aria-label="Select mod ' + esc(id) + '"></label>' +
+        (canSellMods ? '<label class="remod-delete-select"><input type="checkbox" class="remod-delete-checkbox" value="' + esc(id) + '" aria-label="Select mod ' + esc(id) + '"></label>' : '') +
         '<div class="remod-delete-title">' + esc(title) + '</div>' +
         '<div class="remod-delete-art" style="--shape-x:' + shapeIndex + ';--shape-y:' + (tier-1) + ';--icon-x:' + iconIndex + ';--icon-y:' + (tier-1) + '">' +
           '<div class="remod-delete-overlay"><span class="remod-delete-stars">' + '★'.repeat(pips) + '</span><span class="remod-delete-level">Lvl ' + esc(level == null ? 0 : level) + '</span></div>' +
@@ -533,9 +536,18 @@
     unselectAll.addEventListener('click', () => {
       grid.querySelectorAll('.remod-delete-card:not([hidden]) .remod-delete-checkbox').forEach(box => { box.checked = false; });
     });
-    const allyCode = String((restoreData && restoreData.allyCode) || (restoreData && restoreData.profiles && restoreData.profiles[0] && restoreData.profiles[0].allyCode) || '');
-    const confirmedAllyCodes = Array.isArray(window.codexRemodConfirmedAllyCodes) ? window.codexRemodConfirmedAllyCodes.map(String) : [];
-    if (allyCode && confirmedAllyCodes.includes(allyCode)) sellButton.hidden = false;
+    if (canSellMods) sellButton.hidden = false;
+    const updateSellButton = () => {
+      const selectedCount = grid.querySelectorAll('.remod-delete-checkbox:checked').length;
+      sellButton.textContent = 'sell ' + selectedCount + ' mods';
+      sellButton.disabled = selectedCount === 0;
+    };
+    grid.addEventListener('change', event => {
+      if (event.target && event.target.matches('.remod-delete-checkbox')) updateSellButton();
+    });
+    selectAll.addEventListener('click', updateSellButton);
+    unselectAll.addEventListener('click', updateSellButton);
+    updateSellButton();
     sellButton.addEventListener('click', async () => {
       const selected = Array.from(grid.querySelectorAll('.remod-delete-card:not([hidden]) .remod-delete-checkbox:checked')).map(box => box.value);
       if (!selected.length) { feedback.textContent = 'Select at least one mod first.'; return; }
