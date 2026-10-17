@@ -117,9 +117,18 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-plan-count { grid-column:1 / -1; }
         .remod-plan-toolbar input,.remod-plan-toolbar select { width:100%; box-sizing:border-box; padding:9px; border:1px solid #c7cbd4; border-radius:4px; background:white; }
         .remod-plan-list { display:grid; gap:6px; }
-        .remod-result-tabs { display:flex; gap:8px; border-bottom:2px solid #e2e5eb; margin:16px 0; }
-        .remod-result-tab { border:0; border-bottom:3px solid transparent; background:transparent; padding:11px 16px; font-weight:700; cursor:pointer; color:#50586b; margin-bottom:-2px; }
-        .remod-result-tab[aria-selected="true"] { color:#5536b7; border-bottom-color:#6c4bd2; }
+        .remod-result-tabs { display:flex; width:100%; gap:0; border-bottom:2px solid #e2e5eb; margin:16px 0; }
+        .remod-result-tab { flex:1 1 0; min-width:0; border:0; border-bottom:3px solid transparent; background:#f5f6f8; padding:11px 12px; font-weight:700; cursor:pointer; color:#50586b; margin:0; text-align:center; transition:background .15s,color .15s,border-color .15s; }
+        .remod-result-tab + .remod-result-tab { border-left:1px solid #e2e5eb; }
+        .remod-result-tab:hover { background:#eeeaf9; color:#5536b7; }
+        .remod-result-tab[aria-selected="true"] { color:#5536b7; background:#f2effb; border-bottom-color:#6c4bd2; }
+        .remod-profile-picker { display:grid; grid-template-columns:minmax(180px,1fr) minmax(0,2fr); gap:12px; align-items:end; margin:8px 0 18px; padding:12px; border:1px solid #d9dce4; border-radius:7px; background:#fafbfc; }
+        .remod-profile-picker[hidden] { display:none !important; }
+        .remod-profile-picker label { display:block; margin-bottom:5px; }
+        .remod-profile-picker select { width:100%; box-sizing:border-box; padding:9px; border:1px solid #c7cbd4; border-radius:4px; background:white; }
+        .remod-profile-summary { display:flex; flex-wrap:wrap; align-items:center; gap:8px 18px; min-height:38px; color:#343a46; }
+        .remod-profile-summary span { display:inline-block; }
+        @media (max-width:650px) { .remod-profile-picker { grid-template-columns:1fr; } }
         .remod-result-pane[hidden] { display:none !important; }
         .remod-delete-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:14px 0; }
         .remod-delete-toolbar button { cursor:pointer; padding:7px 11px; }
@@ -193,6 +202,13 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                     <label for="remodFile"><strong>Select a restoreMyProgress.json file</strong></label>
                     <input class="remod-file" type="file" id="remodFile" name="file" accept=".json,application/json" required>
                     <div id="remodFileName" class="remod-help">JSON file, maximum size 30 MB.</div>
+                    <div id="remodProfilePicker" class="remod-profile-picker" hidden>
+                        <div>
+                            <label for="remodProfileSelect"><strong>AllyCode</strong></label>
+                            <select id="remodProfileSelect" aria-label="Select allyCode"></select>
+                        </div>
+                        <div id="remodProfileSummary" class="remod-profile-summary" aria-live="polite"></div>
+                    </div>
                     <div class="remod-result-tabs remod-input-tabs" role="tablist" aria-label="Computation type">
                         <button type="button" class="remod-result-tab" id="remodInputTab" role="tab" aria-selected="true" aria-controls="remodInputPane">Remod</button>
                         <button type="button" class="remod-result-tab" id="statqInputTab" role="tab" aria-selected="false" aria-controls="statqInputPane">StatQ</button>
@@ -303,13 +319,32 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodConfirmedAllyCodes = <?php echo json_encode($codex_confirmed_ally_codes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261018-modstats3"></script>
+<script src="codexremod_results.js?v=20261018-profiles1"></script>
 <script>
 (function () {
     'use strict';
     const form = document.getElementById('remodForm');
     const fileInput = document.getElementById('remodFile');
     const fileName = document.getElementById('remodFileName');
+    const profilePicker = document.getElementById('remodProfilePicker');
+    const profileSelect = document.getElementById('remodProfileSelect');
+    const profileSummary = document.getElementById('remodProfileSummary');
+    let restoreProfiles = [];
+    let selectedRestoreProfile = null;
+    function updateSelectedProfile() {
+        const selected = restoreProfiles.find(item => item.allyCode === profileSelect.value) || restoreProfiles[Number(profileSelect.value)];
+        selectedRestoreProfile = selected ? selected.profile : null;
+        if (selected) {
+            profileSummary.innerHTML = '<span><strong>Player:</strong> ' + esc(selected.playerName) + '</span><span><strong>Characters:</strong> ' + selected.characterCount + '</span>';
+            rosterCharacters = extractCharacters(restoreProgressData, selected.profile);
+        } else {
+            profileSummary.textContent = '';
+            rosterCharacters = extractCharacters(restoreProgressData);
+        }
+        rosterNote.textContent = rosterCharacters.length ? 'Loaded ' + rosterCharacters.length + ' characters from this roster.' : 'No characters found in the selected profile.';
+        refreshCharacterSelect();
+        if (selectedMode() === 'light' && !rosterCharacters.length) showMessage(rosterNote.textContent, true);
+    }
     const remodInputTab = document.getElementById('remodInputTab');
     const statqInputTab = document.getElementById('statqInputTab');
     const remodInputPane = document.getElementById('remodInputPane');
@@ -419,9 +454,19 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         cross:['Tenacity %','Potency %','Defense %','Health %','Offense %','Protection %']
     };
     function esc(value) { return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
-    function extractCharacters(data) {
-        const roots = [data];
-        if (data && data.profiles && typeof data.profiles === 'object') roots.push(...(Array.isArray(data.profiles) ? data.profiles : Object.values(data.profiles)));
+    function extractProfiles(data) {
+        const source = data && data.profiles;
+        const entries = Array.isArray(source) ? source : (source && typeof source === 'object' ? Object.values(source) : []);
+        return entries.filter(profile => profile && typeof profile === 'object').map((profile, index) => {
+            const allyCode = String(profile.allyCode || profile.allycode || (profile.player && (profile.player.allyCode || profile.player.allycode)) || '');
+            const playerName = String(profile.playerName || profile.name || (profile.player && (profile.player.name || profile.player.playerName)) || profile.displayName || 'Unknown player');
+            const characters = profile.characters && typeof profile.characters === 'object' ? profile.characters : {};
+            const characterCount = Array.isArray(characters) ? characters.length : Object.keys(characters).length;
+            return { profile, allyCode, playerName, characterCount, label: (allyCode || 'No AllyCode') + ' — ' + playerName, index };
+        });
+    }
+    function extractCharacters(data, selectedProfile) {
+        const roots = selectedProfile ? [selectedProfile] : [data];
         const found = new Map();
         for (const root of roots) {
             const chars = root && root.characters;
@@ -611,6 +656,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         heroSearch.value='';
         renderTargets();
     });
+    profileSelect.addEventListener('change', updateSelectedProfile);
     fileInput.addEventListener('change', async function () {
         const file = fileInput.files && fileInput.files[0];
         fileName.textContent = file ? file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB)' : 'JSON file, maximum size 30 MB.';
@@ -621,15 +667,29 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
             hideMessage();
             submitButton.disabled = busy;
             rosterCharacters = [];
+            restoreProfiles = [];
+            selectedRestoreProfile = null;
+            profilePicker.hidden = true;
+            profileSelect.replaceChildren();
+            profileSummary.textContent = '';
             targetHeroes = [];
             renderTargets();
             if (file) {
                 try {
                     const parsed = JSON.parse(await file.text());
                     restoreProgressData = parsed;
-                    rosterCharacters = extractCharacters(parsed);
-                    rosterNote.textContent = rosterCharacters.length ? 'Loaded '+rosterCharacters.length+' characters from this roster.' : 'No characters found. Make sure this is a restoreMyProgress.json file.';
-                    refreshCharacterSelect();
+                    restoreProfiles = extractProfiles(parsed);
+                    profilePicker.hidden = restoreProfiles.length === 0;
+                    profileSelect.innerHTML = restoreProfiles.map((item, index) => '<option value="' + index + '">' + esc(item.label) + '</option>').join('');
+                    profileSelect.value = restoreProfiles.length ? '0' : '';
+                    selectedRestoreProfile = restoreProfiles.length ? restoreProfiles[0].profile : null;
+                    rosterCharacters = extractCharacters(parsed, selectedRestoreProfile);
+                    if (restoreProfiles.length) updateSelectedProfile();
+                    else {
+                        profileSummary.textContent = '';
+                        rosterNote.textContent = rosterCharacters.length ? 'Loaded ' + rosterCharacters.length + ' characters from this roster.' : 'No characters found. Make sure this is a restoreMyProgress.json file.';
+                        refreshCharacterSelect();
+                    }
                     if (!rosterCharacters.length && selectedMode()==='light') showMessage(rosterNote.textContent,true);
                     else if (!busy) showMessage('File selected. Configure the options below, then click Upload and start remod.');
                 } catch (error) {
