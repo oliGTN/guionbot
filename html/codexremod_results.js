@@ -384,14 +384,11 @@
     const payload = statPayload(stat);
     const id = Number(payload && payload.unitStatId);
     const idLabels = {
-      1:'Health', 5:'Speed', 6:'Physical Damage', 7:'Special Damage', 8:'Armor',
-      9:'Resistance', 10:'Physical Critical Chance', 11:'Special Critical Chance',
-      12:'Dodge', 13:'Deflection', 14:'Potency', 15:'Tenacity',
-      16:'Critical Damage', 17:'Accuracy', 18:'Armor Penetration',
-      20:'Health Steal', 21:'Protection', 28:'Protection',
-      41:'Physical Damage', 42:'Special Damage', 48:'Potency',
-      49:'Tenacity', 52:'Critical Chance', 53:'Critical Damage',
-      54:'Potency', 55:'Tenacity', 56:'Health Steal'
+      1:'Health', 5:'Speed', 16:'Critical Damage %', 17:'Potency %',
+      18:'Tenacity %', 28:'Protection', 41:'Offense', 42:'Defense',
+      48:'Offense %', 49:'Defense %', 52:'Accuracy %',
+      53:'Critical Chance %', 54:'Critical Avoidance %',
+      55:'Health %', 56:'Protection %'
     };
     if (Number.isFinite(id) && idLabels[id]) return idLabels[id];
     let raw = typeof stat === 'object'
