@@ -40,6 +40,59 @@ async def handle_tbzone_order(request):
         )
 
 
+async def handle_sell_mods(request):
+    expected_token = request.app["token"]
+    authorization = request.headers.get("Authorization", "")
+
+    if not expected_token or authorization != "Bearer " + expected_token:
+        return web.json_response(
+            {"err_code": 401, "err_txt": "Unauthorized"},
+            status=401
+        )
+
+    try:
+        payload = await request.json()
+        ally_code = str(payload.get("allyCode", ""))
+        mod_ids = payload.get("mod_ids")
+
+        if not ally_code.isdigit() or not isinstance(mod_ids, list) or not mod_ids:
+            return web.json_response(
+                {"err_code": 400, "err_txt": "Invalid allyCode or mod selection"},
+                status=400
+            )
+        if len(mod_ids) > 500 or any(
+            not isinstance(mod_id, str)
+            or not mod_id
+            or len(mod_id) > 128
+            or not all(ch.isalnum() or ch in "_-" for ch in mod_id)
+            for mod_id in mod_ids
+        ):
+            return web.json_response(
+                {"err_code": 400, "err_txt": "Invalid mod selection"},
+                status=400
+            )
+
+        # Placeholder by design: actual selling is not implemented yet.
+        golog.log(
+            "INFO",
+            "Sell mods command received for allyCode "
+            + ally_code
+            + " ("
+            + str(len(mod_ids))
+            + " selected mods); no action taken."
+        )
+        return web.json_response(
+            {"err_code": 0, "err_txt": "Sell mods request accepted (no action taken yet)."}
+        )
+
+    except Exception as error:
+        golog.log("ERR", "Sell mods command error: " + str(error))
+        return web.json_response(
+            {"err_code": 500, "err_txt": "Internal server error"},
+            status=500
+        )
+
+
 async def on_startup(app):
     if not app["token"]:
         raise RuntimeError("GUIONBOT_WEB_COMMANDS_TOKEN is not configured")
@@ -52,6 +105,7 @@ def create_app():
     app = web.Application()
     app["token"] = TOKEN
     app.router.add_post("/TBzoneOrder", handle_tbzone_order)
+    app.router.add_post("/SellMods", handle_sell_mods)
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
     return app
