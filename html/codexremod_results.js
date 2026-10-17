@@ -373,12 +373,32 @@
     return null;
   }
 
+  function statPayload(stat) {
+    if (!stat || typeof stat !== 'object') return stat;
+    return stat.stat && typeof stat.stat === 'object' ? stat.stat : stat;
+  }
+
   function statName(stat) {
     if (stat === undefined || stat === null || stat === '') return 'Stat';
-    if (typeof stat === 'object') {
-      stat = stat.name || stat.statName || stat.stat_name || stat.unitStatName || stat.unitStat || stat.stat || stat.type || 'Stat';
-    }
-    const raw = String(stat);
+    const outer = stat && typeof stat === 'object' ? stat : {};
+    const payload = statPayload(stat);
+    const id = Number(payload && payload.unitStatId);
+    const idLabels = {
+      1:'Health', 5:'Speed', 6:'Physical Damage', 7:'Special Damage', 8:'Armor',
+      9:'Resistance', 10:'Physical Critical Chance', 11:'Special Critical Chance',
+      12:'Dodge', 13:'Deflection', 14:'Potency', 15:'Tenacity',
+      16:'Critical Damage', 17:'Accuracy', 18:'Armor Penetration',
+      20:'Health Steal', 21:'Protection', 28:'Protection',
+      41:'Physical Damage', 42:'Special Damage', 48:'Potency',
+      49:'Tenacity', 52:'Critical Chance', 53:'Critical Damage',
+      54:'Potency', 55:'Tenacity', 56:'Health Steal'
+    };
+    if (Number.isFinite(id) && idLabels[id]) return idLabels[id];
+    let raw = typeof stat === 'object'
+      ? (outer.name || outer.statName || outer.stat_name || outer.unitStatName || outer.unitStat || payload.name || payload.statName || payload.stat_name || payload.unitStatName || payload.unitStat || payload.stat || payload.type || 'Stat')
+      : stat;
+    if (typeof raw === 'object') raw = raw.name || raw.unitStatName || raw.type || '';
+    raw = String(raw || 'Stat');
     const normalized = raw.toLowerCase().replace(/^unitstat_?/, '').replace(/[^a-z0-9]/g, '');
     const labels = {
       health:'Health', maxhealth:'Health', protection:'Protection', speed:'Speed',
@@ -396,8 +416,19 @@
   function statValue(stat) {
     if (stat === null || stat === undefined) return '';
     if (typeof stat !== 'object') return String(stat);
-    const value = modField(stat, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','amount']);
-    return value === null ? '' : String(value);
+    const outer = stat;
+    const payload = statPayload(stat);
+    let value = modField(outer, ['value','stat_value','decimalValue','decimal_value','valueDecimal','amount']);
+    if (value === null) value = modField(payload, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','amount']);
+    if (value === null) return '';
+    if (payload && payload.statValueDecimal !== undefined && payload.statValueDecimal !== null && outer.value === undefined) {
+      const id = Number(payload.unitStatId);
+      const decimalIds = new Set([16,17,18,48,49,52,53,54,55,56]);
+      const divisor = decimalIds.has(id) ? 100 : 10000;
+      const scaled = Number(value) / divisor;
+      return Number.isFinite(scaled) ? String(Number(scaled.toFixed(3))) : String(value);
+    }
+    return String(value);
   }
 
   function statRerolls(stat) {
