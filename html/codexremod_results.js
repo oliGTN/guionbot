@@ -357,7 +357,7 @@
   }
 
   function csvModRows(csvText) {
-    const rows = parseCsv(String(csvText || '').replace(/^\\uFEFF/, ''));
+    const rows = parseCsv(String(csvText || '').replace(/^\uFEFF/, ''));
     if (!rows.length) return [];
     const headers = rows.shift().map(value => String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_'));
     const idIndex = headers.findIndex(value => /^(id_mod|mod_id|mod_uid|id|identifiant)$/.test(value));
@@ -390,7 +390,7 @@
       healthsteal:'Health Steal', physicalcriticalchance:'Physical Critical Chance',
       specialcriticalchance:'Special Critical Chance', mastery:'Mastery'
     };
-    return labels[normalized] || raw.replace(/^UNITSTAT_?/i, '').replace(/_/g, ' ').replace(/\\b\\w/g, ch => ch.toUpperCase());
+    return labels[normalized] || raw.replace(/^UNITSTAT_?/i, '').replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
   }
 
   function statValue(stat) {
@@ -464,10 +464,10 @@
     grid.innerHTML = matches.map(({id,mod,portePar}) => {
       const slotRaw = modField(mod,['slot','slotId','slot_id']);
       const slot = String(slotRaw == null ? '' : slotRaw).toLowerCase();
-      const slotNum = /^\\d+$/.test(slot) ? Number(slot) : ({square:2,arrow:3,diamond:4,triangle:5,circle:6,cross:7}[slot] || 0);
+      const slotNum = /^\d+$/.test(slot) ? Number(slot) : ({square:2,arrow:3,diamond:4,triangle:5,circle:6,cross:7}[slot] || 0);
       const setRaw = modField(mod,['set','modSet','mod_set','setId','set_id']);
       const setKey = String(setRaw == null ? '' : setRaw).toLowerCase();
-      const setNum = /^\\d+$/.test(setKey) ? Number(setKey) : 0;
+      const setNum = /^\d+$/.test(setKey) ? Number(setKey) : 0;
       const pips = Math.max(1, Math.min(6, Number(modField(mod,['pips','dots','dotCount','dot_count']) || 5)));
       const tier = Math.max(1,Math.min(5,Number(modField(mod,['tier','rarity','colorTier','color_tier']) || 1)));
       const shapeIndex = Math.max(0,Math.min(5,slotNum-2)) + (pips >= 6 ? 6 : 0);
@@ -536,7 +536,7 @@
   }
 
   function parseSemicolonCsv(text) {
-    text = String(text || '').replace(/^\\uFEFF/, '');
+    text = String(text || '').replace(/^\uFEFF/, '');
     const rows = [];
     let row = [], field = '', quoted = false;
     for (let i = 0; i < text.length; i++) {
