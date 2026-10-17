@@ -134,8 +134,12 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-delete-toolbar button { cursor:pointer; padding:7px 11px; }
         .remod-delete-filter { display:inline-flex; align-items:center; gap:6px; font-weight:500; }
         .remod-delete-feedback { flex-basis:100%; font-size:13px; color:#4b5563; overflow-wrap:anywhere; }
-        .remod-delete-select { display:flex; justify-content:flex-end; margin:-2px 0 3px; }
-        .remod-delete-select input { width:18px; height:18px; cursor:pointer; }
+        .remod-delete-select { display:flex !important; justify-content:flex-end; align-items:center; min-height:24px; margin:-2px 0 3px; position:relative; z-index:5; cursor:pointer; }
+        .remod-delete-select input.remod-delete-checkbox { display:inline-block !important; visibility:visible !important; opacity:1 !important; position:static !important; appearance:auto !important; -webkit-appearance:checkbox !important; accent-color:#6c4bd2; flex:0 0 18px; width:18px !important; min-width:18px; height:18px !important; margin:0 2px 0 0 !important; padding:0 !important; cursor:pointer; pointer-events:auto !important; }
+        .remod-delete-select input.remod-delete-checkbox:checked { accent-color:#6c4bd2; }
+        .remod-delete-card .remod-delete-stats { color:#242936; }
+        .remod-delete-card .remod-delete-stats .remod-delete-primary,
+        .remod-delete-card .remod-delete-stats .remod-delete-secondary { display:block !important; visibility:visible !important; opacity:1 !important; }
         .remod-delete-art { overflow:visible; }
         .remod-delete-overlay { position:absolute; inset:0; pointer-events:none; }
         .remod-delete-stars { position:absolute; z-index:4; top:0; left:1px; right:1px; text-align:center; font-size:12px; line-height:16px; letter-spacing:-1px; color:#ffe66d; text-shadow:0 1px 2px #000, 0 0 2px #000; white-space:nowrap; }
@@ -319,7 +323,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodConfirmedAllyCodes = <?php echo json_encode($codex_confirmed_ally_codes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261018-profiles1"></script>
+<script src="codexremod_results.js?v=20261018-statvalues1"></script>
 <script>
 (function () {
     'use strict';
