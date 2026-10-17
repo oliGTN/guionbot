@@ -463,8 +463,8 @@
     if (typeof stat !== 'object') return String(stat);
     const outer = stat;
     const payload = statPayload(stat);
-    let value = modField(outer, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','unscaledDecimalValue','unscaled_decimal_value','amount']);
-    if (value === null) value = modField(payload, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','unscaledDecimalValue','unscaled_decimal_value','amount']);
+    let value = modField(outer, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','unscaledDecimalValue','unscaled_decimal_value','statValueDecimal','amount']);
+    if (value === null) value = modField(payload, ['unscaledDecimalValue','unscaled_decimal_value','statValueDecimal','value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','amount']);
     if (value === null) return '';
     const id = Number(payload && payload.unitStatId);
     const hasUnscaled = payload && payload.unscaledDecimalValue !== undefined && payload.unscaledDecimalValue !== null;
