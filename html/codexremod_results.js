@@ -409,14 +409,21 @@
   }
 
   function statContainer(mod) {
-    let current = mod;
-    for (let depth = 0; depth < 3 && current && typeof current === 'object'; depth++) {
-      if (current.primaryStat || current.secondaryStat || current.secondaryStats) return current;
-      const nested = current.mod || current.modData || current.data;
-      if (!nested || typeof nested !== 'object') break;
-      current = nested;
+    const visited = new Set();
+    const queue = [{ value: mod, depth: 0 }];
+    while (queue.length) {
+      const item = queue.shift();
+      const current = item.value;
+      if (!current || typeof current !== 'object' || visited.has(current) || item.depth > 4) continue;
+      visited.add(current);
+      if (current.primaryStat || current.secondaryStat || current.secondaryStats ||
+          current.primary_stat || current.secondary_stats) return current;
+      ['mod', 'modData', 'data', 'details', 'stats', 'modStats'].forEach(key => {
+        const nested = current[key];
+        if (nested && typeof nested === 'object') queue.push({ value: nested, depth: item.depth + 1 });
+      });
     }
-    return current || mod;
+    return mod || {};
   }
 
   function statName(stat) {
