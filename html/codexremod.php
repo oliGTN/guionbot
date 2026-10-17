@@ -332,7 +332,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     let restoreProfiles = [];
     let selectedRestoreProfile = null;
     function updateSelectedProfile() {
-        const selected = restoreProfiles.find(item => item.allyCode === profileSelect.value) || restoreProfiles[Number(profileSelect.value)];
+        const selected = restoreProfiles[Number(profileSelect.value)];
         selectedRestoreProfile = selected ? selected.profile : null;
         if (selected) {
             profileSummary.innerHTML = '<span><strong>Player:</strong> ' + esc(selected.playerName) + '</span><span><strong>Characters:</strong> ' + selected.characterCount + '</span>';
