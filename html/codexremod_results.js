@@ -432,13 +432,11 @@
     const payload = statPayload(stat);
     const id = Number((payload && payload.unitStatId) ?? (outer.stat && outer.stat.unitStatId));
     const idLabels = {
-      1:'Health', 5:'Speed', 6:'Physical Damage', 7:'Special Damage',
-      8:'Armor', 9:'Resistance', 10:'Physical Critical Chance',
-      11:'Special Critical Chance', 12:'Dodge', 13:'Deflection',
-      14:'Potency', 15:'Tenacity', 16:'Critical Damage', 17:'Accuracy',
-      18:'Armor Penetration', 20:'Health Steal', 28:'Protection',
-      48:'Physical Damage %', 49:'Special Damage %', 52:'Critical Chance %',
-      53:'Critical Avoidance %', 55:'Health %', 56:'Protection %'
+      1:'Health', 5:'Speed', 16:'Critical Damage %', 17:'Potency %',
+      18:'Tenacity %', 28:'Protection', 41:'Offense', 42:'Defense',
+      48:'Offense %', 49:'Defense %', 52:'Accuracy %',
+      53:'Critical Chance %', 54:'Critical Avoidance %',
+      55:'Health %', 56:'Protection %'
     };
     if (Number.isFinite(id) && idLabels[id]) return idLabels[id];
     let raw = typeof stat === 'object'
@@ -465,16 +463,20 @@
     if (typeof stat !== 'object') return String(stat);
     const outer = stat;
     const payload = statPayload(stat);
-    let value = modField(outer, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','amount']);
-    if (value === null) value = modField(payload, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','amount']);
+    let value = modField(outer, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','unscaledDecimalValue','unscaled_decimal_value','amount']);
+    if (value === null) value = modField(payload, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','unscaledDecimalValue','unscaled_decimal_value','amount']);
     if (value === null) return '';
-    const rawDecimal = payload && payload.statValueDecimal !== undefined && payload.statValueDecimal !== null
-      ? payload.statValueDecimal : (outer.stat && outer.stat.statValueDecimal);
-    if (rawDecimal !== undefined && rawDecimal !== null && outer.value === undefined) {
-      const id = Number(payload && payload.unitStatId);
-      // These SWGOH stat IDs use hundredths; other stat values use ten-thousandths.
-      const decimalIds = new Set([14,15,16,17,18,48,49,50,51,52,53,54,55,56]);
-      const scaled = Number(value) / (decimalIds.has(id) ? 100 : 10000);
+    const id = Number(payload && payload.unitStatId);
+    const hasUnscaled = payload && payload.unscaledDecimalValue !== undefined && payload.unscaledDecimalValue !== null;
+    const hasStatDecimal = payload && payload.statValueDecimal !== undefined && payload.statValueDecimal !== null;
+    if (hasUnscaled) {
+      const percentageIds = new Set([16,17,18,48,49,52,53,54,55,56]);
+      const scaled = Number(value) * (percentageIds.has(id) ? 1e-6 : 1e-8);
+      return Number.isFinite(scaled) ? String(Number(scaled.toFixed(3))) : String(value);
+    }
+    if (hasStatDecimal && outer.value === undefined) {
+      const percentageIds = new Set([16,17,18,48,49,52,53,54,55,56]);
+      const scaled = Number(value) / (percentageIds.has(id) ? 100 : 10000);
       return Number.isFinite(scaled) ? String(Number(scaled.toFixed(3))) : String(value);
     }
     return String(value);
