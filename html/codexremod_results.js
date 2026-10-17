@@ -397,15 +397,33 @@
   }
 
   function statPayload(stat) {
-    if (!stat || typeof stat !== 'object') return stat;
-    return stat.stat && typeof stat.stat === 'object' ? stat.stat : stat;
+    let payload = stat;
+    // SWGOH mod stats are usually {stat:{unitStatId,statValueDecimal},statRolls}.
+    // Accept extra wrappers used by some progress-file exporters as well.
+    for (let depth = 0; depth < 4 && payload && typeof payload === 'object'; depth++) {
+      const nested = payload.stat || payload.statInfo || payload.stat_info;
+      if (!nested || typeof nested !== 'object') break;
+      payload = nested;
+    }
+    return payload;
+  }
+
+  function statContainer(mod) {
+    let current = mod;
+    for (let depth = 0; depth < 3 && current && typeof current === 'object'; depth++) {
+      if (current.primaryStat || current.secondaryStat || current.secondaryStats) return current;
+      const nested = current.mod || current.modData || current.data;
+      if (!nested || typeof nested !== 'object') break;
+      current = nested;
+    }
+    return current || mod;
   }
 
   function statName(stat) {
     if (stat === undefined || stat === null || stat === '') return 'Stat';
     const outer = stat && typeof stat === 'object' ? stat : {};
     const payload = statPayload(stat);
-    const id = Number(payload && payload.unitStatId);
+    const id = Number((payload && payload.unitStatId) ?? (outer.stat && outer.stat.unitStatId));
     const idLabels = {
       1:'Health', 5:'Speed', 16:'Critical Damage %', 17:'Potency %',
       18:'Tenacity %', 28:'Protection', 41:'Offense', 42:'Defense',
@@ -438,14 +456,16 @@
     if (typeof stat !== 'object') return String(stat);
     const outer = stat;
     const payload = statPayload(stat);
-    let value = modField(outer, ['value','stat_value','decimalValue','decimal_value','valueDecimal','amount']);
+    let value = modField(outer, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','amount']);
     if (value === null) value = modField(payload, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','amount']);
     if (value === null) return '';
-    if (payload && payload.statValueDecimal !== undefined && payload.statValueDecimal !== null && outer.value === undefined) {
-      const id = Number(payload.unitStatId);
-      const decimalIds = new Set([16,17,18,48,49,52,53,54,55,56]);
-      const divisor = decimalIds.has(id) ? 100 : 10000;
-      const scaled = Number(value) / divisor;
+    const rawDecimal = payload && payload.statValueDecimal !== undefined && payload.statValueDecimal !== null
+      ? payload.statValueDecimal : (outer.stat && outer.stat.statValueDecimal);
+    if (rawDecimal !== undefined && rawDecimal !== null && outer.value === undefined) {
+      const id = Number(payload && payload.unitStatId);
+      // These SWGOH stat IDs use hundredths; other stat values use ten-thousandths.
+      const decimalIds = new Set([14,15,16,17,18,48,49,50,51,52,53,54,55,56]);
+      const scaled = Number(value) / (decimalIds.has(id) ? 100 : 10000);
       return Number.isFinite(scaled) ? String(Number(scaled.toFixed(3))) : String(value);
     }
     return String(value);
@@ -453,7 +473,9 @@
 
   function statRerolls(stat) {
     if (!stat || typeof stat !== 'object') return 0;
-    const value = modField(stat, ['statRolls','stat_rolls','rolls','reroll','rerolls','rollCount','roll_count','statRollCount']);
+    const keys = ['statRolls','stat_rolls','rolls','reroll','rerolls','rollCount','roll_count','statRollCount'];
+    let value = modField(stat, keys);
+    if (value === null) value = modField(statPayload(stat), keys);
     const number = Number(value);
     return Number.isFinite(number) ? number : 0;
   }
@@ -475,22 +497,23 @@
     const confirmedAllyCodes = Array.isArray(window.codexRemodConfirmedAllyCodes) ? window.codexRemodConfirmedAllyCodes.map(String) : [];
     const canSellMods = !!allyCode && confirmedAllyCodes.includes(allyCode);
     const renderStats = mod => {
-      let primary = modField(mod, ['primaryStat','primary','primary_stat']);
+      const source = statContainer(mod);
+      let primary = modField(source, ['primaryStat','primary','primary_stat']);
       if (primary === null) {
-        const name = modField(mod, ['primaryStatName','primary_stat_name','primaryStatType']);
-        const value = modField(mod, ['primaryStatValue','primary_stat_value','primaryValue']);
+        const name = modField(source, ['primaryStatName','primary_stat_name','primaryStatType']);
+        const value = modField(source, ['primaryStatValue','primary_stat_value','primaryValue']);
         if (name !== null || value !== null) primary = { stat: name || 'Primary', value: value };
       }
-      let secondary = modField(mod, ['secondaryStat','secondaryStats','secondary','secondary_stats']);
+      let secondary = modField(source, ['secondaryStat','secondaryStats','secondary','secondary_stats']);
       if (!Array.isArray(secondary)) {
         if (secondary && typeof secondary === 'object') {
           secondary = Object.values(secondary);
         } else {
           secondary = [];
           for (let i = 1; i <= 4; i++) {
-            const name = modField(mod, ['secondaryStat' + i, 'secondary_stat_' + i, 'secondary' + i]);
-            const value = modField(mod, ['secondaryStat' + i + 'Value', 'secondary_stat_' + i + '_value']);
-            if (name !== null || value !== null) secondary.push({ stat: name || 'Stat', value, rolls: modField(mod, ['secondaryStat' + i + 'Rolls', 'secondary_stat_' + i + '_rolls']) });
+            const name = modField(source, ['secondaryStat' + i, 'secondary_stat_' + i, 'secondary' + i]);
+            const value = modField(source, ['secondaryStat' + i + 'Value', 'secondary_stat_' + i + '_value']);
+            if (name !== null || value !== null) secondary.push({ stat: name || 'Stat', value, statRolls: modField(source, ['secondaryStat' + i + 'Rolls', 'secondary_stat_' + i + '_rolls']) });
           }
         }
       }
