@@ -356,32 +356,16 @@
     return found;
   }
 
-  function csvModIds(csvText) {
-    const rows = parseCsv(csvText);
-    const ids = [];
-    rows.forEach((row, index) => {
-      if (row.length < 2) return;
-      const id = String(row[1] || '').trim();
-      if (!id) return;
-      if (index === 0 && /^(?:id_?mod|mod_?id|mod_?uid|identifiant|id)$/i.test(id)) return;
-      if (!ids.includes(id)) ids.push(id);
-    });
-    return ids;
-  }
-
-  function modDisplayEntries(mod) {
-    const entries = [];
-    const add = (label, value) => {
-      if (value === undefined || value === null || value === '') return;
-      if (typeof value === 'object') {
-        if (Array.isArray(value)) {
-          if (value.length && value.every(v => v === null || typeof v !== 'object')) entries.push([label, value.join(', ')]);
-          else value.forEach((v, i) => add(label + ' ' + (i + 1), v));
-        } else Object.entries(value).forEach(([key, nested]) => add(label ? label + ' · ' + key : key, nested));
-      } else entries.push([label, String(value)]);
-    };
-    Object.entries(mod).forEach(([key, value]) => add(key, value));
-    return entries;
+  function csvModRows(csvText) {
+    const rows = parseCsv(String(csvText || '').replace(/^\\uFEFF/, ''));
+    if (!rows.length) return [];
+    const headers = rows.shift().map(value => String(value || '').trim().toLowerCase().replace(/[\\s-]+/g, '_'));
+    const idIndex = headers.findIndex(value => /^(id_mod|mod_id|mod_uid|id|identifiant)$/.test(value));
+    const ownerIndex = headers.findIndex(value => value === 'porte_par' || value === 'portepar');
+    return rows.map(row => ({
+      id: String(row[idIndex >= 0 ? idIndex : 1] || '').trim(),
+      portePar: String(row[ownerIndex >= 0 ? ownerIndex : -1] || '').trim()
+    })).filter(row => row.id);
   }
 
   function modField(mod, keys) {
@@ -389,81 +373,167 @@
     return null;
   }
 
-  function resolveCharacterPortraitId(restoreData, rawId) {
-    const candidate = String(rawId == null ? '' : rawId).trim();
-    if (!candidate) return '';
-    const roots = [restoreData];
-    if (restoreData && restoreData.profiles && typeof restoreData.profiles === 'object') {
-      roots.push(...(Array.isArray(restoreData.profiles) ? restoreData.profiles : Object.values(restoreData.profiles)));
+  function statName(stat) {
+    if (stat === undefined || stat === null || stat === '') return 'Stat';
+    if (typeof stat === 'object') {
+      stat = stat.name || stat.statName || stat.stat_name || stat.unitStatName || stat.unitStat || stat.stat || stat.type || 'Stat';
     }
-    for (const root of roots) {
-      const chars = root && root.characters;
-      if (!chars || typeof chars !== 'object') continue;
-      const entries = Array.isArray(chars) ? chars.map(ch => [ch && (ch.baseId || ch.definitionId || ch.defId || ch.id), ch]) : Object.entries(chars);
-      for (const [key, ch] of entries) {
-        if (!ch || typeof ch !== 'object') continue;
-        const baseId = String(ch.baseId || ch.definitionId || ch.defId || key || '');
-        if ([key, ch.id, ch.characterID, ch.characterId, ch.baseId, ch.definitionId, ch.defId].some(value => value != null && String(value) === candidate)) return baseId;
-      }
-    }
-    return candidate;
+    const raw = String(stat);
+    const normalized = raw.toLowerCase().replace(/^unitstat_?/, '').replace(/[^a-z0-9]/g, '');
+    const labels = {
+      health:'Health', maxhealth:'Health', protection:'Protection', speed:'Speed',
+      potency:'Potency', tenacity:'Tenacity', criticalchance:'Critical Chance',
+      critchance:'Critical Chance', criticaldamage:'Critical Damage', critdamage:'Critical Damage',
+      physicaldamage:'Physical Damage', physicaloffense:'Physical Damage',
+      specialdamage:'Special Damage', specialoffense:'Special Damage', armor:'Armor',
+      resistance:'Resistance', accuracy:'Accuracy', dodge:'Dodge', deflection:'Deflection',
+      healthsteal:'Health Steal', physicalcriticalchance:'Physical Critical Chance',
+      specialcriticalchance:'Special Critical Chance', mastery:'Mastery'
+    };
+    return labels[normalized] || raw.replace(/^UNITSTAT_?/i, '').replace(/_/g, ' ').replace(/\\b\\w/g, ch => ch.toUpperCase());
   }
 
-  function renderDeleteMods(container, csvText, restoreData) {
-    const ids = csvModIds(csvText);
+  function statValue(stat) {
+    if (stat === null || stat === undefined) return '';
+    if (typeof stat !== 'object') return String(stat);
+    const value = modField(stat, ['value','statValue','stat_value','decimalValue','decimal_value','valueDecimal','statValueDecimal','amount']);
+    return value === null ? '' : String(value);
+  }
+
+  function statRerolls(stat) {
+    if (!stat || typeof stat !== 'object') return 0;
+    const value = modField(stat, ['statRolls','stat_rolls','rolls','reroll','rerolls','rollCount','roll_count','statRollCount']);
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+  }
+
+  function statText(stat) {
+    if (stat === null || stat === undefined) return '';
+    const name = statName(stat);
+    const value = statValue(stat);
+    return [value, name].filter(Boolean).join(' ');
+  }
+
+  function renderDeleteMods(container, csvText, restoreData, csrfToken) {
+    const rows = csvModRows(csvText);
     const inventory = collectInventoryMods(restoreData);
-    const matches = ids.map(id => ({ id, mod: inventory.get(id) })).filter(item => item.mod);
+    const matches = rows.map(row => ({ ...row, mod: inventory.get(row.id) })).filter(item => item.mod);
     const slotNames = { 2:'Square', 3:'Arrow', 4:'Diamond', 5:'Triangle', 6:'Circle', 7:'Cross', square:'Square', arrow:'Arrow', diamond:'Diamond', triangle:'Triangle', circle:'Circle', cross:'Cross' };
     const setNames = { 1:'Health', 2:'Offense', 3:'Defense', 4:'Speed', 5:'Critical Chance', 6:'Critical Damage', 7:'Potency', 8:'Tenacity', health:'Health', offense:'Offense', defense:'Defense', speed:'Speed', critchance:'Critical Chance', critdamage:'Critical Damage', potency:'Potency', tenacity:'Tenacity' };
-    const stats = mod => {
-      const primary = modField(mod, ['primaryStat','primary','primary_stat']);
-      const secondary = modField(mod, ['secondaryStat','secondaryStats','secondary','secondary_stats']);
-      const other = {};
-      Object.entries(mod).forEach(([key,value]) => {
-        if (/^(id|modid|mod_id|uid|slot|set|modset|mod_set|pips|dots|level|tier|characterid|character_id|character|owner|assignedto|assigned_to|primarystat|primary|primary_stat|secondarystat|secondarystats|secondary|secondary_stats)$/i.test(key)) return;
-        other[key] = value;
-      });
-      const entries = [];
-      if (primary !== null) entries.push(['Primary', primary]);
-      if (secondary !== null) entries.push(['Secondary stats', secondary]);
-      Object.entries(other).forEach(([key,value]) => entries.push([key,value]));
-      return entries.map(([key,value]) => '<div><strong>'+esc(key)+':</strong> '+esc(typeof value === 'object' ? JSON.stringify(value) : String(value))+'</div>').join('');
+    const renderStats = mod => {
+      let primary = modField(mod, ['primaryStat','primary','primary_stat']);
+      if (primary === null) {
+        const name = modField(mod, ['primaryStatName','primary_stat_name','primaryStatType']);
+        const value = modField(mod, ['primaryStatValue','primary_stat_value','primaryValue']);
+        if (name !== null || value !== null) primary = { stat: name || 'Primary', value: value };
+      }
+      let secondary = modField(mod, ['secondaryStat','secondaryStats','secondary','secondary_stats']);
+      if (!Array.isArray(secondary)) {
+        if (secondary && typeof secondary === 'object') {
+          secondary = Object.values(secondary);
+        } else {
+          secondary = [];
+          for (let i = 1; i <= 4; i++) {
+            const name = modField(mod, ['secondaryStat' + i, 'secondary_stat_' + i, 'secondary' + i]);
+            const value = modField(mod, ['secondaryStat' + i + 'Value', 'secondary_stat_' + i + '_value']);
+            if (name !== null || value !== null) secondary.push({ stat: name || 'Stat', value, rolls: modField(mod, ['secondaryStat' + i + 'Rolls', 'secondary_stat_' + i + '_rolls']) });
+          }
+        }
+      }
+      const primaryText = primary !== null ? statText(primary) : '';
+      const secondaryHtml = secondary.slice(0, 4).map(stat => {
+        if (stat === null || stat === undefined) return '';
+        const rerolls = statRerolls(stat);
+        const text = statText(stat);
+        return text ? '<div class="remod-delete-secondary">(' + esc(rerolls) + ') ' + esc(text) + '</div>' : '';
+      }).join('');
+      return (primaryText ? '<div class="remod-delete-primary">' + esc(primaryText) + '</div>' : '') + secondaryHtml;
     };
     container.replaceChildren();
     const toolbar = document.createElement('div');
     toolbar.className = 'remod-delete-toolbar';
-    toolbar.innerHTML = '<strong>'+matches.length+' matching mods</strong><span class="remod-muted">'+(ids.length-matches.length)+' CSV IDs not found in the inventory</span><input type="search" aria-label="Search mods to delete" placeholder="Search mod, character, stat…">';
+    toolbar.innerHTML =
+      '<strong>' + matches.length + ' matching mods</strong>' +
+      '<label class="remod-delete-filter"><input type="checkbox" id="remodUnequippedOnly"> Unequipped mods</label>' +
+      '<button type="button" id="remodDeleteSelectAll">Select all</button>' +
+      '<button type="button" id="remodDeleteUnselectAll">Unselect all</button>' +
+      '<button type="button" id="remodSellMods" hidden>Sell mods</button>' +
+      '<span class="remod-delete-feedback" role="status" aria-live="polite"></span>';
     const grid = document.createElement('div');
     grid.className = 'remod-delete-grid';
-    grid.innerHTML = matches.map(({id,mod}) => {
+    grid.innerHTML = matches.map(({id,mod,portePar}) => {
       const slotRaw = modField(mod,['slot','slotId','slot_id']);
       const slot = String(slotRaw == null ? '' : slotRaw).toLowerCase();
-      const slotNum = /^\d+$/.test(slot) ? Number(slot) : ({square:2,arrow:3,diamond:4,triangle:5,circle:6,cross:7}[slot] || 0);
+      const slotNum = /^\\d+$/.test(slot) ? Number(slot) : ({square:2,arrow:3,diamond:4,triangle:5,circle:6,cross:7}[slot] || 0);
       const setRaw = modField(mod,['set','modSet','mod_set','setId','set_id']);
       const setKey = String(setRaw == null ? '' : setRaw).toLowerCase();
-      const setNum = /^\d+$/.test(setKey) ? Number(setKey) : 0;
-      const pips = Number(modField(mod,['pips','dots','dotCount','dot_count']) || 5);
+      const setNum = /^\\d+$/.test(setKey) ? Number(setKey) : 0;
+      const pips = Math.max(1, Math.min(6, Number(modField(mod,['pips','dots','dotCount','dot_count']) || 5)));
       const tier = Math.max(1,Math.min(5,Number(modField(mod,['tier','rarity','colorTier','color_tier']) || 1)));
       const shapeIndex = Math.max(0,Math.min(5,slotNum-2)) + (pips >= 6 ? 6 : 0);
       const iconIndex = Math.max(0,Math.min(7,(setNum || ({health:1,offense:2,defense:3,speed:4,critchance:5,critdamage:6,potency:7,tenacity:8}[setKey] || 1))-1));
-      const charRaw = modField(mod,['characterID','characterId','character_id','defId','def_id','owner','assignedTo','assigned_to']);
+      const charRaw = modField(mod,['characterID','characterId','character_id','defId','def_id','owner','assignedTo','assigned_to','characterID']);
       const characterRaw = charRaw && typeof charRaw === 'object' ? (charRaw.baseId || charRaw.defId || charRaw.id || '') : String(charRaw || '');
       const character = resolveCharacterPortraitId(restoreData, characterRaw);
       const level = modField(mod,['level','lvl']);
       const title = (setNames[setNum] || setNames[setKey] || 'Mod')+' · '+(slotNames[slotNum] || slotNames[slot] || 'Unknown slot');
-      const detail = [pips+' dots',level != null ? 'Level '+level : '',modField(mod,['id','modId','mod_id','mod_uid','modUid','uid']) || id].filter(Boolean).join(' · ');
-      const flat = modDisplayEntries(mod).map(([key,value])=>key+': '+(typeof value==='object'?JSON.stringify(value):String(value))).join(' ').toLowerCase();
-      return '<article class="remod-delete-card" data-search="'+esc((title+' '+detail+' '+character+' '+flat).toLowerCase())+'" data-slot="'+slotNum+'"><div class="remod-delete-title">'+esc(title)+'</div><div class="remod-delete-meta">'+esc(detail)+'</div><div class="remod-delete-art" style="--shape-x:'+shapeIndex+';--shape-y:'+(tier-1)+';--icon-x:'+iconIndex+';--icon-y:'+(tier-1)+'">'+(character?'<img class="remod-delete-portrait" src="IMAGES/CHARACTERS/'+encodeURIComponent(character)+'.png" alt="" loading="lazy" onerror="this.hidden=true">':'')+'</div><div class="remod-delete-stats">'+stats(mod)+'</div></article>';
+      const assigned = portePar.trim() !== '';
+      return '<article class="remod-delete-card" data-porte-par="' + esc(portePar) + '" data-mod-id="' + esc(id) + '" data-assigned="' + (assigned ? '1' : '0') + '">' +
+        '<label class="remod-delete-select"><input type="checkbox" class="remod-delete-checkbox" value="' + esc(id) + '" aria-label="Select mod ' + esc(id) + '"></label>' +
+        '<div class="remod-delete-title">' + esc(title) + '</div>' +
+        '<div class="remod-delete-art" style="--shape-x:' + shapeIndex + ';--shape-y:' + (tier-1) + ';--icon-x:' + iconIndex + ';--icon-y:' + (tier-1) + '">' +
+          '<div class="remod-delete-overlay"><span class="remod-delete-stars">' + '★'.repeat(pips) + '</span><span class="remod-delete-level">Lvl ' + esc(level == null ? 0 : level) + '</span></div>' +
+          (character ? '<img class="remod-delete-portrait" src="IMAGES/CHARACTERS/' + encodeURIComponent(character) + '.png" alt="" loading="lazy" onerror="this.hidden=true">' : '') +
+        '</div>' +
+        '<div class="remod-delete-stats">' + renderStats(mod) + '</div>' +
+      '</article>';
     }).join('');
-    const search = toolbar.querySelector('input');
-    search.addEventListener('input', () => {
-      const query = search.value.trim().toLowerCase();
-      grid.querySelectorAll('.remod-delete-card').forEach(card => { card.hidden = !card.dataset.search.includes(query); });
+    const unequipped = toolbar.querySelector('#remodUnequippedOnly');
+    const selectAll = toolbar.querySelector('#remodDeleteSelectAll');
+    const unselectAll = toolbar.querySelector('#remodDeleteUnselectAll');
+    const sellButton = toolbar.querySelector('#remodSellMods');
+    const feedback = toolbar.querySelector('.remod-delete-feedback');
+    const applyUnequippedFilter = () => {
+      grid.querySelectorAll('.remod-delete-card').forEach(card => {
+        card.hidden = unequipped.checked && card.dataset.portePar.trim() !== '';
+      });
+    };
+    unequipped.addEventListener('change', applyUnequippedFilter);
+    selectAll.addEventListener('click', () => {
+      grid.querySelectorAll('.remod-delete-card:not([hidden]) .remod-delete-checkbox').forEach(box => { box.checked = true; });
     });
+    unselectAll.addEventListener('click', () => {
+      grid.querySelectorAll('.remod-delete-card:not([hidden]) .remod-delete-checkbox').forEach(box => { box.checked = false; });
+    });
+    const allyCode = String((restoreData && restoreData.allyCode) || (restoreData && restoreData.profiles && restoreData.profiles[0] && restoreData.profiles[0].allyCode) || '');
+    const confirmedAllyCodes = Array.isArray(window.codexRemodConfirmedAllyCodes) ? window.codexRemodConfirmedAllyCodes.map(String) : [];
+    if (allyCode && confirmedAllyCodes.includes(allyCode)) sellButton.hidden = false;
+    sellButton.addEventListener('click', async () => {
+      const selected = Array.from(grid.querySelectorAll('.remod-delete-card:not([hidden]) .remod-delete-checkbox:checked')).map(box => box.value);
+      if (!selected.length) { feedback.textContent = 'Select at least one mod first.'; return; }
+      if (!allyCode || !confirmedAllyCodes.includes(allyCode)) { feedback.textContent = 'This allyCode is not linked and confirmed for your Discord account.'; return; }
+      sellButton.disabled = true;
+      feedback.textContent = 'Sending selected mods…';
+      try {
+        const body = new FormData();
+        body.append('action', 'sell_mods');
+        body.append('csrf', csrfToken || '');
+        body.append('allyCode', allyCode);
+        body.append('mod_ids', JSON.stringify(selected));
+        const response = await fetch('codexcon.php', { method: 'POST', body, credentials: 'same-origin' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Sell mods request failed.');
+        feedback.textContent = result.err_txt || 'Request accepted.';
+      } catch (error) {
+        feedback.textContent = error.message || 'Unable to send sell mods request.';
+      } finally {
+        sellButton.disabled = false;
+      }
+    });
+    applyUnequippedFilter();
     container.append(toolbar,grid);
     return matches.length;
   }
-
 
   function parseSemicolonCsv(text) {
     text = String(text || '').replace(/^\\uFEFF/, '');
