@@ -275,6 +275,74 @@ if ($action === 'portraits') {
     codex_json_response(200, ['portraits' => $portraits]);
 }
 
+if ($action === 'sell_mods') {
+    $allyCode = $_POST['allyCode'] ?? '';
+    $rawModIds = $_POST['mod_ids'] ?? '';
+    if (!is_string($allyCode) || !preg_match('/^\\d{5,12}$/', $allyCode)) {
+        codex_json_response(400, ['error' => 'Invalid allyCode.']);
+    }
+    $linkedAllyCodes = $_SESSION['allyCodes'] ?? [];
+    $confirmed = array_key_exists((int)$allyCode, $linkedAllyCodes)
+        ? $linkedAllyCodes[(int)$allyCode]
+        : ($linkedAllyCodes[$allyCode] ?? false);
+    if (empty($confirmed)) {
+        codex_json_response(403, ['error' => 'This allyCode is not linked and confirmed for your Discord account.']);
+    }
+    if (!is_string($rawModIds) || strlen($rawModIds) > 65536) {
+        codex_json_response(400, ['error' => 'Invalid mod selection.']);
+    }
+    $modIds = json_decode($rawModIds, true);
+    if (!is_array($modIds) || count($modIds) < 1 || count($modIds) > 500) {
+        codex_json_response(400, ['error' => 'Select between 1 and 500 mods.']);
+    }
+    foreach ($modIds as $modId) {
+        if (!is_string($modId) || $modId === '' || strlen($modId) > 128 || !preg_match('/^[A-Za-z0-9_-]+$/', $modId)) {
+            codex_json_response(400, ['error' => 'Invalid mod ID in selection.']);
+        }
+    }
+    $tokenFile = '/home/pi/GuionBot/web_commands.token';
+    if (!is_readable($tokenFile)) {
+        error_log('Codex Remod sell mods: web commands token file is unreadable.');
+        codex_json_response(503, ['error' => 'Web commands service is not configured.']);
+    }
+    $token = trim(file_get_contents($tokenFile));
+    if ($token === '') {
+        codex_json_response(503, ['error' => 'Web commands service is not configured.']);
+    }
+    $payload = json_encode([
+        'allyCode' => $allyCode,
+        'discord_id' => (string)$_SESSION['user_id'],
+        'mod_ids' => array_values($modIds),
+    ]);
+    $ch = curl_init('http://127.0.0.1:9000/SellMods');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $token,
+        ],
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => 10,
+    ]);
+    $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false) {
+        error_log('Codex Remod sell mods service connection error: ' . $curlError);
+        codex_json_response(502, ['error' => 'Web commands service unavailable.']);
+    }
+    $result = json_decode($response, true);
+    if (!is_array($result) || $httpCode < 200 || $httpCode >= 300 || (int)($result['err_code'] ?? 500) !== 0) {
+        codex_json_response($httpCode >= 400 && $httpCode < 600 ? $httpCode : 502, [
+            'error' => is_array($result) ? ($result['err_txt'] ?? 'Web commands service returned an invalid response.') : 'Web commands service returned an invalid response.',
+        ]);
+    }
+    codex_json_response(200, ['ok' => true, 'err_txt' => $result['err_txt'] ?? 'Sell mods request accepted.']);
+}
+
 if ($action === 'status') {
     $job = $_SESSION['codex_remod_job'] ?? null;
     if (!is_array($job) || empty($job['id'])) codex_json_response(404, ['error' => 'No remod job was found in this session.']);
