@@ -278,7 +278,7 @@ if ($action === 'portraits') {
 if ($action === 'sell_mods') {
     $allyCode = $_POST['allyCode'] ?? '';
     $rawModIds = $_POST['mod_ids'] ?? '';
-    if (!is_string($allyCode) || !preg_match('/^\\d{5,12}$/', $allyCode)) {
+    if (!is_string($allyCode) || !preg_match('/^\d{5,12}$/', $allyCode)) {
         codex_json_response(400, ['error' => 'Invalid allyCode.']);
     }
     $linkedAllyCodes = $_SESSION['allyCodes'] ?? [];
