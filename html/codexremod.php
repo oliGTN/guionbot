@@ -18,9 +18,11 @@ if (empty($_SESSION['codex_remod_csrf'])) {
     $_SESSION['codex_remod_csrf'] = bin2hex(random_bytes(32));
 }
 $csrf = $_SESSION['codex_remod_csrf'];
+require_once __DIR__ . '/pvariables.php';
 $codex_confirmed_ally_codes = [];
 foreach (($_SESSION['allyCodes'] ?? []) as $ally_code => $confirmed) {
-    if (!empty($confirmed)) {
+    [$isMyAllycode, $isMyAllycodeConfirmed] = set_session_rights_for_allycode((string) $ally_code);
+    if ($isMyAllycodeConfirmed) {
         $codex_confirmed_ally_codes[] = (string) $ally_code;
     }
 }
@@ -301,7 +303,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodConfirmedAllyCodes = <?php echo json_encode($codex_confirmed_ally_codes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261018-resolver1"></script>
+<script src="codexremod_results.js?v=20261018-modstats2"></script>
 <script>
 (function () {
     'use strict';
