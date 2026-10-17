@@ -511,8 +511,8 @@
       const source = statContainer(mod);
       let primary = modField(source, ['primaryStat','primary','primary_stat']);
       if (primary === null) {
-        const name = modField(source, ['primaryStatName','primary_stat_name','primaryStatType']);
-        const value = modField(source, ['primaryStatValue','primary_stat_value','primaryValue']);
+        const name = modField(source, ['primaryBonusType','primaryStatName','primary_stat_name','primaryStatType']);
+        const value = modField(source, ['primaryBonusValue','primaryStatValue','primary_stat_value','primaryValue']);
         if (name !== null || value !== null) primary = { stat: name || 'Primary', value: value };
       }
       let secondary = modField(source, ['secondaryStat','secondaryStats','secondary','secondary_stats']);
@@ -522,9 +522,10 @@
         } else {
           secondary = [];
           for (let i = 1; i <= 4; i++) {
-            const name = modField(source, ['secondaryStat' + i, 'secondary_stat_' + i, 'secondary' + i]);
-            const value = modField(source, ['secondaryStat' + i + 'Value', 'secondary_stat_' + i + '_value']);
-            if (name !== null || value !== null) secondary.push({ stat: name || 'Stat', value, statRolls: modField(source, ['secondaryStat' + i + 'Rolls', 'secondary_stat_' + i + '_rolls']) });
+            const name = modField(source, ['secondaryType_' + i, 'secondaryStat' + i, 'secondary_stat_' + i, 'secondary' + i]);
+            const value = modField(source, ['secondaryValue_' + i, 'secondaryStat' + i + 'Value', 'secondary_stat_' + i + '_value']);
+            const rerolls = modField(source, ['secondaryRoll_' + i, 'secondaryStat' + i + 'Rolls', 'secondary_stat_' + i + '_rolls']);
+            if (name !== null || value !== null) secondary.push({ stat: name || 'Stat', value, statRolls: rerolls });
           }
         }
       }
