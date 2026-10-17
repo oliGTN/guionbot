@@ -18,6 +18,12 @@ if (empty($_SESSION['codex_remod_csrf'])) {
     $_SESSION['codex_remod_csrf'] = bin2hex(random_bytes(32));
 }
 $csrf = $_SESSION['codex_remod_csrf'];
+$codex_confirmed_ally_codes = [];
+foreach (($_SESSION['allyCodes'] ?? []) as $ally_code => $confirmed) {
+    if (!empty($confirmed)) {
+        $codex_confirmed_ally_codes[] = (string) $ally_code;
+    }
+}
 $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod_job']);
 $codex_unit_search_metadata = [];
 $codex_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
@@ -114,6 +120,19 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-result-tab[aria-selected="true"] { color:#5536b7; border-bottom-color:#6c4bd2; }
         .remod-result-pane[hidden] { display:none !important; }
         .remod-delete-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:14px 0; }
+        .remod-delete-toolbar button { cursor:pointer; padding:7px 11px; }
+        .remod-delete-filter { display:inline-flex; align-items:center; gap:6px; font-weight:500; }
+        .remod-delete-feedback { flex-basis:100%; font-size:13px; color:#4b5563; overflow-wrap:anywhere; }
+        .remod-delete-select { display:flex; justify-content:flex-end; margin:-2px 0 3px; }
+        .remod-delete-select input { width:18px; height:18px; cursor:pointer; }
+        .remod-delete-art { overflow:visible; }
+        .remod-delete-overlay { position:absolute; inset:0; pointer-events:none; }
+        .remod-delete-stars { position:absolute; z-index:4; top:0; left:1px; right:1px; text-align:center; font-size:12px; line-height:16px; letter-spacing:-1px; color:#ffe66d; text-shadow:0 1px 2px #000, 0 0 2px #000; white-space:nowrap; }
+        .remod-delete-level { position:absolute; z-index:4; right:0; bottom:0; padding:1px 4px; border-radius:4px 0 0 0; background:#111c; color:#fff; font-size:11px; line-height:15px; font-weight:700; text-shadow:0 1px 1px #000; }
+        .remod-delete-primary { font-weight:400; border:0 !important; padding-top:0 !important; }
+        .remod-delete-secondary { border-top:1px solid #eceef3; padding-top:4px; }
+        .remod-delete-stats { text-align:left; }
+        .remod-delete-card[hidden] { display:none !important; }
         .remod-delete-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
         .remod-delete-card { border:1px solid #d9dce4; border-radius:7px; padding:12px; background:#fff; min-width:0; }
         .remod-delete-art { width:90px; height:90px; margin:6px auto 10px; position:relative; background-image:url('IMAGES/MODS/mod-shape-atlas.png'); background-size:1080px 450px; background-position:calc(var(--shape-x) * -90px) calc(var(--shape-y) * -90px); background-repeat:no-repeat; }
@@ -281,8 +300,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261016-sharedportrait3"></script>
+<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodConfirmedAllyCodes = <?php echo json_encode($codex_confirmed_ally_codes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
+<script src="codexremod_results.js?v=20261018-selldrafts1"></script>
 <script>
 (function () {
     'use strict';
@@ -751,7 +770,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
             if (restoreProgressData) {
                 try {
                     const csvText = await window.codexRemodExtractArchiveText(resultsZipBlob, 'mods_a_supprimer.csv');
-                    const deleteCount = window.codexRemodRenderDeleteMods(deleteModsContainer, csvText, restoreProgressData);
+                    const deleteCount = window.codexRemodRenderDeleteMods(deleteModsContainer, csvText, restoreProgressData, csrf);
                     deleteNote.textContent = deleteCount + ' mods found in mods_a_supprimer.csv and matched against your restoreMyProgress inventory.';
                 } catch (error) {
                     deleteModsContainer.replaceChildren();
