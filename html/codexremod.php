@@ -58,7 +58,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="basic.css">
     <link rel="stylesheet" href="navbar.css">
-    <link rel="stylesheet" href="main.1.008.css">\n    <link rel="stylesheet" href="portrait.css">
+    <link rel="stylesheet" href="main.1.008.css">
+    <link rel="stylesheet" href="portrait.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
         .remod-wrap { max-width: 900px; margin: 28px auto; padding: 0 14px 36px; }
