@@ -359,7 +359,7 @@
   function csvModRows(csvText) {
     const rows = parseCsv(String(csvText || '').replace(/^\\uFEFF/, ''));
     if (!rows.length) return [];
-    const headers = rows.shift().map(value => String(value || '').trim().toLowerCase().replace(/[\\s-]+/g, '_'));
+    const headers = rows.shift().map(value => String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_'));
     const idIndex = headers.findIndex(value => /^(id_mod|mod_id|mod_uid|id|identifiant)$/.test(value));
     const ownerIndex = headers.findIndex(value => value === 'porte_par' || value === 'portepar');
     return rows.map(row => ({
