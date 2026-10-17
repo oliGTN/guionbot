@@ -335,6 +335,29 @@
     return rows;
   }
 
+  function resolveCharacterPortraitId(restoreData, characterRaw) {
+    if (characterRaw === null || characterRaw === undefined || characterRaw === '') return '';
+    if (typeof characterRaw === 'object') {
+      characterRaw = characterRaw.baseID || characterRaw.baseId || characterRaw.definitionId ||
+        characterRaw.defId || characterRaw.characterID || characterRaw.characterId ||
+        characterRaw.id || '';
+    }
+    const candidate = String(characterRaw || '').trim().toUpperCase();
+    if (!candidate) return '';
+
+    // RestoreMyProgress stores character records by baseID. If the supplied value
+    // is already a unit ID, preserve it; otherwise try to resolve common wrappers.
+    const progress = findCharacterProgress(restoreData, candidate);
+    if (progress) return candidate;
+    const match = candidate.match(/(?:^|[:_])([A-Z][A-Z0-9]+)$/);
+    if (match) {
+      const possibleId = match[1];
+      if (findCharacterProgress(restoreData, possibleId)) return possibleId;
+      return possibleId;
+    }
+    return candidate;
+  }
+
   function collectInventoryMods(restoreData) {
     const roots = [restoreData];
     if (restoreData && restoreData.profiles && typeof restoreData.profiles === 'object') {
