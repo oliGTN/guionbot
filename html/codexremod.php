@@ -83,8 +83,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 14px; margin: 20px 0; }
         .remod-options label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 5px; }
         .remod-options select, .remod-options input { width: 100%; box-sizing: border-box; padding: 9px; border: 1px solid #c7cbd4; border-radius: 4px; background: white; }
-        .remod-option-check { display: flex; align-items: center; gap: 8px; margin: 14px 0; }
-        .remod-option-check input { width: auto; }
+        .remod-options label.remod-option-check { display:flex; align-items:center; gap:8px; margin:14px 0; font-weight:600; cursor:pointer; }
+        .remod-option-check input[type="checkbox"] { display:inline-block !important; visibility:visible !important; opacity:1 !important; position:static !important; appearance:auto !important; -webkit-appearance:checkbox !important; accent-color:#6c4bd2; flex:0 0 18px; width:18px !important; min-width:18px; height:18px !important; margin:0 !important; padding:0 !important; cursor:pointer; pointer-events:auto !important; }
         .remod-mode { display:flex; flex-wrap:wrap; gap:16px; margin:16px 0; }
         .remod-mode label { display:flex; align-items:center; gap:7px; font-weight:600; }
         .remod-mode label { padding:10px 14px; border:2px solid #cbd0d8; border-radius:7px; background:#f5f6f8; color:#343a46; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
