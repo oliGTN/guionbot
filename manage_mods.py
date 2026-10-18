@@ -1256,28 +1256,31 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
                                 "initialdata": initialdata} }
 
 async def sell_mods(list_mods, txt_allyCode):
+    """Unequip selected mods where necessary, then sell them."""
+    if not list_mods:
+        return 1, "Aucun mod à vendre"
+
     ec, et, dict_player = await connect_rpc.get_extplayer_data(txt_allyCode)
     if ec != 0:
-        return 1, et
+        return ec, et
 
-    for unit_id in dict_player["rosterUnit"]:
-        unit = dict_player["rosterUnit"][uit_id]
+    selected_mod_ids = set(list_mods)
+    for unit_def_id, unit in dict_player["rosterUnit"].items():
         equipped_mods = []
-        if "equippedStatMod" in unit:
-            for mod in unit["equippedStatMod"]:
-                if mod["id"] in list_mods:
-                    equipped_mods.append(mod["id"])
+        for mod in unit.get("equippedStatMod", []):
+            if mod.get("id") in selected_mod_ids:
+                equipped_mods.append(mod["id"])
 
-        #unequip these mods
-        if len(equipped_mods) > 0:
-            ec, et = await connect_rpc.update_unit_mods(unit_id, [], unequipped_mods, txt_allyCode)
-             if ec != 0:
-                return 1, et
+        # Equipped mods must be unequipped before they can be sold.
+        if equipped_mods:
+            ec, et = await connect_rpc.update_unit_mods(
+                unit["id"], [], equipped_mods, txt_allyCode
+            )
+            if ec != 0:
+                return ec, et
 
-    #once all equipped mods have been unequipped, sell them
-    ec, et = await connect_rpc.sell_mods(list_mods, txt_allyCode)
-
-    return ec, et
+    # Only sell after every required unequip operation has succeeded.
+    return await connect_rpc.sell_mods(list_mods, txt_allyCode)
 
 
 
