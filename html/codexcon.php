@@ -276,6 +276,8 @@ if ($action === 'portraits') {
 }
 
 if ($action === 'sell_mods') {
+    // Selling can require several sequential unequip RPC calls.
+    set_time_limit(180);
     $allyCode = $_POST['allyCode'] ?? '';
     $rawModIds = $_POST['mod_ids'] ?? '';
     if (!is_string($allyCode) || !preg_match('/^\d{5,12}$/', $allyCode)) {
@@ -324,7 +326,7 @@ if ($action === 'sell_mods') {
         ],
         CURLOPT_POSTFIELDS => $payload,
         CURLOPT_CONNECTTIMEOUT => 2,
-        CURLOPT_TIMEOUT => 10,
+        CURLOPT_TIMEOUT => 180,
     ]);
     $response = curl_exec($ch);
     $curlError = curl_error($ch);
