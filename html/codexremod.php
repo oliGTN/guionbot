@@ -210,7 +210,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 <form id="remodForm">
                     <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8'); ?>">
                     <label for="remodFile"><strong>Select a restoreMyProgress.json file</strong></label>
-                    <input class="remod-file" type="file" id="remodFile" name="file" accept=".json,application/json" required>
+                    <input class="remod-file" type="file" id="remodFile" name="file" accept=".json,application/json">
                     <div id="remodFileName" class="remod-help">JSON file, maximum size 30 MB.</div>
                     <div id="remodProfilePicker" class="remod-profile-picker" hidden>
                         <div>
@@ -301,6 +301,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                     </div>
                     <div id="statqInputPane" role="tabpanel" aria-labelledby="statqInputTab" hidden>
                         <p class="remod-help">Calculate StatQ from your currently equipped mods. Only characters at relic 3 or above are counted; no remod is performed.</p>
+                        <div><label for="statqAllycode">Ally code (optional, 9 digits)</label><input id="statqAllycode" type="text" inputmode="numeric" pattern="[0-9 -]{9,11}" maxlength="11" placeholder="123-456-789"><p class="remod-help">Use an ally code instead of uploading a file. Only equipped mods are counted.</p></div>
                         <div class="remod-options">
                             <div><label for="statqTarget">Kyber 1 target</label><select id="statqTarget"><option value="moyenne" selected>Average</option><option value="mediane">Median</option><option value="p75">75th percentile (harder target)</option></select></div>
                             <div><label for="statqSort">Sort characters</label><select id="statqSort"><option value="alpha" selected>Alphabetical</option><option value="points">Points percentage, best first</option></select></div>
@@ -749,11 +750,12 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         event.preventDefault();
         if (busy) return;
         const file = fileInput.files && fileInput.files[0];
-        if (!file) { showMessage('Please select a restoreMyProgress.json file.', true); return; }
-        if (!file.name.toLowerCase().endsWith('.json') || file.size > 30 * 1024 * 1024) {
+        const statq = selectedInputTab === 'statq';
+        const allycode = document.getElementById('statqAllycode').value.replace(/[ -]/g, '');
+        if (!file && !(statq && /^\\d{9}$/.test(allycode))) { showMessage(statq ? 'Select a restoreMyProgress file or enter a 9-digit ally code.' : 'Please select a restoreMyProgress.json file.', true); return; }
+        if (file && (!file.name.toLowerCase().endsWith('.json') || file.size > 30 * 1024 * 1024)) {
             showMessage('Choose a .json file no larger than 30 MB.', true); return;
         }
-        const statq = selectedInputTab === 'statq';
         const light = !statq && selectedMode() === 'light';
         let targetsJson = null;
         if (light) {
@@ -774,6 +776,9 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         showMessage(selectedInputTab === 'statq' ? 'Uploading your file and creating the StatQ job…' : 'Uploading your file and creating the remod job…');
         try {
             const data = new FormData(form);
+            if (!file) data.delete('file');
+            if (statq && !file) data.set('allycode', allycode);
+            else data.delete('allycode');
             activeJobMode = selectedInputTab === 'statq' ? 'statq' : selectedMode();
             data.set('mode', activeJobMode);
             if (activeJobMode === 'statq') {
