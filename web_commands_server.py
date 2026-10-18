@@ -5,6 +5,7 @@ from aiohttp import web
 
 from connect_mysql import init_async_pool, close_async_pool
 from web_commands import process_tbzone_order
+import manage_mods
 import golog
 
 
@@ -72,17 +73,32 @@ async def handle_sell_mods(request):
                 status=400
             )
 
-        # Placeholder by design: actual selling is not implemented yet.
+        # Remove selected mods through the same RPC-backed function used by the bot.
+        err_code, err_txt = await manage_mods.sell_mods(mod_ids, ally_code)
+        if err_code != 0:
+            golog.log(
+                "WAR",
+                "Sell mods failed for allyCode "
+                + ally_code
+                + " ("
+                + str(len(mod_ids))
+                + " selected mods): "
+                + str(err_txt)
+            )
+            return web.json_response(
+                {"err_code": int(err_code), "err_txt": str(err_txt)},
+                status=400
+            )
+
         golog.log(
             "INFO",
-            "Sell mods command received for allyCode "
-            + ally_code
-            + " ("
+            "Sold "
             + str(len(mod_ids))
-            + " selected mods); no action taken."
+            + " selected mods for allyCode "
+            + ally_code
         )
         return web.json_response(
-            {"err_code": 0, "err_txt": "Sell mods request accepted (no action taken yet)."}
+            {"err_code": 0, "err_txt": "Successfully sold " + str(len(mod_ids)) + " mods."}
         )
 
     except Exception as error:
