@@ -630,8 +630,22 @@
         body.append('mod_ids', JSON.stringify(selected));
         const response = await fetch('codexcon.php', { method: 'POST', body, credentials: 'same-origin' });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Sell mods request failed.');
-        feedback.textContent = result.err_txt || 'Request accepted.';
+        if (!response.ok || result.ok !== true) throw new Error(result.error || 'Sell mods request failed.');
+        selected.forEach(modId => {
+          const card = grid.querySelector('.remod-delete-card[data-mod-id="' + CSS.escape(modId) + '"]');
+          if (!card) return;
+          card.dataset.sold = '1';
+          card.classList.add('remod-delete-card-sold');
+          const checkboxLabel = card.querySelector('.remod-delete-select');
+          if (checkboxLabel) checkboxLabel.remove();
+          const soldOverlay = document.createElement('div');
+          soldOverlay.className = 'remod-delete-sold-overlay';
+          soldOverlay.setAttribute('aria-label', 'SOLD');
+          soldOverlay.textContent = 'SOLD';
+          card.appendChild(soldOverlay);
+        });
+        updateSellButton();
+        feedback.textContent = result.err_txt || 'Selected mods sold successfully.';
       } catch (error) {
         feedback.textContent = error.message || 'Unable to send sell mods request.';
       } finally {
