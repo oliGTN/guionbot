@@ -357,7 +357,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>;</script>
+<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>; window.codexRemodSellScopeToken = <?php echo json_encode($codex_can_sell_mods ? hash_hmac('sha256', 'codex-sell:' . $codex_requested_ally_code, $_SESSION['codex_remod_csrf']) : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
 <script src="codexremod_results.js?v=20261018-sellacl1"></script>
 <script>
 (function () {
@@ -498,12 +498,12 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         const source = data && data.profiles;
         const entries = Array.isArray(source) ? source : (source && typeof source === 'object' ? Object.values(source) : []);
         return entries.filter(profile => profile && typeof profile === 'object').map((profile, index) => {
-            const allyCode = String(profile.allyCode || profile.allycode || (profile.player && (profile.player.allyCode || profile.player.allycode)) || '');
+            const allyCode = String(profile.allyCode || profile.allycode || (profile.player && (profile.player.allyCode || profile.player.allycode)) || '').replace(/[ -]/g, '');
             const playerName = String(profile.playerName || profile.name || (profile.player && (profile.player.name || profile.player.playerName)) || profile.displayName || 'Unknown player');
             const characters = profile.characters && typeof profile.characters === 'object' ? profile.characters : {};
             const characterCount = Array.isArray(characters) ? characters.length : Object.keys(characters).length;
             return { profile, allyCode, playerName, characterCount, label: (allyCode || 'No AllyCode') + ' — ' + playerName, index };
-        });
+        }).filter(item => !window.codexRemodAllyCode || item.allyCode === String(window.codexRemodAllyCode));
     }
     function extractCharacters(data, selectedProfile) {
         const roots = selectedProfile ? [selectedProfile] : [data];
