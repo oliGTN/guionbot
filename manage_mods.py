@@ -1254,3 +1254,31 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
     return 0, "", {"mod_allocations": mod_allocations,
                    "rpc_data": {"dict_player": dict_player, 
                                 "initialdata": initialdata} }
+
+async def sell_mods(list_mods, txt_allyCode):
+    ec, et, dict_player = await connect_rpc.get_extplayer_data(txt_allyCode)
+    if ec != 0:
+        return 1, et
+
+    for unit_id in dict_player["rosterUnit"]:
+        unit = dict_player["rosterUnit"][uit_id]
+        equipped_mods = []
+        if "equippedStatMod" in unit:
+            for mod in unit["equippedStatMod"]:
+                if mod["id"] in list_mods:
+                    equipped_mods.append(mod["id"])
+
+        #unequip these mods
+        if len(equipped_mods) > 0:
+            ec, et = await connect_rpc.update_unit_mods(unit_id, [], unequipped_mods, txt_allyCode)
+             if ec != 0:
+                return 1, et
+
+    #once all equipped mods have been unequipped, sell them
+    ec, et = await connect_rpc.sell_mods(list_mods, txt_allyCode)
+
+    return ec, et
+
+
+
+

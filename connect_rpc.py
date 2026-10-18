@@ -4206,3 +4206,31 @@ async def bronzium_open(txt_allyCode):
 
     return 0, ""
 
+async def sell_mods(list_mods, txt_allyCode):
+    url = "http://localhost:8000/sellMods"
+    params = {"allyCode": txt_allyCode,
+              "list_mods": list_mods}
+    req_data = json_dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                golog.log("DBG", "sellMods status="+str(resp.status))
+                if resp.status==200:
+                    resp_json = await(resp.json())
+
+                elif resp.status==201:
+                    return 1, "ERR: il faut au moins un mod à vendre"
+                else:
+                    return 1, "ERR during RPC sellMods - code "+str(resp.status)
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    if "err_code" in resp_json:
+        return resp_json["err_code"], resp_json["err_txt"]
+
+    return 0, ""
