@@ -633,8 +633,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 progressBar.removeAttribute('value');
                 progressText.textContent = 'Waiting in queue';
                 pollTimer = window.setTimeout(pollStatus, 4000);
-            } else if (name === 'running') {
-                cancelJobButton.hidden = false;
+            } else if (name === 'running' || name === 'cancelling') {
+                cancelJobButton.hidden = name === 'cancelling';
                 const progress = state.progress || {};
                 const pct = Math.max(0, Math.min(100, Number(progress.pct) || 0));
                 progressWrap.hidden = false;
