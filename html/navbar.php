@@ -39,6 +39,11 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['discord_access_token'])) {
         </ul>
     </li>
     <?php endif; ?>
+    <?php if (isset($_SESSION['user_id'])): ?>
+        <li class="codex-remod-nav" style="float:right;">
+            <a href="codexremod.php">Codex remod</a>
+        </li>
+    <?php endif; ?>
     <?php if (isset($_SESSION['sql_select']) && $_SESSION['sql_select']): ?>
         <li class="<?php echo (   substr($_SERVER['REQUEST_URI'], 0, strlen('/sqlquery.php'))=='/sqlquery.php' || $_SERVER['REQUEST_URI']=='/')? 'active' : ''; ?>">
             <a href="sqlquery.php">DB consult</a>

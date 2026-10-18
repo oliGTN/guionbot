@@ -1397,7 +1397,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
             %s
         )
     """
-    golog.log("INFO", query.replace("\n", " "), identifier=guild_id)
+    golog.log("INFO", query.replace('\n', ' '), identifier=guild_id)
 
     rowcount = await executemany_async(query, values)
 
@@ -1482,9 +1482,10 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
                 (tb_id, round, platoon_name, unit_name, player_name)
             VALUES (%s, %s, %s, %s, %s)
         """
+        golog.log("DBG", query.replace('\n', ' '), identifier=guild_id)
 
         golog.log(
-            "INFO",
+            "DBG",
             "Inserting " + str(len(values)) + " new platoon assignments"
         )
 
@@ -1943,7 +1944,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
             %s
         )
     """
-    golog.log("INFO", query, identifier=guild_id)
+    golog.log("DBG", query.replace("\n", " "), identifier=guild_id)
 
     rowcount = await executemany_async(query, values)
 
