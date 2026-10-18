@@ -280,11 +280,14 @@ if ($action === 'sell_mods') {
     if (!is_string($allyCode) || !preg_match('/^\d{5,12}$/', $allyCode)) {
         codex_json_response(400, ['error' => 'Invalid allyCode.']);
     }
-    $linkedAllyCodes = $_SESSION['allyCodes'] ?? [];
-    $confirmed = array_key_exists((int)$allyCode, $linkedAllyCodes)
-        ? $linkedAllyCodes[(int)$allyCode]
-        : ($linkedAllyCodes[$allyCode] ?? false);
-    if (empty($confirmed)) {
+    $scopeToken = $_POST['scope_token'] ?? '';
+    $expectedScopeToken = hash_hmac('sha256', 'codex-sell:' . $allyCode, $_SESSION['codex_remod_csrf'] ?? '');
+    if (!is_string($scopeToken) || $scopeToken === '' || !hash_equals($expectedScopeToken, $scopeToken)) {
+        codex_json_response(403, ['error' => 'Selling is not enabled for this allyCode. Open Codex Remod with the matching ac= parameter.']);
+    }
+    require_once __DIR__ . '/pvariables.php';
+    [, $isMyAllycodeConfirmed] = set_session_rights_for_allycode($allyCode);
+    if (!$isMyAllycodeConfirmed) {
         codex_json_response(403, ['error' => 'This allyCode is not linked and confirmed for your Discord account.']);
     }
     if (!is_string($rawModIds) || strlen($rawModIds) > 65536) {
