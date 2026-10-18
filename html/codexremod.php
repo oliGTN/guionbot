@@ -19,13 +19,18 @@ if (empty($_SESSION['codex_remod_csrf'])) {
 }
 $csrf = $_SESSION['codex_remod_csrf'];
 require_once __DIR__ . '/pvariables.php';
-$codex_confirmed_ally_codes = [];
-foreach (($_SESSION['allyCodes'] ?? []) as $ally_code => $confirmed) {
-    [$isMyAllycode, $isMyAllycodeConfirmed] = set_session_rights_for_allycode((string) $ally_code);
-    if ($isMyAllycodeConfirmed) {
-        $codex_confirmed_ally_codes[] = (string) $ally_code;
-    }
+
+// Selling is available only when this page is explicitly scoped to a confirmed allyCode.
+$codex_requested_ally_code = isset($_GET['ac']) && is_string($_GET['ac'])
+    ? preg_replace('/[ -]/', '', $_GET['ac'])
+    : '';
+if (!preg_match('/^\\d{5,12}$/', $codex_requested_ally_code)) {
+    $codex_requested_ally_code = '';
 }
+[$codex_is_my_ally_code, $codex_is_my_ally_code_confirmed] = $codex_requested_ally_code !== ''
+    ? set_session_rights_for_allycode($codex_requested_ally_code)
+    : [false, false, false, false];
+$codex_can_sell_mods = $codex_requested_ally_code !== '' && $codex_is_my_ally_code_confirmed;
 $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod_job']);
 $codex_unit_search_metadata = [];
 $codex_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
@@ -352,8 +357,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodConfirmedAllyCodes = <?php echo json_encode($codex_confirmed_ally_codes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261018-sold1"></script>
+<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>;</script>
+<script src="codexremod_results.js?v=20261018-sellacl1"></script>
 <script>
 (function () {
     'use strict';
