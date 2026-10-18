@@ -543,9 +543,9 @@
     toolbar.className = 'remod-delete-toolbar';
     toolbar.innerHTML =
       '<strong>' + matches.length + ' matching mods</strong>' +
-      '<label class="remod-delete-filter"><input type="checkbox" id="remodUnequippedOnly"> Unequipped mods</label>' +
-      '<button type="button" id="remodDeleteSelectAll">Select all</button>' +
-      '<button type="button" id="remodDeleteUnselectAll">Unselect all</button>' +
+      '<label class="remod-delete-filter"><input type="checkbox" id="remodUnequippedOnly"> <span>Unequipped mods</span></label>' +
+      '<button type="button" id="remodDeleteSelectAll" hidden>Select all</button>' +
+      '<button type="button" id="remodDeleteUnselectAll" hidden>Unselect all</button>' +
       '<button type="button" id="remodSellMods" hidden disabled>sell 0 mods</button>' +
       '<span class="remod-delete-feedback" role="status" aria-live="polite"></span>';
     const grid = document.createElement('div');
@@ -590,11 +590,23 @@
     unequipped.addEventListener('change', applyUnequippedFilter);
     selectAll.addEventListener('click', () => {
       grid.querySelectorAll('.remod-delete-card:not([hidden]) .remod-delete-checkbox').forEach(box => { box.checked = true; });
+      updateSellButton();
+      clearButtonFocus(selectAll);
     });
     unselectAll.addEventListener('click', () => {
       grid.querySelectorAll('.remod-delete-card:not([hidden]) .remod-delete-checkbox').forEach(box => { box.checked = false; });
+      updateSellButton();
+      clearButtonFocus(unselectAll);
     });
-    if (canSellMods) sellButton.hidden = false;
+    if (canSellMods) {
+      sellButton.hidden = false;
+      selectAll.hidden = false;
+      unselectAll.hidden = false;
+    }
+    const clearButtonFocus = button => {
+      button.blur();
+      button.classList.remove('focus');
+    };
     const updateSellButton = () => {
       const selectedCount = grid.querySelectorAll('.remod-delete-checkbox:checked').length;
       sellButton.textContent = 'sell ' + selectedCount + ' mods';
@@ -603,8 +615,6 @@
     grid.addEventListener('change', event => {
       if (event.target && event.target.matches('.remod-delete-checkbox')) updateSellButton();
     });
-    selectAll.addEventListener('click', updateSellButton);
-    unselectAll.addEventListener('click', updateSellButton);
     updateSellButton();
     sellButton.addEventListener('click', async () => {
       const selected = Array.from(grid.querySelectorAll('.remod-delete-card:not([hidden]) .remod-delete-checkbox:checked')).map(box => box.value);
