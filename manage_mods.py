@@ -23,6 +23,7 @@ import connect_rpc
 import connect_crinolo
 import data as godata
 import emojis
+from discord_interactions import confirmationPrompt
 
 #############
 # MAIN
@@ -1255,34 +1256,81 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
                    "rpc_data": {"dict_player": dict_player, 
                                 "initialdata": initialdata} }
 
-async def sell_mods(list_mods, txt_allyCode):
+async def sell_mods(
+        list_mods, 
+        txt_allyCode, 
+        max_mods=0, 
+        only_unequipped=False, 
+        interaction=None):
+
     """Unequip selected mods where necessary, then sell them."""
     if not list_mods:
         return 1, "Aucun mod à vendre"
 
-    ec, et, dict_player = await connect_rpc.get_extplayer_data(txt_allyCode)
+    ec, et, dict_player = await go.load_player(txt_allyCode, 1, False)
     if ec != 0:
-        return ec, et
+        return 1, et
 
-    selected_mod_ids = set(list_mods)
-    # the dict_player out of get_extplayer_data has list for rosterUnit, not a dict
-    for unit in dict_player["rosterUnit"]:
-        equipped_mods = []
+    # find all equipped mods
+    equipped_mods = {} #key=mod_id, value=[unit_defId, unit_id]
+    for unit_defId in dict_player["rosterUnit"]:
+        unit = dict_player["rosterUnit"][unit_defId]
         for mod in unit.get("equippedStatMod", []):
-            if mod.get("id") in selected_mod_ids:
-                equipped_mods.append(mod["id"])
+            equipped_mods[mod["id"]] = [unit_defId, unit["id"]]
 
-        # Equipped mods must be unequipped before they can be sold.
-        if equipped_mods:
-            ec, et = await connect_rpc.update_unit_mods(
-                unit["id"], [], equipped_mods, txt_allyCode
-            )
-            if ec != 0:
-                return ec, et
+    golog.log("DBG", "equipped_mods="+str(equipped_mods))
+
+
+    # build list of mods to sell, and list to unequip of allowed
+    unequip_dict = {} #key=unit_id, value=[id, id...]
+    final_list_mods = []
+    for mod_id in list_mods:
+        golog.log("DBG", mod_id)
+
+        if only_unequipped and mod_id in equipped_mods:
+            #mod is equipped, do not sell it
+            golog.log("DBG", mod_id+" is equipped, do not sell it")
+            continue
+
+        final_list_mods.append(mod_id)
+
+        if mod_id in equipped_mods:
+            [unit_defId, unit_id] = equipped_mods[mod_id]
+            golog.log("DBG", mod_id+" is equipped, prepare to uequip from "+unit_defId)
+            if not unit_defId in unequip_dict:
+                unequip_dict[unit_defId] = {"id":unit["id"], "list_mods":[]}
+            unequip_dict[unit_defId]["list_mods"].append(mod["id"])
+
+        # Check max ammount
+        if max_mods>0 and len(final_list_mods) >= max_mods:
+            break
+
+
+    #Ask user confirmation if the functions is called from discord command
+    if not interaction is None:
+        prompt_txt = "Vous allez vendre "+str(len(final_list_mods))+" mods"
+        if len(unequip_dict) > 0:
+            prompt_txt += ", dont certains sur les personnages suivants : "+str(list(unequip_dict.keys()))
+        prompt_txt += "\nEtes-vous sûr ?"
+        golog.log("DBG", prompt_txt)
+        user_choice = await confirmationPrompt(
+                interaction, 
+                prompt_txt[:2000])
+        if user_choice == False:
+            return 2, ""
+
+    # Equipped mods must be unequipped before they can be sold.
+    #unequip all mods after user confirmation
+    for unit_defId in unequip_dict:
+        unit_id = unequip_dict[unit_defId]["id"]
+        unit_unequip_mods = unequip_dict[unit_defId]["list_mods"]
+        ec, et = await connect_rpc.update_unit_mods(
+            unit_id, [], unit_unequip_mods, txt_allyCode
+        )
+        if ec != 0:
+            return 1, et
 
     # Only sell after every required unequip operation has succeeded.
-    return await connect_rpc.sell_mods(list_mods, txt_allyCode)
-
-
+    return await connect_rpc.sell_mods(final_list_mods, txt_allyCode)
 
 

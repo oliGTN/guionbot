@@ -6,8 +6,10 @@ from discord import app_commands, Interaction
 from discord import ui as discord_ui
 from discord import ButtonStyle
 from io import BytesIO
+from json import dumps as json_dumps, load as json_load, loads as json_loads
 import re
 import difflib
+import os
 import sys
 import traceback
 from texttable import Texttable
@@ -45,32 +47,6 @@ from discord_interactions import (
 import emojis
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 MAX_RELIC = 10
-
-##############################################################
-# interaction specifics
-class ConfirmationButtons(discord_ui.View):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.confirmed: bool = False
-
-    @discord_ui.button(label = emojis.check, style = ButtonStyle.blurple)
-    async def returnTrue(self, interaction: Interaction, button: discord_ui.Button):
-        self.confirmed = True
-        await interaction.response.defer()
-        self.stop()
-
-    @discord_ui.button(label = emojis.redcross, style = ButtonStyle.blurple)
-    async def returnFalse(self, interaction: Interaction, button: discord_ui.Button):
-        await interaction.response.defer()
-        self.stop()
-
-async def confirmationPrompt(interaction: Interaction, confirmation_prompt: str) -> bool:
-    view = ConfirmationButtons()
-    await interaction.edit_original_response(content=confirmation_prompt, view=view)
-    await view.wait()
-    await interaction.edit_original_response(content="En cours...", view=None)
-    return view.confirmed
-
 
 ##############################################################
 # actual bot commands
@@ -1123,6 +1099,104 @@ async def allocate_random_mods(ctx_interaction):
         return
 
     await command_ok(ctx_interaction, resp_msg, ret_data["cost"])
+    remove_command_from_queue(ctx_interaction)
+
+    return
+
+#######################################"
+async def sell_codex_mods(
+        ctx_interaction, 
+        fichier, 
+        max_mods=0,
+        only_unequipped=False):
+    # Add command to queue, check if bot is locked, check queue size
+    ret_add, resp_msg = await add_command_to_queue(ctx_interaction)
+    if ret_add != 0:
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    channel_id = ctx_interaction.channel_id
+
+    #get bot config from DB
+    ec, et, bot_infos = await get_mysql.get_google_player_info(channel_id)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    txt_allyCode = str(bot_infos["allyCode"])
+
+    golog.log("INFO", "mods.sell_codex_mods("+txt_allyCode+", "+fichier.filename+", max_mods="+str(max_mods)+")")
+
+    #Check that this player is not already in progress by the bot
+    ret = await acquire_sem(txt_allyCode, waiting=False)
+    if ret == 1:
+        txt = emojis.redcross+" ERR: ce joueur a déjà une commande bot en cours"
+        await command_error(ctx_interaction, resp_msg, txt)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    ####
+    #Get the mod IDs from the codex file
+    player_path = "PLAYERDATA/"+txt_allyCode
+    if not os.path.isdir(player_path):
+        os.mkdir(player_path)
+    file_savename = player_path+"/sellcodexmods_input.json"
+    await fichier.save(file_savename)
+    file_content = await fichier.read()
+    try:
+        json_content = file_content.decode('utf-8')
+    except :
+        golog.log("ERR", "Exception while json-loading the file")
+        await command_error(ctx_interaction, resp_msg, "ERR impossible de lire le contenu du fichier "+fichier.url)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    mods_to_delete = json_loads(json_content)
+    if not type(mods_to_delete)==dict:
+        golog.log("ERR", "file is not a dict but "+str(type(mods_to_delete)))
+        await command_error(ctx_interaction, resp_msg, "ERR format incorrect pour le fichier "+fichier.url)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    if not "mods" in mods_to_delete:
+        golog.log("ERR", "'mods' key not found among "+str(mods_to_delete.keys()))
+        await command_error(ctx_interaction, resp_msg, "ERR format incorrect pour le fichier "+fichier.url)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    list_mods = []
+    for mod in mods_to_delete["mods"]:
+        if not "id" in mod:
+            golog.log("ERR", "'id' key not found in "+str(mod))
+            await command_error(ctx_interaction, resp_msg, "ERR format incorrect pour le fichier "+fichier.url)
+            remove_command_from_queue(ctx_interaction)
+            return
+    
+        list_mods.append(mod["id"])
+
+
+    ####
+    #Run the command: sell mods
+    ec, et = await manage_mods.sell_mods(
+        list_mods, 
+        txt_allyCode, 
+        max_mods=max_mods,
+        only_unequipped=only_unequipped,
+        interaction=ctx_interaction)
+
+    await release_sem(txt_allyCode)
+
+    if ec==2:
+        await command_error(ctx_interaction, resp_msg, "Vente annulée")
+        remove_command_from_queue(ctx_interaction)
+        return
+    elif ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    await command_ok(ctx_interaction, resp_msg, "Mods correctement vendus")
     remove_command_from_queue(ctx_interaction)
 
     return
