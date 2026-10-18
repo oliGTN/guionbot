@@ -628,6 +628,7 @@
         body.append('action', 'sell_mods');
         body.append('csrf', csrfToken || '');
         body.append('allyCode', allyCode);
+        body.append('scope_token', String(window.codexRemodSellScopeToken || ''));
         body.append('mod_ids', JSON.stringify(selected));
         const response = await fetch('codexcon.php', { method: 'POST', body, credentials: 'same-origin' });
         const result = await response.json();
