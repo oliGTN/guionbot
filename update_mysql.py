@@ -1397,7 +1397,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
             %s
         )
     """
-    golog.log("INFO", query, identifier=guild_id)
+    golog.log("INFO", query.replace("\n", " "), identifier=guild_id)
 
     rowcount = await executemany_async(query, values)
 
