@@ -1299,12 +1299,15 @@ async def sell_mods(
             golog.log("DBG", mod_id+" is equipped, prepare to uequip from "+unit_defId)
             if not unit_defId in unequip_dict:
                 unequip_dict[unit_defId] = {"id":unit["id"], "list_mods":[]}
-            unequip_dict[unit_defId]["list_mods"].append(mod["id"])
+            unequip_dict[unit_defId]["list_mods"].append(mod_id)
 
         # Check max ammount
         if max_mods>0 and len(final_list_mods) >= max_mods:
             break
 
+
+    golog.log("INFO", "final_list_mods="+str(final_list_mods))
+    golog.log("INFO", "unequip_dict="+str(unequip_dict))
 
     #Ask user confirmation if the functions is called from discord command
     if not interaction is None:
