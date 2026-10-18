@@ -115,54 +115,47 @@ if ($action === 'submit') {
         codex_json_response(409, ['error' => 'A remod job is already running in this session.']);
     }
 
-    if (!isset($_FILES['file']) || !is_array($_FILES['file'])) {
-        codex_json_response(400, ['error' => 'Please select a restoreMyProgress.json file.']);
-    }
-    $file = $_FILES['file'];
-    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-        $uploadErrors = [
-            UPLOAD_ERR_INI_SIZE => 'The file exceeds the server upload limit.',
-            UPLOAD_ERR_FORM_SIZE => 'The file is too large.',
-            UPLOAD_ERR_PARTIAL => 'The upload was incomplete. Please try again.',
-            UPLOAD_ERR_NO_FILE => 'Please select a file.',
-            UPLOAD_ERR_NO_TMP_DIR => 'The server could not receive the upload.',
-            UPLOAD_ERR_CANT_WRITE => 'The server could not save the upload.',
-            UPLOAD_ERR_EXTENSION => 'The upload was blocked by server configuration.',
-        ];
-        codex_json_response(400, ['error' => $uploadErrors[$file['error']] ?? 'File upload failed.']);
-    }
-    if (!is_uploaded_file($file['tmp_name']) || (int) $file['size'] < 2 || (int) $file['size'] > 30 * 1024 * 1024) {
-        codex_json_response(400, ['error' => 'The file must be a valid JSON file no larger than 30 MB.']);
-    }
-
-    $originalName = basename((string) ($file['name'] ?? ''));
-    if (strtolower(pathinfo($originalName, PATHINFO_EXTENSION)) !== 'json') {
-        codex_json_response(400, ['error' => 'Please choose a .json file.']);
-    }
-    $raw = file_get_contents($file['tmp_name']);
-    $progress = json_decode($raw, true);
-    if (!is_array($progress) || !isset($progress['profiles'][0]['mods']) ||
-        !isset($progress['profiles'][0]['characters']) ||
-        !is_array($progress['profiles'][0]['mods']) ||
-        !is_array($progress['profiles'][0]['characters'])) {
-        codex_json_response(400, ['error' => 'This does not look like a valid restoreMyProgress file: profiles[0].mods and profiles[0].characters are required.']);
-    }
-    unset($raw, $progress);
-
     $mode = $_POST['mode'] ?? 'full';
     if (!is_string($mode) || !in_array($mode, ['full', 'light', 'statq'], true)) {
         codex_json_response(400, ['error' => 'Choose full remod, light remod, or StatQ.']);
     }
-    $fields = ['file' => new CURLFile($file['tmp_name'], 'application/json', 'restoreMyProgress.json')];
 
+    $file = $_FILES['file'] ?? null;
+    $hasFile = is_array($file) && ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
+    $allyCode = isset($_POST['allycode']) && is_string($_POST['allycode']) ? preg_replace('/[ -]/', '', $_POST['allycode']) : '';
+    if (!$hasFile && !($mode === 'statq' && preg_match('/^\\d{9}$/', $allyCode))) {
+        codex_json_response(400, ['error' => $mode === 'statq' ? 'Select a restoreMyProgress file or enter a 9-digit ally code.' : 'Please select a restoreMyProgress.json file.']);
+    }
+
+    $fields = [];
+    if ($hasFile) {
+        if (!is_uploaded_file($file['tmp_name']) || (int) $file['size'] < 2 || (int) $file['size'] > 30 * 1024 * 1024) {
+            codex_json_response(400, ['error' => 'The file must be a valid JSON file no larger than 30 MB.']);
+        }
+        $originalName = basename((string) ($file['name'] ?? ''));
+        if (strtolower(pathinfo($originalName, PATHINFO_EXTENSION)) !== 'json') {
+            codex_json_response(400, ['error' => 'Please choose a .json file.']);
+        }
+        $raw = file_get_contents($file['tmp_name']);
+        $progress = json_decode($raw, true);
+        if (!is_array($progress) || !isset($progress['profiles'][0]['mods']) ||
+            !isset($progress['profiles'][0]['characters']) ||
+            !is_array($progress['profiles'][0]['mods']) ||
+            !is_array($progress['profiles'][0]['characters'])) {
+            codex_json_response(400, ['error' => 'This does not look like a valid restoreMyProgress file: profiles[0].mods and profiles[0].characters are required.']);
+        }
+        unset($raw, $progress);
+        $fields['file'] = new CURLFile($file['tmp_name'], 'application/json', 'restoreMyProgress.json');
+    }
     if ($mode === 'statq') {
-        $options = ['mode' => 'statq', 'cible' => 'moyenne', 'tri' => 'alpha', 'lang' => 'fr'];
+        $options = ['mode' => 'statq', 'cible' => 'moyenne', 'tri' => 'alpha', 'lang' => 'fr', 'min_level' => 'all'];
         foreach ($options as $key => $default) {
             if (!isset($_POST[$key]) || !is_string($_POST[$key])) continue;
             $value = $_POST[$key];
             if ($key === 'cible' && in_array($value, ['moyenne', 'mediane', 'p75'], true)) $options[$key] = $value;
             if ($key === 'tri' && in_array($value, ['alpha', 'points'], true)) $options[$key] = $value;
             if ($key === 'lang' && in_array($value, ['fr', 'en'], true)) $options[$key] = $value;
+            if ($key === 'min_level' && preg_match('/^(all|G(?:[1-9]|1[0-3])|R[0-9])$/', $value)) $options[$key] = $value;
         }
     } elseif ($mode === 'light') {
         if (!isset($_FILES['cibles']) || !is_array($_FILES['cibles']) || ($_FILES['cibles']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -202,16 +195,19 @@ if ($action === 'submit') {
             if ($key === 'time_limit' && ctype_digit($value) && (int)$value >= 2 && (int)$value <= 15) $options[$key] = $value;
         }
     } else {
-        $options = ['sans_bot' => 'false', 'cible' => 'moyenne', 'time_limit' => '8', 'max_heroes' => '0', 'suppr_vitesse_max' => '10', 'lang' => 'fr'];
+        $options = ['min_level' => 'all', 'free_unselected' => 'false', 'protect_level' => 'none', 'cible' => 'moyenne', 'poids_k1' => '0.5', 'time_limit' => '8', 'max_heroes' => '0', 'suppr_vitesse_max' => '10', 'sans_bot' => 'false', 'lang' => 'fr'];
         foreach ($options as $key => $default) {
             if (!isset($_POST[$key]) || !is_string($_POST[$key])) continue;
             $value = $_POST[$key];
-            if ($key === 'sans_bot' && in_array($value, ['true', 'false'], true)) $options[$key] = $value;
+            if (in_array($key, ['sans_bot', 'free_unselected'], true) && in_array($value, ['true', 'false'], true)) $options[$key] = $value;
             if ($key === 'cible' && in_array($value, ['moyenne', 'mediane', 'p75'], true)) $options[$key] = $value;
             if ($key === 'lang' && in_array($value, ['fr', 'en'], true)) $options[$key] = $value;
+            if ($key === 'min_level' && preg_match('/^(all|G(?:[1-9]|1[0-3])|R[0-9])$/', $value)) $options[$key] = $value;
+            if ($key === 'protect_level' && preg_match('/^(none|G(?:[1-9]|1[0-3])|R[0-9])$/', $value)) $options[$key] = $value;
+            if ($key === 'poids_k1' && is_numeric($value) && (float)$value >= 0 && (float)$value <= 1) $options[$key] = (string)(float)$value;
             if ($key === 'time_limit' && ctype_digit($value) && (int)$value >= 2 && (int)$value <= 15) $options[$key] = $value;
-            if ($key === 'max_heroes' && ctype_digit($value) && (int)$value <= 500) $options[$key] = $value;
-            if ($key === 'suppr_vitesse_max' && ctype_digit($value) && (int)$value <= 30) $options[$key] = $value;
+            if ($key === 'max_heroes' && ctype_digit($value) && (int)$value >= 0 && (int)$value <= 500) $options[$key] = $value;
+            if ($key === 'suppr_vitesse_max' && ctype_digit($value) && (int)$value >= 0 && (int)$value <= 30) $options[$key] = $value;
         }
         if (isset($_POST['depart_stats']) && $_POST['depart_stats'] !== '') {
             $value = $_POST['depart_stats'];
@@ -219,11 +215,12 @@ if ($action === 'submit') {
             $options['depart_stats'] = (string)(int)$value;
         }
     }
+    if ($mode === 'statq' && !$hasFile) $fields['allycode'] = $allyCode;
     foreach ($options as $key => $value) $fields[$key] = $value;
 
     $result = codex_api_request('POST', '/jobs', $fields, true);
     if (!$result['ok']) {
-        $status = $result['http'] === 429 ? 429 : ($result['http'] === 503 ? 503 : 502);
+        $status = in_array($result['http'], [400, 401, 404, 409, 413, 429, 503, 507], true) ? $result['http'] : 502;
         codex_json_response($status, ['error' => $result['data']['detail']]);
     }
     $job = $result['data'];
@@ -283,11 +280,14 @@ if ($action === 'sell_mods') {
     if (!is_string($allyCode) || !preg_match('/^\d{5,12}$/', $allyCode)) {
         codex_json_response(400, ['error' => 'Invalid allyCode.']);
     }
-    $linkedAllyCodes = $_SESSION['allyCodes'] ?? [];
-    $confirmed = array_key_exists((int)$allyCode, $linkedAllyCodes)
-        ? $linkedAllyCodes[(int)$allyCode]
-        : ($linkedAllyCodes[$allyCode] ?? false);
-    if (empty($confirmed)) {
+    $scopeToken = $_POST['scope_token'] ?? '';
+    $expectedScopeToken = hash_hmac('sha256', 'codex-sell:' . $allyCode, $_SESSION['codex_remod_csrf'] ?? '');
+    if (!is_string($scopeToken) || $scopeToken === '' || !hash_equals($expectedScopeToken, $scopeToken)) {
+        codex_json_response(403, ['error' => 'Selling is not enabled for this allyCode. Open Codex Remod with the matching ac= parameter.']);
+    }
+    require_once __DIR__ . '/pvariables.php';
+    [, $isMyAllycodeConfirmed] = set_session_rights_for_allycode($allyCode);
+    if (!$isMyAllycodeConfirmed) {
         codex_json_response(403, ['error' => 'This allyCode is not linked and confirmed for your Discord account.']);
     }
     if (!is_string($rawModIds) || strlen($rawModIds) > 65536) {
@@ -359,7 +359,7 @@ if ($action === 'status') {
         'progress' => $data['progress'] ?? null,
         'error' => $data['error'] ?? null,
         // Forward only bounded diagnostic fields if the service exposes them.
-        'log' => $data['log'] ?? $data['logs'] ?? null,
+        'log' => $data['log'] ?? $data['logs'] ?? $data['log_tail'] ?? null,
         'error_detail' => $data['error_detail'] ?? $data['detail'] ?? null,
         'traceback' => $data['traceback'] ?? null,
         'files' => $data['files'] ?? null,
@@ -420,6 +420,17 @@ if ($action === 'download') {
     curl_exec($delete);
     curl_close($delete);
     exit;
+}
+
+if ($action === 'cancel') {
+    $job = $_SESSION['codex_remod_job'] ?? null;
+    if (!is_array($job) || empty($job['id'])) codex_json_response(404, ['error' => 'No remod job was found in this session.']);
+    $result = codex_api_request('POST', '/jobs/' . rawurlencode($job['id']) . '/cancel');
+    if (!$result['ok']) {
+        codex_json_response($result['http'] === 409 ? 409 : ($result['http'] === 404 ? 404 : 502), ['error' => $result['data']['detail']]);
+    }
+    $_SESSION['codex_remod_job']['status'] = $result['data']['status'] ?? 'cancelling';
+    codex_json_response(200, ['ok' => true, 'status' => $_SESSION['codex_remod_job']['status']]);
 }
 
 if ($action === 'forget') {

@@ -4031,6 +4031,23 @@ class ModsCog(commands.GroupCog, name="mods"):
             golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
+    @app_commands.command(name="vend-codex")
+    async def sell_codex_mods(self, interaction: discord.Interaction,
+                           fichier: discord.Attachment,
+                           max_mods: int=0,
+                           only_unequipped: bool=False):
+        try:
+            # run command
+            await bot_commands.sell_codex_mods(
+                    interaction, 
+                    fichier, 
+                    max_mods=max_mods,
+                    only_unequipped=only_unequipped)
+
+        except Exception as e:
+            golog.log("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
 ##############################################################
 # Class: BronziumCog - for Google accounts
 # Description: one command to open bronzium packs

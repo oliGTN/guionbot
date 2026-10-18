@@ -19,13 +19,18 @@ if (empty($_SESSION['codex_remod_csrf'])) {
 }
 $csrf = $_SESSION['codex_remod_csrf'];
 require_once __DIR__ . '/pvariables.php';
-$codex_confirmed_ally_codes = [];
-foreach (($_SESSION['allyCodes'] ?? []) as $ally_code => $confirmed) {
-    [$isMyAllycode, $isMyAllycodeConfirmed] = set_session_rights_for_allycode((string) $ally_code);
-    if ($isMyAllycodeConfirmed) {
-        $codex_confirmed_ally_codes[] = (string) $ally_code;
-    }
+
+// Selling is available only when this page is explicitly scoped to a confirmed allyCode.
+$codex_requested_ally_code = isset($_GET['ac']) && is_string($_GET['ac'])
+    ? preg_replace('/[ -]/', '', $_GET['ac'])
+    : '';
+if (!preg_match('/^\\d{5,12}$/', $codex_requested_ally_code)) {
+    $codex_requested_ally_code = '';
 }
+[$codex_is_my_ally_code, $codex_is_my_ally_code_confirmed] = $codex_requested_ally_code !== ''
+    ? set_session_rights_for_allycode($codex_requested_ally_code)
+    : [false, false, false, false];
+$codex_can_sell_mods = $codex_requested_ally_code !== '' && $codex_is_my_ally_code_confirmed;
 $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod_job']);
 $codex_unit_search_metadata = [];
 $codex_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
@@ -83,8 +88,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 14px; margin: 20px 0; }
         .remod-options label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 5px; }
         .remod-options select, .remod-options input { width: 100%; box-sizing: border-box; padding: 9px; border: 1px solid #c7cbd4; border-radius: 4px; background: white; }
-        .remod-option-check { display: flex; align-items: center; gap: 8px; margin: 14px 0; }
-        .remod-option-check input { width: auto; }
+        .remod-options label.remod-option-check { display:flex; align-items:center; gap:8px; margin:14px 0; font-weight:600; cursor:pointer; }
+        .remod-option-check input[type="checkbox"] { display:inline-block !important; visibility:visible !important; opacity:1 !important; position:static !important; appearance:auto !important; -webkit-appearance:checkbox !important; accent-color:#6c4bd2; flex:0 0 18px; width:18px !important; min-width:18px; height:18px !important; margin:0 !important; padding:0 !important; cursor:pointer; pointer-events:auto !important; }
         .remod-mode { display:flex; flex-wrap:wrap; gap:16px; margin:16px 0; }
         .remod-mode label { display:flex; align-items:center; gap:7px; font-weight:600; }
         .remod-mode label { padding:10px 14px; border:2px solid #cbd0d8; border-radius:7px; background:#f5f6f8; color:#343a46; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
@@ -210,7 +215,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 <form id="remodForm">
                     <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8'); ?>">
                     <label for="remodFile"><strong>Select a restoreMyProgress.json file</strong></label>
-                    <input class="remod-file" type="file" id="remodFile" name="file" accept=".json,application/json" required>
+                    <input class="remod-file" type="file" id="remodFile" name="file" accept=".json,application/json">
                     <div id="remodFileName" class="remod-help">JSON file, maximum size 30 MB.</div>
                     <div id="remodProfilePicker" class="remod-profile-picker" hidden>
                         <div>
@@ -244,6 +249,31 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                     <div class="remod-options" id="remodOptions" hidden>
                       <div class="remod-option-group" id="remodFullOptions">
                         <div>
+                            <label for="remodFullLang">Language</label>
+                            <select id="remodFullLang" name="lang"><option value="fr" selected>Français</option><option value="en">English</option></select>
+                        </div>
+                        <div>
+                            <label for="remodMinLevel">Minimum hero level</label>
+                            <select id="remodMinLevel" name="min_level">
+                                <option value="all" selected>All levels</option>
+                                <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option><option value="G5">G5</option><option value="G6">G6</option><option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option><option value="G10">G10</option><option value="G11">G11</option><option value="G12">G12</option><option value="G13">G13</option>
+                                <option value="R0">R0</option><option value="R1">R1</option><option value="R2">R2</option><option value="R3">R3</option><option value="R4">R4</option><option value="R5">R5</option><option value="R6">R6</option><option value="R7">R7</option><option value="R8">R8</option><option value="R9">R9</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="remodProtectLevel">Protect mods below</label>
+                            <select id="remodProtectLevel" name="protect_level">
+                                <option value="none" selected>No protection</option>
+                                <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option><option value="G5">G5</option><option value="G6">G6</option><option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option><option value="G10">G10</option><option value="G11">G11</option><option value="G12">G12</option><option value="G13">G13</option>
+                                <option value="R0">R0</option><option value="R1">R1</option><option value="R2">R2</option><option value="R3">R3</option><option value="R4">R4</option><option value="R5">R5</option><option value="R6">R6</option><option value="R7">R7</option><option value="R8">R8</option><option value="R9">R9</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="remodPoidsK1">Kyber 1 weighting (0–1)</label>
+                            <input id="remodPoidsK1" name="poids_k1" type="number" min="0" max="1" value="0.5" step="0.05">
+                        </div>
+                        <label class="remod-option-check"><input type="checkbox" id="remodFreeUnselected" name="free_unselected" value="true"> Reuse mods from heroes below the minimum level</label>
+                        <div>
                             <label for="remodTarget">Target level</label>
                             <select id="remodTarget" name="cible">
                                 <option value="moyenne" selected>Average (Kyber 1)</option>
@@ -263,10 +293,6 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                             <label for="remodSpeed">Remove-speed threshold</label>
                             <input id="remodSpeed" name="suppr_vitesse_max" type="number" min="0" max="30" value="10" step="1">
                         </div>
-                        <div>
-                            <label for="remodDepartStats">depart_stats (optional, 0–9999)</label>
-                            <input id="remodDepartStats" name="depart_stats" type="number" min="0" max="9999" step="1" placeholder="Leave empty to omit">
-                        </div>
                         <label class="remod-option-check"><input type="checkbox" id="remodFullSansBot" name="sans_bot" value="true"> Manual remod only (do not generate <code>progress_out.json</code>)</label>
                       </div>
                       <div class="remod-option-group" id="remodLightOptions" hidden>
@@ -279,10 +305,12 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                     <button class="remod-button" id="remodSubmit" type="submit">Upload and start remod</button>
                     </div>
                     <div id="statqInputPane" role="tabpanel" aria-labelledby="statqInputTab" hidden>
-                        <p class="remod-help">Calculate StatQ from your currently equipped mods. Only characters at relic 3 or above are counted; no remod is performed.</p>
+                        <p class="remod-help">Calculate StatQ from your currently equipped mods. Characters below the selected minimum level are excluded from the score and maximum; no remod is performed.</p>
+                        <div><label for="statqAllycode">Ally code (optional, 9 digits)</label><input id="statqAllycode" type="text" inputmode="numeric" pattern="[0-9 -]{9,11}" maxlength="11" placeholder="123-456-789"><p class="remod-help">Use an ally code instead of uploading a file. Only equipped mods are counted.</p></div>
                         <div class="remod-options">
                             <div><label for="statqTarget">Kyber 1 target</label><select id="statqTarget"><option value="moyenne" selected>Average</option><option value="mediane">Median</option><option value="p75">75th percentile (harder target)</option></select></div>
                             <div><label for="statqSort">Sort characters</label><select id="statqSort"><option value="alpha" selected>Alphabetical</option><option value="points">Points percentage, best first</option></select></div>
+                            <div><label for="statqMinLevel">Minimum hero level</label><select id="statqMinLevel"><option value="all" selected>All levels</option><option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option><option value="G5">G5</option><option value="G6">G6</option><option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option><option value="G10">G10</option><option value="G11">G11</option><option value="G12">G12</option><option value="G13">G13</option><option value="R0">R0</option><option value="R1">R1</option><option value="R2">R2</option><option value="R3">R3</option><option value="R4">R4</option><option value="R5">R5</option><option value="R6">R6</option><option value="R7">R7</option><option value="R8">R8</option><option value="R9">R9</option></select></div>
                             <div><label for="statqLang">Language</label><select id="statqLang"><option value="fr" selected>Français</option><option value="en">English</option></select></div>
                         </div>
                         <button class="remod-button" id="statqSubmit" type="submit">Upload and calculate StatQ</button>
@@ -329,8 +357,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodConfirmedAllyCodes = <?php echo json_encode($codex_confirmed_ally_codes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261018-sold1"></script>
+<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>; window.codexRemodSellScopeToken = <?php echo json_encode($codex_can_sell_mods ? hash_hmac('sha256', 'codex-sell:' . $codex_requested_ally_code, $_SESSION['codex_remod_csrf']) : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
+<script src="codexremod_results.js?v=20261018-sellacl1"></script>
 <script>
 (function () {
     'use strict';
@@ -470,12 +498,12 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         const source = data && data.profiles;
         const entries = Array.isArray(source) ? source : (source && typeof source === 'object' ? Object.values(source) : []);
         return entries.filter(profile => profile && typeof profile === 'object').map((profile, index) => {
-            const allyCode = String(profile.allyCode || profile.allycode || (profile.player && (profile.player.allyCode || profile.player.allycode)) || '');
+            const allyCode = String(profile.allyCode || profile.allycode || (profile.player && (profile.player.allyCode || profile.player.allycode)) || '').replace(/[ -]/g, '');
             const playerName = String(profile.playerName || profile.name || (profile.player && (profile.player.name || profile.player.playerName)) || profile.displayName || 'Unknown player');
             const characters = profile.characters && typeof profile.characters === 'object' ? profile.characters : {};
             const characterCount = Array.isArray(characters) ? characters.length : Object.keys(characters).length;
             return { profile, allyCode, playerName, characterCount, label: (allyCode || 'No AllyCode') + ' — ' + playerName, index };
-        });
+        }).filter(item => !window.codexRemodAllyCode || item.allyCode === String(window.codexRemodAllyCode));
     }
     function extractCharacters(data, selectedProfile) {
         const roots = selectedProfile ? [selectedProfile] : [data];
@@ -610,8 +638,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 progressBar.removeAttribute('value');
                 progressText.textContent = 'Waiting in queue';
                 pollTimer = window.setTimeout(pollStatus, 4000);
-            } else if (name === 'running') {
-                cancelJobButton.hidden = false;
+            } else if (name === 'running' || name === 'cancelling') {
+                cancelJobButton.hidden = name === 'cancelling';
                 const progress = state.progress || {};
                 const pct = Math.max(0, Math.min(100, Number(progress.pct) || 0));
                 progressWrap.hidden = false;
@@ -619,6 +647,14 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 progressText.textContent = (Number(progress.done) || 0) + ' / ' + (Number(progress.total) || 0) + ' heroes (' + Math.round(pct) + '%)';
                 showMessage(activeJobMode === 'statq' ? 'StatQ calculation in progress…' : 'Remod calculation in progress…');
                 pollTimer = window.setTimeout(pollStatus, 4000);
+            } else if (name === 'cancelled') {
+                cancelJobButton.hidden = true;
+                cancelJobButton.disabled = false;
+                setBusy(false);
+                progressWrap.hidden = true;
+                actions.hidden = false;
+                showResultsButton.hidden = true;
+                showMessage('Calculation cancelled by request.');
             } else if (name === 'done') {
                 cancelJobButton.hidden = true;
                 setBusy(false);
@@ -699,11 +735,16 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                     profileSelect.innerHTML = restoreProfiles.map((item, index) => '<option value="' + index + '">' + esc(item.label) + '</option>').join('');
                     profileSelect.value = restoreProfiles.length ? '0' : '';
                     selectedRestoreProfile = restoreProfiles.length ? restoreProfiles[0].profile : null;
-                    rosterCharacters = extractCharacters(parsed, selectedRestoreProfile);
+                    // When ?ac= is present, never fall back to characters from an unscoped or mismatched profile.
+                    rosterCharacters = restoreProfiles.length
+                        ? extractCharacters(parsed, selectedRestoreProfile)
+                        : (window.codexRemodAllyCode ? [] : extractCharacters(parsed));
                     if (restoreProfiles.length) updateSelectedProfile();
                     else {
                         profileSummary.textContent = '';
-                        rosterNote.textContent = rosterCharacters.length ? 'Loaded ' + rosterCharacters.length + ' characters from this roster.' : 'No characters found. Make sure this is a restoreMyProgress.json file.';
+                        rosterNote.textContent = window.codexRemodAllyCode
+                            ? 'No profile matching allyCode ' + window.codexRemodAllyCode + ' was found in this file.'
+                            : (rosterCharacters.length ? 'Loaded ' + rosterCharacters.length + ' characters from this roster.' : 'No characters found. Make sure this is a restoreMyProgress.json file.');
                         refreshCharacterSelect();
                     }
                     if (!rosterCharacters.length && selectedMode()==='light') showMessage(rosterNote.textContent,true);
@@ -719,11 +760,12 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         event.preventDefault();
         if (busy) return;
         const file = fileInput.files && fileInput.files[0];
-        if (!file) { showMessage('Please select a restoreMyProgress.json file.', true); return; }
-        if (!file.name.toLowerCase().endsWith('.json') || file.size > 30 * 1024 * 1024) {
+        const statq = selectedInputTab === 'statq';
+        const allycode = document.getElementById('statqAllycode').value.replace(/[ -]/g, '');
+        if (!file && !(statq && /^\\d{9}$/.test(allycode))) { showMessage(statq ? 'Select a restoreMyProgress file or enter a 9-digit ally code.' : 'Please select a restoreMyProgress.json file.', true); return; }
+        if (file && (!file.name.toLowerCase().endsWith('.json') || file.size > 30 * 1024 * 1024)) {
             showMessage('Choose a .json file no larger than 30 MB.', true); return;
         }
-        const statq = selectedInputTab === 'statq';
         const light = !statq && selectedMode() === 'light';
         let targetsJson = null;
         if (light) {
@@ -744,15 +786,19 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         showMessage(selectedInputTab === 'statq' ? 'Uploading your file and creating the StatQ job…' : 'Uploading your file and creating the remod job…');
         try {
             const data = new FormData(form);
+            if (!file) data.delete('file');
+            if (statq && !file) data.set('allycode', allycode);
+            else data.delete('allycode');
             activeJobMode = selectedInputTab === 'statq' ? 'statq' : selectedMode();
             data.set('mode', activeJobMode);
             if (activeJobMode === 'statq') {
-                ['cibles','sans_bot','sans_emprunt','time_limit','max_heroes','suppr_vitesse_max','depart_stats'].forEach(key => data.delete(key));
+                ['cibles','sans_bot','sans_emprunt','time_limit','max_heroes','suppr_vitesse_max'].forEach(key => data.delete(key));
                 data.set('cible', statqTarget.value);
                 data.set('tri', statqSort.value);
                 data.set('lang', statqLang.value);
+                data.set('min_level', document.getElementById('statqMinLevel').value);
             } else if (light) {
-                ['cible', 'max_heroes', 'suppr_vitesse_max', 'depart_stats'].forEach(key => data.delete(key));
+                ['cible', 'max_heroes', 'suppr_vitesse_max'].forEach(key => data.delete(key));
                 data.delete('sans_bot');
                 data.delete('time_limit');
                 data.set('cibles', new Blob([targetsJson], {type:'application/json'}), 'cibles.json');
@@ -762,11 +808,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 data.set('sans_emprunt', document.getElementById('remodSansEmprunt').checked ? 'true' : 'false');
             } else {
                 data.delete('cibles');
-                data.delete('lang');
+                data.set('lang', document.getElementById('remodFullLang').value);
                 data.delete('sans_emprunt');
-                const departStats = document.getElementById('remodDepartStats').value.trim();
-                if (departStats === '') data.delete('depart_stats');
-                else if (!/^\d+$/.test(departStats) || Number(departStats) > 9999) throw new Error('depart_stats must be an integer between 0 and 9999.');
             }
             data.set('action', 'submit');
             const response = await fetch('codexcon.php', { method: 'POST', body: data, credentials: 'same-origin' });
@@ -824,7 +867,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 statqCsvResults.hidden = false;
                 statqSummary.textContent = 'Loaded ' + statqStats.characters + ' characters and ' + statqStats.stats + ' stat rows. Total StatQ: ' + statqStats.points + ' / ' + statqStats.max + '.';
                 document.getElementById('remodResultsHeading').textContent = 'StatQ results';
-                document.getElementById('remodResultsIntro').textContent = 'Current equipped mods compared with the selected Kyber 1 target. Only characters at relic 3 or above are counted.';
+                document.getElementById('remodResultsIntro').textContent = 'Current equipped mods compared with the selected Kyber 1 target. Characters below the selected minimum level are excluded from the score and maximum.';
                 statqResults.hidden = false;
                 remodResultsTabs.hidden = true;
                 downloadButtons.hidden = false;
@@ -896,13 +939,11 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         stopPolling();
         showMessage('Cancelling the remote calculation…');
         try {
-            await request('forget');
-            setBusy(false);
+            const cancellation = await request('cancel');
             cancelJobButton.hidden = true;
             cancelJobButton.disabled = false;
-            progressWrap.hidden = true;
-            actions.hidden = true;
-            showMessage('Calculation cancelled and removed from the remote server.');
+            showMessage(cancellation.status === 'cancelled' ? 'Calculation cancelled.' : 'Cancellation requested. Waiting for the server to stop the calculation…');
+            pollTimer = window.setTimeout(pollStatus, 1000);
         } catch (error) {
             cancelJobButton.disabled = false;
             showMessage(error.message || 'Unable to cancel the calculation.', true);
