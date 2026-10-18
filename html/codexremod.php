@@ -328,7 +328,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodConfirmedAllyCodes = <?php echo json_encode($codex_confirmed_ally_codes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261018-cancel1"></script>
+<script src="codexremod_results.js?v=20261018-cancel2"></script>
 <script>
 (function () {
     'use strict';
@@ -394,6 +394,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     const progressWrap = document.getElementById('remodProgressWrap');
     const progressBar = document.getElementById('remodProgress');
     const progressText = document.getElementById('remodProgressText');
+    const cancelJobButton = document.getElementById('remodCancelJob');
     const actions = document.getElementById('remodActions');
     const showResultsButton = document.getElementById('remodShowResults');
     const downloadButtons = document.getElementById('remodResultDownloads');
@@ -599,6 +600,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
             const state = await request('status');
             const name = state.status || 'unknown';
             if (name === 'queued') {
+                cancelJobButton.hidden = false;
                 const position = Number(state.queue_position);
                 activeJobMode = state.mode || activeJobMode;
                 showMessage((activeJobMode === 'statq' ? 'Your StatQ calculation is queued' : 'Your remod is queued') + (Number.isFinite(position) && position > 0 ? ' (position ' + position + ')' : '') + '. Waiting for a calculation slot…');
@@ -607,6 +609,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 progressText.textContent = 'Waiting in queue';
                 pollTimer = window.setTimeout(pollStatus, 4000);
             } else if (name === 'running') {
+                cancelJobButton.hidden = false;
                 const progress = state.progress || {};
                 const pct = Math.max(0, Math.min(100, Number(progress.pct) || 0));
                 progressWrap.hidden = false;
@@ -615,6 +618,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 showMessage(activeJobMode === 'statq' ? 'StatQ calculation in progress…' : 'Remod calculation in progress…');
                 pollTimer = window.setTimeout(pollStatus, 4000);
             } else if (name === 'done') {
+                cancelJobButton.hidden = true;
                 setBusy(false);
                 progressWrap.hidden = false;
                 progressBar.value = 100;
@@ -624,6 +628,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 showResultsButton.textContent = activeJobMode === 'statq' ? 'Show StatQ results' : 'Show results';
                 showMessage(activeJobMode === 'statq' ? 'StatQ complete. Click Show StatQ results to view the score table.' : 'Remod complete. Click Show results to display the character cards.');
             } else if (name === 'error') {
+                cancelJobButton.hidden = true;
                 setBusy(false);
                 progressWrap.hidden = true;
                 actions.hidden = false;
@@ -766,6 +771,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
             const body = await response.json();
             if (!response.ok) throw new Error(body.error || 'Unable to start remod.');
             progressWrap.hidden = false;
+            cancelJobButton.hidden = false;
             progressBar.removeAttribute('value');
             progressText.textContent = 'Waiting for the first status update…';
             showMessage('Job accepted by the remod server. Checking progress every 4 seconds.');
@@ -880,6 +886,26 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     });
     downloadPlanButton.addEventListener('click', function () {
         if (planJsonText !== null) downloadBlob(new Blob([planJsonText], { type: 'application/json;charset=utf-8' }), 'plan.json');
+    });
+    cancelJobButton.addEventListener('click', async function () {
+        if (!busy) return;
+        if (!window.confirm('Cancel the calculation on the remote remod server?')) return;
+        cancelJobButton.disabled = true;
+        stopPolling();
+        showMessage('Cancelling the remote calculation…');
+        try {
+            await request('forget');
+            setBusy(false);
+            cancelJobButton.hidden = true;
+            cancelJobButton.disabled = false;
+            progressWrap.hidden = true;
+            actions.hidden = true;
+            showMessage('Calculation cancelled and removed from the remote server.');
+        } catch (error) {
+            cancelJobButton.disabled = false;
+            showMessage(error.message || 'Unable to cancel the calculation.', true);
+            pollTimer = window.setTimeout(pollStatus, 4000);
+        }
     });
     forgetButton.addEventListener('click', async function () {
         if (busy) return;
