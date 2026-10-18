@@ -206,8 +206,8 @@ if ($action === 'submit') {
             if ($key === 'protect_level' && preg_match('/^(none|G(?:[1-9]|1[0-3])|R[0-9])$/', $value)) $options[$key] = $value;
             if ($key === 'poids_k1' && is_numeric($value) && (float)$value >= 0 && (float)$value <= 1) $options[$key] = (string)(float)$value;
             if ($key === 'time_limit' && ctype_digit($value) && (int)$value >= 2 && (int)$value <= 15) $options[$key] = $value;
-            if ($key === 'max_heroes' && ctype_digit($value) && (int)$value <= 500) $options[$key] = $value;
-            if ($key === 'suppr_vitesse_max' && ctype_digit($value) && (int)$value <= 30) $options[$key] = $value;
+            if ($key === 'max_heroes' && ctype_digit($value) && (int)$value >= 0 && (int)$value <= 500) $options[$key] = $value;
+            if ($key === 'suppr_vitesse_max' && ctype_digit($value) && (int)$value >= 0 && (int)$value <= 30) $options[$key] = $value;
         }
         if (isset($_POST['depart_stats']) && $_POST['depart_stats'] !== '') {
             $value = $_POST['depart_stats'];
@@ -215,7 +215,7 @@ if ($action === 'submit') {
             $options['depart_stats'] = (string)(int)$value;
         }
     }
-    if ($mode === 'statq' && !$hasFile) $fields['allycode'] = $optionsAllyCode;
+    if ($mode === 'statq' && !$hasFile) $fields['allycode'] = $allyCode;
     foreach ($options as $key => $value) $fields[$key] = $value;
 
     $result = codex_api_request('POST', '/jobs', $fields, true);
