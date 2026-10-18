@@ -1265,7 +1265,7 @@ async def sell_mods(list_mods, txt_allyCode):
         return ec, et
 
     selected_mod_ids = set(list_mods)
-    for unit_def_id, unit in dict_player["rosterUnit"].items():
+    for unit in dict_player["rosterUnit"]:
         equipped_mods = []
         for mod in unit.get("equippedStatMod", []):
             if mod.get("id") in selected_mod_ids:
