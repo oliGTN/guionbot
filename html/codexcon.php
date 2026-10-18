@@ -210,7 +210,8 @@ if ($action === 'submit') {
             if (in_array($key, ['sans_bot', 'free_unselected'], true) && in_array($value, ['true', 'false'], true)) $options[$key] = $value;
             if ($key === 'cible' && in_array($value, ['moyenne', 'mediane', 'p75'], true)) $options[$key] = $value;
             if ($key === 'lang' && in_array($value, ['fr', 'en'], true)) $options[$key] = $value;
-            if (in_array($key, ['min_level', 'protect_level'], true) && preg_match('/^(all|none|G(?:[1-9]|1[0-3])|R[0-9])$/', $value)) $options[$key] = $value;
+            if ($key === 'min_level' && preg_match('/^(all|G(?:[1-9]|1[0-3])|R[0-9])$/', $value)) $options[$key] = $value;
+            if ($key === 'protect_level' && preg_match('/^(none|G(?:[1-9]|1[0-3])|R[0-9])$/', $value)) $options[$key] = $value;
             if ($key === 'poids_k1' && is_numeric($value) && (float)$value >= 0 && (float)$value <= 1) $options[$key] = (string)(float)$value;
             if ($key === 'time_limit' && ctype_digit($value) && (int)$value >= 2 && (int)$value <= 15) $options[$key] = $value;
             if ($key === 'max_heroes' && ctype_digit($value) && (int)$value <= 500) $options[$key] = $value;
