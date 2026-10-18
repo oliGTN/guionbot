@@ -244,6 +244,10 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                     <div class="remod-options" id="remodOptions" hidden>
                       <div class="remod-option-group" id="remodFullOptions">
                         <div>
+                            <label for="remodFullLang">Language</label>
+                            <select id="remodFullLang" name="lang"><option value="fr" selected>Français</option><option value="en">English</option></select>
+                        </div>
+                        <div>
                             <label for="remodMinLevel">Minimum hero level</label>
                             <select id="remodMinLevel" name="min_level">
                                 <option value="all" selected>All levels</option>
@@ -284,10 +288,6 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                             <label for="remodSpeed">Remove-speed threshold</label>
                             <input id="remodSpeed" name="suppr_vitesse_max" type="number" min="0" max="30" value="10" step="1">
                         </div>
-                        <div>
-                            <label for="remodDepartStats">depart_stats (optional, 0–9999)</label>
-                            <input id="remodDepartStats" name="depart_stats" type="number" min="0" max="9999" step="1" placeholder="Leave empty to omit">
-                        </div>
                         <label class="remod-option-check"><input type="checkbox" id="remodFullSansBot" name="sans_bot" value="true"> Manual remod only (do not generate <code>progress_out.json</code>)</label>
                       </div>
                       <div class="remod-option-group" id="remodLightOptions" hidden>
@@ -300,7 +300,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                     <button class="remod-button" id="remodSubmit" type="submit">Upload and start remod</button>
                     </div>
                     <div id="statqInputPane" role="tabpanel" aria-labelledby="statqInputTab" hidden>
-                        <p class="remod-help">Calculate StatQ from your currently equipped mods. Only characters at relic 3 or above are counted; no remod is performed.</p>
+                        <p class="remod-help">Calculate StatQ from your currently equipped mods. Characters below the selected minimum level are excluded from the score and maximum; no remod is performed.</p>
                         <div><label for="statqAllycode">Ally code (optional, 9 digits)</label><input id="statqAllycode" type="text" inputmode="numeric" pattern="[0-9 -]{9,11}" maxlength="11" placeholder="123-456-789"><p class="remod-help">Use an ally code instead of uploading a file. Only equipped mods are counted.</p></div>
                         <div class="remod-options">
                             <div><label for="statqTarget">Kyber 1 target</label><select id="statqTarget"><option value="moyenne" selected>Average</option><option value="mediane">Median</option><option value="p75">75th percentile (harder target)</option></select></div>
@@ -782,13 +782,13 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
             activeJobMode = selectedInputTab === 'statq' ? 'statq' : selectedMode();
             data.set('mode', activeJobMode);
             if (activeJobMode === 'statq') {
-                ['cibles','sans_bot','sans_emprunt','time_limit','max_heroes','suppr_vitesse_max','depart_stats'].forEach(key => data.delete(key));
+                ['cibles','sans_bot','sans_emprunt','time_limit','max_heroes','suppr_vitesse_max'].forEach(key => data.delete(key));
                 data.set('cible', statqTarget.value);
                 data.set('tri', statqSort.value);
                 data.set('lang', statqLang.value);
                 data.set('min_level', document.getElementById('statqMinLevel').value);
             } else if (light) {
-                ['cible', 'max_heroes', 'suppr_vitesse_max', 'depart_stats'].forEach(key => data.delete(key));
+                ['cible', 'max_heroes', 'suppr_vitesse_max'].forEach(key => data.delete(key));
                 data.delete('sans_bot');
                 data.delete('time_limit');
                 data.set('cibles', new Blob([targetsJson], {type:'application/json'}), 'cibles.json');
@@ -860,7 +860,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 statqCsvResults.hidden = false;
                 statqSummary.textContent = 'Loaded ' + statqStats.characters + ' characters and ' + statqStats.stats + ' stat rows. Total StatQ: ' + statqStats.points + ' / ' + statqStats.max + '.';
                 document.getElementById('remodResultsHeading').textContent = 'StatQ results';
-                document.getElementById('remodResultsIntro').textContent = 'Current equipped mods compared with the selected Kyber 1 target. Only characters at relic 3 or above are counted.';
+                document.getElementById('remodResultsIntro').textContent = 'Current equipped mods compared with the selected Kyber 1 target. Characters below the selected minimum level are excluded from the score and maximum.';
                 statqResults.hidden = false;
                 remodResultsTabs.hidden = true;
                 downloadButtons.hidden = false;
