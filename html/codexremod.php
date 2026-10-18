@@ -244,6 +244,27 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                     <div class="remod-options" id="remodOptions" hidden>
                       <div class="remod-option-group" id="remodFullOptions">
                         <div>
+                            <label for="remodMinLevel">Minimum hero level</label>
+                            <select id="remodMinLevel" name="min_level">
+                                <option value="all" selected>All levels</option>
+                                <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option><option value="G5">G5</option><option value="G6">G6</option><option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option><option value="G10">G10</option><option value="G11">G11</option><option value="G12">G12</option><option value="G13">G13</option>
+                                <option value="R0">R0</option><option value="R1">R1</option><option value="R2">R2</option><option value="R3">R3</option><option value="R4">R4</option><option value="R5">R5</option><option value="R6">R6</option><option value="R7">R7</option><option value="R8">R8</option><option value="R9">R9</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="remodProtectLevel">Protect mods below</label>
+                            <select id="remodProtectLevel" name="protect_level">
+                                <option value="none" selected>No protection</option>
+                                <option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option><option value="G5">G5</option><option value="G6">G6</option><option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option><option value="G10">G10</option><option value="G11">G11</option><option value="G12">G12</option><option value="G13">G13</option>
+                                <option value="R0">R0</option><option value="R1">R1</option><option value="R2">R2</option><option value="R3">R3</option><option value="R4">R4</option><option value="R5">R5</option><option value="R6">R6</option><option value="R7">R7</option><option value="R8">R8</option><option value="R9">R9</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="remodPoidsK1">Kyber 1 weighting (0–1)</label>
+                            <input id="remodPoidsK1" name="poids_k1" type="number" min="0" max="1" value="0.5" step="0.05">
+                        </div>
+                        <label class="remod-option-check"><input type="checkbox" id="remodFreeUnselected" name="free_unselected" value="true"> Reuse mods from heroes below the minimum level</label>
+                        <div>
                             <label for="remodTarget">Target level</label>
                             <select id="remodTarget" name="cible">
                                 <option value="moyenne" selected>Average (Kyber 1)</option>
@@ -283,6 +304,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                         <div class="remod-options">
                             <div><label for="statqTarget">Kyber 1 target</label><select id="statqTarget"><option value="moyenne" selected>Average</option><option value="mediane">Median</option><option value="p75">75th percentile (harder target)</option></select></div>
                             <div><label for="statqSort">Sort characters</label><select id="statqSort"><option value="alpha" selected>Alphabetical</option><option value="points">Points percentage, best first</option></select></div>
+                            <div><label for="statqMinLevel">Minimum hero level</label><select id="statqMinLevel"><option value="all" selected>All levels</option><option value="G1">G1</option><option value="G2">G2</option><option value="G3">G3</option><option value="G4">G4</option><option value="G5">G5</option><option value="G6">G6</option><option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option><option value="G10">G10</option><option value="G11">G11</option><option value="G12">G12</option><option value="G13">G13</option><option value="R0">R0</option><option value="R1">R1</option><option value="R2">R2</option><option value="R3">R3</option><option value="R4">R4</option><option value="R5">R5</option><option value="R6">R6</option><option value="R7">R7</option><option value="R8">R8</option><option value="R9">R9</option></select></div>
                             <div><label for="statqLang">Language</label><select id="statqLang"><option value="fr" selected>Français</option><option value="en">English</option></select></div>
                         </div>
                         <button class="remod-button" id="statqSubmit" type="submit">Upload and calculate StatQ</button>
@@ -619,6 +641,14 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 progressText.textContent = (Number(progress.done) || 0) + ' / ' + (Number(progress.total) || 0) + ' heroes (' + Math.round(pct) + '%)';
                 showMessage(activeJobMode === 'statq' ? 'StatQ calculation in progress…' : 'Remod calculation in progress…');
                 pollTimer = window.setTimeout(pollStatus, 4000);
+            } else if (name === 'cancelled') {
+                cancelJobButton.hidden = true;
+                cancelJobButton.disabled = false;
+                setBusy(false);
+                progressWrap.hidden = true;
+                actions.hidden = false;
+                showResultsButton.hidden = true;
+                showMessage('Calculation cancelled by request.');
             } else if (name === 'done') {
                 cancelJobButton.hidden = true;
                 setBusy(false);
@@ -751,6 +781,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 data.set('cible', statqTarget.value);
                 data.set('tri', statqSort.value);
                 data.set('lang', statqLang.value);
+                data.set('min_level', document.getElementById('statqMinLevel').value);
             } else if (light) {
                 ['cible', 'max_heroes', 'suppr_vitesse_max', 'depart_stats'].forEach(key => data.delete(key));
                 data.delete('sans_bot');
@@ -896,13 +927,11 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         stopPolling();
         showMessage('Cancelling the remote calculation…');
         try {
-            await request('forget');
-            setBusy(false);
+            const cancellation = await request('cancel');
             cancelJobButton.hidden = true;
             cancelJobButton.disabled = false;
-            progressWrap.hidden = true;
-            actions.hidden = true;
-            showMessage('Calculation cancelled and removed from the remote server.');
+            showMessage(cancellation.status === 'cancelled' ? 'Calculation cancelled.' : 'Cancellation requested. Waiting for the server to stop the calculation…');
+            pollTimer = window.setTimeout(pollStatus, 1000);
         } catch (error) {
             cancelJobButton.disabled = false;
             showMessage(error.message || 'Unable to cancel the calculation.', true);
