@@ -735,11 +735,16 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                     profileSelect.innerHTML = restoreProfiles.map((item, index) => '<option value="' + index + '">' + esc(item.label) + '</option>').join('');
                     profileSelect.value = restoreProfiles.length ? '0' : '';
                     selectedRestoreProfile = restoreProfiles.length ? restoreProfiles[0].profile : null;
-                    rosterCharacters = extractCharacters(parsed, selectedRestoreProfile);
+                    // When ?ac= is present, never fall back to characters from an unscoped or mismatched profile.
+                    rosterCharacters = restoreProfiles.length
+                        ? extractCharacters(parsed, selectedRestoreProfile)
+                        : (window.codexRemodAllyCode ? [] : extractCharacters(parsed));
                     if (restoreProfiles.length) updateSelectedProfile();
                     else {
                         profileSummary.textContent = '';
-                        rosterNote.textContent = rosterCharacters.length ? 'Loaded ' + rosterCharacters.length + ' characters from this roster.' : 'No characters found. Make sure this is a restoreMyProgress.json file.';
+                        rosterNote.textContent = window.codexRemodAllyCode
+                            ? 'No profile matching allyCode ' + window.codexRemodAllyCode + ' was found in this file.'
+                            : (rosterCharacters.length ? 'Loaded ' + rosterCharacters.length + ' characters from this roster.' : 'No characters found. Make sure this is a restoreMyProgress.json file.');
                         refreshCharacterSelect();
                     }
                     if (!rosterCharacters.length && selectedMode()==='light') showMessage(rosterNote.textContent,true);
