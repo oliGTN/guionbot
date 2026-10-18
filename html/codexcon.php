@@ -156,13 +156,14 @@ if ($action === 'submit') {
     $fields = ['file' => new CURLFile($file['tmp_name'], 'application/json', 'restoreMyProgress.json')];
 
     if ($mode === 'statq') {
-        $options = ['mode' => 'statq', 'cible' => 'moyenne', 'tri' => 'alpha', 'lang' => 'fr'];
+        $options = ['mode' => 'statq', 'cible' => 'moyenne', 'tri' => 'alpha', 'lang' => 'fr', 'min_level' => 'all'];
         foreach ($options as $key => $default) {
             if (!isset($_POST[$key]) || !is_string($_POST[$key])) continue;
             $value = $_POST[$key];
             if ($key === 'cible' && in_array($value, ['moyenne', 'mediane', 'p75'], true)) $options[$key] = $value;
             if ($key === 'tri' && in_array($value, ['alpha', 'points'], true)) $options[$key] = $value;
             if ($key === 'lang' && in_array($value, ['fr', 'en'], true)) $options[$key] = $value;
+            if ($key === 'min_level' && preg_match('/^(all|G(?:[1-9]|1[0-3])|R[0-9])$/', $value)) $options[$key] = $value;
         }
     } elseif ($mode === 'light') {
         if (!isset($_FILES['cibles']) || !is_array($_FILES['cibles']) || ($_FILES['cibles']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -202,13 +203,15 @@ if ($action === 'submit') {
             if ($key === 'time_limit' && ctype_digit($value) && (int)$value >= 2 && (int)$value <= 15) $options[$key] = $value;
         }
     } else {
-        $options = ['sans_bot' => 'false', 'cible' => 'moyenne', 'time_limit' => '8', 'max_heroes' => '0', 'suppr_vitesse_max' => '10', 'lang' => 'fr'];
+        $options = ['min_level' => 'all', 'free_unselected' => 'false', 'protect_level' => 'none', 'cible' => 'moyenne', 'poids_k1' => '0.5', 'time_limit' => '8', 'max_heroes' => '0', 'suppr_vitesse_max' => '10', 'sans_bot' => 'false', 'lang' => 'fr'];
         foreach ($options as $key => $default) {
             if (!isset($_POST[$key]) || !is_string($_POST[$key])) continue;
             $value = $_POST[$key];
-            if ($key === 'sans_bot' && in_array($value, ['true', 'false'], true)) $options[$key] = $value;
+            if (in_array($key, ['sans_bot', 'free_unselected'], true) && in_array($value, ['true', 'false'], true)) $options[$key] = $value;
             if ($key === 'cible' && in_array($value, ['moyenne', 'mediane', 'p75'], true)) $options[$key] = $value;
             if ($key === 'lang' && in_array($value, ['fr', 'en'], true)) $options[$key] = $value;
+            if (in_array($key, ['min_level', 'protect_level'], true) && preg_match('/^(all|none|G(?:[1-9]|1[0-3])|R[0-9])$/', $value)) $options[$key] = $value;
+            if ($key === 'poids_k1' && is_numeric($value) && (float)$value >= 0 && (float)$value <= 1) $options[$key] = (string)(float)$value;
             if ($key === 'time_limit' && ctype_digit($value) && (int)$value >= 2 && (int)$value <= 15) $options[$key] = $value;
             if ($key === 'max_heroes' && ctype_digit($value) && (int)$value <= 500) $options[$key] = $value;
             if ($key === 'suppr_vitesse_max' && ctype_digit($value) && (int)$value <= 30) $options[$key] = $value;
@@ -420,6 +423,17 @@ if ($action === 'download') {
     curl_exec($delete);
     curl_close($delete);
     exit;
+}
+
+if ($action === 'cancel') {
+    $job = $_SESSION['codex_remod_job'] ?? null;
+    if (!is_array($job) || empty($job['id'])) codex_json_response(404, ['error' => 'No remod job was found in this session.']);
+    $result = codex_api_request('POST', '/jobs/' . rawurlencode($job['id']) . '/cancel');
+    if (!$result['ok']) {
+        codex_json_response($result['http'] === 409 ? 409 : ($result['http'] === 404 ? 404 : 502), ['error' => $result['data']['detail']]);
+    }
+    $_SESSION['codex_remod_job']['status'] = $result['data']['status'] ?? 'cancelling';
+    codex_json_response(200, ['ok' => true, 'status' => $_SESSION['codex_remod_job']['status']]);
 }
 
 if ($action === 'forget') {
