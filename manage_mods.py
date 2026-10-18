@@ -340,8 +340,21 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             golog.log("DBG", "updateMods "+allyCode+" "+target_char_id+mods_txt+" #"+target_char_defId)
             new_unit_count += 1
 
-            # If not simulation mode, send the request to RPC
-            if not is_simu:
+
+
+
+            if is_simu:
+                #Check if inventory will sustain the removal of mods from target Unit
+                #Transitory inventory is the current state of dict_player_mods,
+                # but before the latest mods have been added from inventory 
+                # to the target Unit.
+                tmp_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None] + len(mods_to_add)
+                golog.log("INFO", "Transitory inventory ("+allyCode+") during "+target_char_defId+": "+str(len(tmp_inventory)))
+                if len(tmp_inventory) > max_inventory:
+                    max_inventory = len(tmp_inventory)
+
+            else:
+                # If not simulation mode, send the request to RPC
                 ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
 
                 if ec!=0:
@@ -360,12 +373,6 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             else:
                 ret_data = {"missing": missing_mods, "forbidden": forbidden_mods}
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
-
-        #manage max size required in mod inventory
-        cur_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None]
-        golog.log("INFO", "Current inventory ("+allyCode+") after "+target_char_defId+": "+str(len(cur_inventory)))
-        if len(cur_inventory) > max_inventory:
-            max_inventory = len(cur_inventory)
 
         unit_count = new_unit_count
         mod_add_count = new_mod_add_count
@@ -389,12 +396,12 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         #breathe
         await asyncio_sleep(0)
 
-    golog.log("INFO", "Max inventory: "+str(max_inventory))
-    needed_inventory = max_inventory-initial_inventory
-
     ret_code = 0
     ret_txt = ""
     if is_simu:
+        golog.log("INFO", "Max inventory: "+str(max_inventory))
+        needed_inventory = max_inventory-initial_inventory
+
         cost_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "
         cost_txt+= str(needed_inventory)+" places nécessaires dans l'inventaire ("+str(500-initial_inventory)+" disponibles) "
         cost_txt+= "et "+str(int(unequip_cost/100000)/10)+"M crédits ("+str(int(player_credits/100000)/10)+"M disponibles)."
