@@ -1298,7 +1298,7 @@ async def sell_mods(
             [unit_defId, unit_id] = equipped_mods[mod_id]
             golog.log("DBG", mod_id+" is equipped, prepare to uequip from "+unit_defId)
             if not unit_defId in unequip_dict:
-                unequip_dict[unit_defId] = {"id":unit["id"], "list_mods":[]}
+                unequip_dict[unit_defId] = {"id":unit_id, "list_mods":[]}
             unequip_dict[unit_defId]["list_mods"].append(mod_id)
 
         # Check max ammount
