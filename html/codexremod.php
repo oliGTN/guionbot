@@ -134,6 +134,9 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-delete-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:14px 0; }
         .remod-delete-toolbar button { cursor:pointer; padding:7px 11px; }
         .remod-delete-filter { display:inline-flex; align-items:center; gap:6px; font-weight:500; }
+        .remod-delete-filter input[type="checkbox"] { display:inline-block !important; visibility:visible !important; opacity:1 !important; position:static !important; appearance:auto !important; -webkit-appearance:checkbox !important; accent-color:#6c4bd2; width:18px !important; min-width:18px; height:18px !important; margin:0 2px 0 0 !important; padding:0 !important; cursor:pointer; pointer-events:auto !important; }
+        #remodCancelJob { margin-top:8px; }
+        #remodCancelJob[hidden] { display:none !important; }
         .remod-delete-feedback { flex-basis:100%; font-size:13px; color:#4b5563; overflow-wrap:anywhere; }
         .remod-delete-select { display:flex !important; justify-content:flex-end; align-items:center; min-height:24px; margin:-2px 0 3px; position:relative; z-index:5; cursor:pointer; }
         .remod-delete-select input.remod-delete-checkbox { display:inline-block !important; visibility:visible !important; opacity:1 !important; position:static !important; appearance:auto !important; -webkit-appearance:checkbox !important; accent-color:#6c4bd2; flex:0 0 18px; width:18px !important; min-width:18px; height:18px !important; margin:0 2px 0 0 !important; padding:0 !important; cursor:pointer; pointer-events:auto !important; }
@@ -287,6 +290,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 <div id="remodProgressWrap" hidden>
                     <progress class="remod-progress" id="remodProgress" max="100" value="0"></progress>
                     <div class="remod-progress-text" id="remodProgressText"></div>
+                    <button class="remod-button secondary" id="remodCancelJob" type="button" hidden>Cancel calculation</button>
                 </div>
                 <div id="remodActions" hidden>
                     <button class="remod-button" id="remodShowResults" type="button">Show results</button>
@@ -324,7 +328,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodConfirmedAllyCodes = <?php echo json_encode($codex_confirmed_ally_codes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261018-statfields1"></script>
+<script src="codexremod_results.js?v=20261018-cancel1"></script>
 <script>
 (function () {
     'use strict';
