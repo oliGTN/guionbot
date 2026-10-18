@@ -798,11 +798,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 data.set('sans_emprunt', document.getElementById('remodSansEmprunt').checked ? 'true' : 'false');
             } else {
                 data.delete('cibles');
-                data.delete('lang');
+                data.set('lang', document.getElementById('remodFullLang').value);
                 data.delete('sans_emprunt');
-                const departStats = document.getElementById('remodDepartStats').value.trim();
-                if (departStats === '') data.delete('depart_stats');
-                else if (!/^\d+$/.test(departStats) || Number(departStats) > 9999) throw new Error('depart_stats must be an integer between 0 and 9999.');
             }
             data.set('action', 'submit');
             const response = await fetch('codexcon.php', { method: 'POST', body: data, credentials: 'same-origin' });
