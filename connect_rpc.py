@@ -3991,7 +3991,7 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
                     resp_json = await(resp.json())
 
                 elif resp.status==201:
-                    return 1, "ERR: il faut au moins un mod à ajouter"
+                    return 1, "ERR: il faut au moins un mod à ajouter ou à supprimer"
                 else:
                     return 1, "ERR during RPC updateMods - code "+str(resp.status)
 

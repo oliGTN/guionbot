@@ -1265,6 +1265,7 @@ async def sell_mods(list_mods, txt_allyCode):
         return ec, et
 
     selected_mod_ids = set(list_mods)
+    # the dict_player out of get_extplayer_data has list for rosterUnit, not a dict
     for unit in dict_player["rosterUnit"]:
         equipped_mods = []
         for mod in unit.get("equippedStatMod", []):
