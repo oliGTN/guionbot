@@ -154,6 +154,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-delete-card[hidden] { display:none !important; }
         .remod-delete-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
         .remod-delete-card { border:1px solid #d9dce4; border-radius:7px; padding:12px; background:#fff; min-width:0; }
+        .remod-delete-card { position:relative; overflow:hidden; }
+        .remod-delete-sold-overlay { position:absolute; z-index:20; inset:0; display:flex; align-items:center; justify-content:center; width:140%; left:-20%; transform:rotate(-20deg); pointer-events:none; user-select:none; box-sizing:border-box; border-top:4px solid rgba(170,0,0,.82); border-bottom:4px solid rgba(170,0,0,.82); background:rgba(255,255,255,.28); color:rgba(180,0,0,.92); font-size:clamp(28px,5vw,48px); line-height:1.1; font-weight:900; letter-spacing:.12em; text-shadow:0 1px 2px #fff, 1px 2px 2px rgba(0,0,0,.45); }
         .remod-delete-art { width:90px; height:90px; margin:6px auto 10px; position:relative; background-image:url('IMAGES/MODS/mod-shape-atlas.png'); background-size:1080px 450px; background-position:calc(var(--shape-x) * -90px) calc(var(--shape-y) * -90px); background-repeat:no-repeat; }
         .remod-delete-art::after { content:''; position:absolute; width:32px; height:32px; left:29px; top:29px; background-image:url('IMAGES/MODS/mod-icon-atlas.png'); background-size:256px 160px; background-position:calc(var(--icon-x) * -32px) calc(var(--icon-y) * -32px); background-repeat:no-repeat; }
         .remod-delete-card[data-slot="2"] .remod-delete-art::after { left:36px;top:23px; }
