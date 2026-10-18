@@ -220,7 +220,7 @@ if ($action === 'submit') {
 
     $result = codex_api_request('POST', '/jobs', $fields, true);
     if (!$result['ok']) {
-        $status = $result['http'] === 429 ? 429 : ($result['http'] === 503 ? 503 : 502);
+        $status = in_array($result['http'], [400, 401, 404, 409, 413, 429, 503, 507], true) ? $result['http'] : 502;
         codex_json_response($status, ['error' => $result['data']['detail']]);
     }
     $job = $result['data'];
@@ -356,7 +356,7 @@ if ($action === 'status') {
         'progress' => $data['progress'] ?? null,
         'error' => $data['error'] ?? null,
         // Forward only bounded diagnostic fields if the service exposes them.
-        'log' => $data['log'] ?? $data['logs'] ?? null,
+        'log' => $data['log'] ?? $data['logs'] ?? $data['log_tail'] ?? null,
         'error_detail' => $data['error_detail'] ?? $data['detail'] ?? null,
         'traceback' => $data['traceback'] ?? null,
         'files' => $data['files'] ?? null,
