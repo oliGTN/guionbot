@@ -504,9 +504,10 @@
     const matches = rows.map(row => ({ ...row, mod: inventory.get(row.id) })).filter(item => item.mod);
     const slotNames = { 2:'Square', 3:'Arrow', 4:'Diamond', 5:'Triangle', 6:'Circle', 7:'Cross', square:'Square', arrow:'Arrow', diamond:'Diamond', triangle:'Triangle', circle:'Circle', cross:'Cross' };
     const setNames = { 1:'Health', 2:'Offense', 3:'Defense', 4:'Speed', 5:'Critical Chance', 6:'Critical Damage', 7:'Potency', 8:'Tenacity', health:'Health', offense:'Offense', defense:'Defense', speed:'Speed', critchance:'Critical Chance', critdamage:'Critical Damage', potency:'Potency', tenacity:'Tenacity' };
-    const allyCode = String((restoreData && restoreData.allyCode) || (restoreData && restoreData.profiles && restoreData.profiles[0] && restoreData.profiles[0].allyCode) || '');
-    const confirmedAllyCodes = Array.isArray(window.codexRemodConfirmedAllyCodes) ? window.codexRemodConfirmedAllyCodes.map(String) : [];
-    const canSellMods = !!allyCode && confirmedAllyCodes.includes(allyCode);
+    // Authorization is decided by PHP for the allyCode supplied in ?ac=.
+    // Never infer sell permissions from the uploaded file or client-side session data.
+    const allyCode = String(window.codexRemodAllyCode || '');
+    const canSellMods = window.codexRemodCanSellMods === true;
     const renderStats = mod => {
       const source = statContainer(mod);
       let primary = modField(source, ['primaryStat','primary','primary_stat']);
@@ -619,7 +620,7 @@
     sellButton.addEventListener('click', async () => {
       const selected = Array.from(grid.querySelectorAll('.remod-delete-card:not([hidden]) .remod-delete-checkbox:checked')).map(box => box.value);
       if (!selected.length) { feedback.textContent = 'Select at least one mod first.'; return; }
-      if (!allyCode || !confirmedAllyCodes.includes(allyCode)) { feedback.textContent = 'This allyCode is not linked and confirmed for your Discord account.'; return; }
+      if (!canSellMods || !allyCode) { feedback.textContent = 'Selling mods is not enabled for this page.'; return; }
       sellButton.disabled = true;
       feedback.textContent = 'Sending selected mods…';
       try {
