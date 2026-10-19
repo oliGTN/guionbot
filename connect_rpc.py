@@ -3507,7 +3507,7 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
     return 0, "Déploiement OK de "+str(len(list_unit_ids))+" unités en " + zone_id
 
-async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
+async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds, datacron_id=None):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     # get player roster
@@ -3579,30 +3579,36 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
         golog.log("ERR", "Need at least 4 units but found "+str(list_unit_ids))
         return 1, "ERR: il faut au moins 4 vaisseaux"
 
-    if team_combatType==2:
-        #Fleet
-        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone_param, '-s']+list_unit_ids
-        golog.log("DBG", process_cmd_list)
-        process = subprocess_run(process_cmd_list)
-    else:
-        #Ground
-        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone_param]+list_unit_ids
-        golog.log("DBG", process_cmd_list)
-        process = subprocess_run(process_cmd_list)
+    # RPC REQUEST for deployTW
+    url = "http://localhost:8000/deployTW"
+    params = {"allyCode": txt_allyCode,
+              "tw_id": tw_id,
+              "zone_id": zone_id,
+              "cmd_state": knownCommandState,
+              "list_units": list_unit_ids,
+              "fleet_mode": (team_combatType==2)}
+    if not datacron_id is None:
+        params["datacron_id"] = datacron_id
 
-    golog.log("DBG", "deploy_tw code="+str(process.returncode))
-    if process.returncode==202:
-        return 1, "Erreur en déployant en GT - pas de GT en cours"
-    elif process.returncode==203:
-        return 1, "Erreur en déployant en GT - "+player_name+" n'a pas tous les persos demandés"
-    elif process.returncode==204:
-        return 1, "Erreur en déployant en GT - au moins un perso est déjà déployé"
-    elif process.returncode==205:
-        return 1, "Erreur en déployant en GT - "+player_name+" n'a pas rejoint la GT"
-    elif process.returncode==94:
-        return 1, "Erreur en déployant en GT - version du client incompatible (contacter l'admin)"
-    elif process.returncode!=0:
-        return 1, "Erreur en déployant en GT - code="+str(process.returncode)
+    req_data = json_dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                golog.log("DBG", "POST deployTW status="+str(resp.status))
+                if resp.status==200:
+                    #normale case
+                    resp_json = await(resp.json())
+                elif resp.status==201:
+                    # rien à déployer
+                    return 1, "Erreur en posant une def de GT - code="+str(resp.status), None
+                else:
+                    return 1, "Erreur en posant une def de GT - code="+str(resp.status), None
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectorError as e:
 
     return 0, player_name+" a posé "+str(requested_defIds)+" en " + zone_id
 
