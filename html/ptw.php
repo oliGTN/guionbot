@@ -25,6 +25,10 @@ session_set_cookie_params([
 ]);
 session_start();
 
+if (empty($_SESSION['ptw_push_csrf']) || !is_string($_SESSION['ptw_push_csrf'])) {
+    $_SESSION['ptw_push_csrf'] = bin2hex(random_bytes(32));
+}
+
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['discord_access_token'])) {
     $return_path = $_SERVER['REQUEST_URI'] ?? '/';
     if (!is_string($return_path) || $return_path === '' || $return_path[0] !== '/' || substr($return_path, 0, 2) === '//' || strpos($return_path, '\\') !== false || preg_match('/[\\x00-\\x1F\\x7F]/', $return_path)) {
@@ -48,6 +52,92 @@ $allycode = get_required_ally_code();
 [$isMyAllycode, $isMyAllycodeConfirmed, $isGuildMate] = set_session_rights_for_allycode($allycode);
 
 include 'pdata.php';
+
+if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+    set_time_limit(300);
+    $respond = function ($status, $payload) {
+        http_response_code($status);
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit();
+    };
+    if (empty($_SESSION['user_id']) || !$isMyAllycodeConfirmed) {
+        $respond(403, ['err_code' => 403, 'err_txt' => 'This allyCode is not linked and confirmed for your Discord account.']);
+    }
+    $rawPayload = file_get_contents('php://input');
+    if (!is_string($rawPayload) || strlen($rawPayload) > 65536) {
+        $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid request payload.']);
+    }
+    $payload = json_decode($rawPayload, true);
+    if (!is_array($payload)) $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid JSON payload.']);
+    $csrf = $payload['csrf'] ?? '';
+    if (!is_string($csrf) || empty($_SESSION['ptw_push_csrf']) || !hash_equals($_SESSION['ptw_push_csrf'], $csrf)) {
+        $respond(403, ['err_code' => 403, 'err_txt' => 'Invalid security token. Reload the page and try again.']);
+    }
+    $teams = $payload['teams'] ?? null;
+    $validZones = ['B1', 'T1', 'B2', 'T2', 'B3', 'T3', 'B4', 'T4', 'F1', 'F2'];
+    if (!is_array($teams) || count($teams) < 1 || count($teams) > 50) {
+        $respond(400, ['err_code' => 400, 'err_txt' => 'Select between 1 and 50 proposed teams.']);
+    }
+    $validatedTeams = [];
+    foreach ($teams as $team) {
+        if (!is_array($team)) $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid proposed team.']);
+        $zone = $team['zone'] ?? '';
+        $units = $team['units'] ?? null;
+        if (!is_string($zone) || !in_array($zone, $validZones, true) || !is_array($units) || count($units) < 1
+            || count($units) > (in_array($zone, ['F1', 'F2'], true) ? 8 : 5)) {
+            $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid zone or unit count in proposed team.']);
+        }
+        $seenUnits = [];
+        foreach ($units as $unitId) {
+            if (!is_string($unitId) || !preg_match('/^[A-Za-z0-9_-]{1,64}$/', $unitId) || isset($seenUnits[$unitId])) {
+                $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid or duplicate unit in proposed team.']);
+            }
+            $seenUnits[$unitId] = true;
+        }
+        $validatedTeams[] = ['zone' => $zone, 'units' => array_values($units)];
+    }
+    $tokenFile = '/home/pi/GuionBot/web_commands.token';
+    if (!is_readable($tokenFile)) {
+        error_log('PTW push teams: web commands token file is unreadable.');
+        $respond(503, ['err_code' => 503, 'err_txt' => 'Web commands service is not configured.']);
+    }
+    $token = trim(file_get_contents($tokenFile));
+    if ($token === '') $respond(503, ['err_code' => 503, 'err_txt' => 'Web commands service is not configured.']);
+    $requestPayload = json_encode([
+        'guild_id' => (string)($player['guild_id'] ?? ''),
+        'allyCode' => (string)$allycode,
+        'teams' => $validatedTeams,
+    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    $ch = curl_init('http://127.0.0.1:9000/DeployTWTeams');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $token],
+        CURLOPT_POSTFIELDS => $requestPayload, CURLOPT_CONNECTTIMEOUT => 2, CURLOPT_TIMEOUT => 300,
+    ]);
+    $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($response === false) {
+        error_log('PTW push teams service connection error: ' . $curlError);
+        $respond(502, ['err_code' => 502, 'err_txt' => 'Web commands service unavailable.']);
+    }
+    $result = json_decode($response, true);
+    if (!is_array($result) || $httpCode < 200 || $httpCode >= 300 || (int)($result['err_code'] ?? 500) !== 0) {
+        $respond($httpCode >= 400 && $httpCode < 600 ? $httpCode : 502, [
+            'err_code' => (int)($result['err_code'] ?? 500),
+            'err_txt' => is_array($result) ? ($result['err_txt'] ?? 'Web commands service returned an invalid response.') : 'Web commands service returned an invalid response.',
+            'completed' => is_array($result) ? (int)($result['completed'] ?? 0) : 0,
+            'failed_zone' => is_array($result) ? ($result['failed_zone'] ?? null) : null,
+        ]);
+    }
+    $respond(200, [
+        'err_code' => 0,
+        'err_txt' => $result['err_txt'] ?? 'Proposed teams pushed to the game.',
+        'completed' => (int)($result['completed'] ?? count($validatedTeams)),
+    ]);
+}
 include 'portrait.php';
 
 // Find the most recent TW recorded for the player's current guild.
@@ -900,6 +990,8 @@ foreach ($squad['cells'] as $unit) {
 <?php endif; ?>
                 </div>
 
+                <button type="button" class="tw-push-proposed" id="tw-push-proposed" style="display:none" disabled>Push proposed teams to game</button>
+
                 <div class="tw-shared-zone-controls">
                     <div class="tw-inline-select">
                         <label for="tw-zone-select"><b>Zone</b></label>
@@ -917,8 +1009,6 @@ foreach ($squad['cells'] as $unit) {
                     <button type="button" class="tw-tab" role="tab" aria-selected="false" aria-controls="tw-import-tab" id="tw-import-tab-button">Import previous TW team</button>
                 </div>
                 <section id="tw-create-tab" class="tw-tab-panel" role="tabpanel" aria-labelledby="tw-create-tab-button">
-                <button type="button" class="tw-push-proposed" id="tw-push-proposed">Push proposed teams to game</button>
-
                 <div class="card tw-team-creator" id="create-team">
                     <div id="tw-team-form">
 
@@ -1069,6 +1159,8 @@ echo json_encode($creator_zone_commands, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 
 const zoneTeamsContainer = document.getElementById('tw-zone-teams');
 const pushProposedButton = document.getElementById('tw-push-proposed');
+const pushCsrfToken = <?php echo json_encode($_SESSION['ptw_push_csrf'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+const canPushProposedTeams = <?php echo $isMyAllycodeConfirmed ? 'true' : 'false'; ?>;
 const createTeamButton = document.getElementById('tw-create-team');
 const noTeamsMessage = document.getElementById('tw-no-teams');
 
@@ -1442,7 +1534,8 @@ if (zoneSelect) {
                 : 'block';
         }
 
-        pushProposedButton.style.display = proposedTeams.length > 0 ? 'block' : 'none';
+        pushProposedButton.style.display = canPushProposedTeams && proposedTeams.length > 0 ? 'block' : 'none';
+        pushProposedButton.disabled = !canPushProposedTeams || proposedTeams.length === 0;
         updateZoneCounts();
         refreshImportTeamAvailability();
     }
@@ -1533,10 +1626,36 @@ if (zoneSelect) {
         renderProposedTeams();
     }
 
-    function pushProposedTeams() {
-        if (proposedTeams.length === 0) return;
+    async function pushProposedTeams() {
+        if (!canPushProposedTeams || proposedTeams.length === 0 || pushProposedButton.disabled) return;
+        const teamsToPush = proposedTeams.map((team) => ({ zone: team.zone, units: [...team.units] }));
+        if (!window.confirm('Push ' + teamsToPush.length + ' proposed team(s) to the game? This will deploy their units and cannot be undone from this page.')) return;
 
-        alert('Pushing proposed teams to the game is not implemented yet.');
+        pushProposedButton.disabled = true;
+        const originalText = pushProposedButton.textContent;
+        pushProposedButton.textContent = 'Pushing teams...';
+        try {
+            const requestUrl = new URL(window.location.href);
+            requestUrl.searchParams.set('action', 'push_proposed_teams');
+            const response = await fetch(requestUrl.toString(), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ csrf: pushCsrfToken, teams: teamsToPush })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || Number(result.err_code) !== 0) {
+                const completed = Number(result.completed || 0);
+                const partial = completed > 0 ? ' ' + completed + ' team(s) were already deployed before the error.' : '';
+                throw new Error((result.err_txt || 'Unable to push proposed teams.') + partial);
+            }
+            alert(result.err_txt || 'Proposed teams pushed to the game.');
+            window.location.reload();
+        } catch (error) {
+            alert('Could not push proposed teams: ' + (error && error.message ? error.message : 'Unknown error.'));
+            pushProposedButton.disabled = false;
+            pushProposedButton.textContent = originalText;
+        }
     }
 
     function updateCreator(previousFleet) {
