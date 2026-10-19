@@ -1039,9 +1039,7 @@ document.querySelectorAll('.tw-history-teams').forEach((historyPanel) => {
             addButton.title = 'Cannot add this team because one or more units are unavailable in the create-team unit selector.';
         }
     });
-}
-
-
+});
 
 const twDatacrons = <?php echo json_encode($player_datacron_html, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 const twZoneCommands = <?php
