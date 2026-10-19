@@ -275,6 +275,7 @@ try {
             r.relic_currentTier
          ORDER BY r.combatType, r.gp DESC"
     );
+    $stmt->execute([':allycode' => $allycode]);
     $roster_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     ptw_log_timing('roster + skills query/fetch', $query_started_at, count($roster_rows));
     $roster_processing_started_at = microtime(true);
