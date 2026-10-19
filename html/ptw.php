@@ -60,6 +60,25 @@ if ($tw_id !== false && $tw_id !== null) {
     include 'twvariables.php';
 }
 
+// Load the five most recent TWs for the player's current guild for the import tab.
+$tw_history_options = [];
+try {
+    $history_stmt = $conn_guionbot->prepare(
+        "SELECT id, start_date FROM tw_history
+         WHERE guild_id = :guild_id
+         ORDER BY start_date DESC LIMIT 5"
+    );
+    $history_stmt->execute([':guild_id' => $player['guild_id']]);
+    $tw_history_options = $history_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log('Error fetching TW history options: ' . $e->getMessage());
+}
+$selected_history_tw_id = isset($_GET['history_tw_id']) ? (int) $_GET['history_tw_id'] : 0;
+$valid_history_ids = array_map('intval', array_column($tw_history_options, 'id'));
+if (!in_array($selected_history_tw_id, $valid_history_ids, true)) {
+    $selected_history_tw_id = !empty($tw_history_options) ? (int) $tw_history_options[0]['id'] : 0;
+}
+
 // Get the player's squads for this TW.
 $squad_list = [];
 if ($tw) {
@@ -111,6 +130,81 @@ if ($tw) {
     }
 }
 
+// Fetch the selected historical TW's teams for this player.
+$import_squad_list = [];
+if ($selected_history_tw_id > 0) {
+    try {
+        $import_stmt = $conn_guionbot->prepare(
+            "SELECT tw_squads.id AS squad_id, tw_squads.tw_id, tw_squads.zone_name,
+                    tw_squad_cells.defId, tw_squad_cells.cellIndex,
+                    tw_squad_cells.level, tw_squad_cells.tier,
+                    tw_squad_cells.unitRelicTier, tw_squad_cells.zetaCount,
+                    tw_squad_cells.omicronCount,
+                    datacrons.id AS datacron_id, datacrons.setId AS datacron_setId,
+                    datacrons.focused AS datacron_focused,
+                    datacrons.level_3 AS datacron_level_3, datacrons.level_6 AS datacron_level_6,
+                    datacrons.level_9 AS datacron_level_9, datacrons.level_12 AS datacron_level_12,
+                    datacrons.level_15 AS datacron_level_15
+             FROM tw_squads
+             JOIN tw_squad_cells ON tw_squad_cells.squad_id = tw_squads.id
+             LEFT JOIN datacrons ON datacrons.id = tw_squads.datacron_id
+             WHERE tw_squads.tw_id = :tw_id AND tw_squads.player_name = :player_name
+             ORDER BY FIELD(tw_squads.zone_name, 'B1','T1','B2','T2','B3','T3','B4','T4','F1','F2'),
+                      tw_squads.id, tw_squad_cells.cellIndex"
+        );
+        $import_stmt->execute([
+            ':tw_id' => $selected_history_tw_id,
+            ':player_name' => $player['name'],
+        ]);
+        $import_squad_list = $import_stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('Error fetching historical TW squads: ' . $e->getMessage());
+    }
+}
+$import_teams_by_zone = [];
+foreach ($import_squad_list as $cell) {
+    $sid = (string) $cell['squad_id'];
+    $zone = (string) $cell['zone_name'];
+    if (!isset($import_teams_by_zone[$zone][$sid])) {
+        $import_teams_by_zone[$zone][$sid] = [
+            'id' => $sid, 'zone' => $zone, 'units' => [], 'unitData' => [],
+            'datacronId' => (string) ($cell['datacron_id'] ?? ''),
+            'datacronHtml' => '',
+            'datacron' => !empty($cell['datacron_id']) ? [
+                'id' => $cell['datacron_id'], 'setId' => $cell['datacron_setId'],
+                'focused' => $cell['datacron_focused'], 'level_3' => $cell['datacron_level_3'],
+                'level_6' => $cell['datacron_level_6'], 'level_9' => $cell['datacron_level_9'],
+                'level_12' => $cell['datacron_level_12'], 'level_15' => $cell['datacron_level_15'],
+            ] : null,
+        ];
+    }
+    $parts = explode(':', (string) $cell['defId']);
+    $shortId = (string) $parts[0];
+    $isShip = (int) ($dict_units[$shortId]['combatType'] ?? 1) === 2;
+    ob_start();
+    display_portrait(
+        $shortId,
+        $dict_units[$shortId]['forceAlignment'] ?? 0,
+        $rarity_values[$parts[1] ?? 'SEVEN_STAR'] ?? 7,
+        $isShip ? 0 : (int) $cell['tier'],
+        (int) $cell['unitRelicTier'],
+        (int) $cell['zetaCount'],
+        (int) $cell['omicronCount'],
+        $isShip,
+        $isShip && (int) $cell['cellIndex'] >= 4
+    );
+    $portraitHtml = ob_get_clean();
+    $import_teams_by_zone[$zone][$sid]['units'][] = $shortId;
+    if (!empty($cell['datacron_id']) && $import_teams_by_zone[$zone][$sid]['datacronHtml'] === '') {
+        ob_start();
+        display_datacron($import_teams_by_zone[$zone][$sid]['datacron'], $datacron_icons, true);
+        $import_teams_by_zone[$zone][$sid]['datacronHtml'] = ob_get_clean();
+    }
+    $import_teams_by_zone[$zone][$sid]['unitData'][] = [
+        'id' => $shortId, 'portrait' => $portraitHtml,
+        'name' => $dict_units[$shortId]['name'] ?? $shortId, 'isShip' => $isShip,
+    ];
+}
 // Group cells into teams, then teams by zone.
 $squads_by_zone = [];
 foreach ($squad_list as $cell) {
@@ -367,6 +461,11 @@ $rarity_values = [
     <link rel="stylesheet" href="portrait.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
+        .tw-tabs { display: flex; gap: 0.5rem; margin: 1.25rem 0 0; flex-wrap: wrap; }
+        .tw-tab { padding: 0.65rem 1rem; border: 1px solid #bbb; border-bottom: 0; border-radius: 5px 5px 0 0; cursor: pointer; background: #eee; color: inherit; }
+        .tw-tab.active { background: #fff; font-weight: bold; border-color: #888; }
+        .tw-tab-panel { border-top: 1px solid #888; padding-top: 1rem; }
+        .tw-import-add { margin: 0.5rem 0; }
         .tw-zone-teams {
             display: grid;
             gap: 1.25rem;
@@ -732,6 +831,11 @@ foreach ($squad['cells'] as $unit) {
 <?php endif; ?>
                 </div>
 
+                <div class="tw-tabs" role="tablist" aria-label="TW team tools">
+                    <button type="button" class="tw-tab active" role="tab" aria-selected="true" aria-controls="tw-create-tab" id="tw-create-tab-button">Create a new TW team</button>
+                    <button type="button" class="tw-tab" role="tab" aria-selected="false" aria-controls="tw-import-tab" id="tw-import-tab-button">Import previous TW team</button>
+                </div>
+                <section id="tw-create-tab" class="tw-tab-panel" role="tabpanel" aria-labelledby="tw-create-tab-button">
                 <button type="button" class="tw-push-proposed" id="tw-push-proposed">Push proposed teams to game</button>
 
                 <div class="card tw-team-creator" id="create-team">
@@ -796,6 +900,49 @@ foreach (array_keys($player_datacron_sets) as $set_id):
                         <div id="tw-creator-limit"></div>
                     </div>
                 </div>
+                </section>
+
+                <section id="tw-import-tab" class="tw-tab-panel" role="tabpanel" aria-labelledby="tw-import-tab-button" hidden>
+                    <div class="card tw-team-creator">
+                        <label for="tw-import-zone-select"><b>Zone</b></label>
+                        <select id="tw-import-zone-select">
+<?php foreach ($tw_zones as $zone): ?>
+                            <option value="<?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?></option>
+<?php endforeach; ?>
+                        </select>
+                        <div id="tw-import-zone-command" class="tw-zone-command-creator"></div>
+                        <label for="tw-history-select"><b>Previous Territory War</b></label>
+                        <select id="tw-history-select">
+<?php foreach ($tw_history_options as $history): ?>
+                            <option value="<?php echo (int) $history['id']; ?>" <?php echo (int) $history['id'] === $selected_history_tw_id ? 'selected' : ''; ?>><?php echo htmlspecialchars(substr((string) $history['start_date'], 0, 10), ENT_QUOTES, 'UTF-8'); ?></option>
+<?php endforeach; ?>
+                        </select>
+                        <div id="tw-import-teams">
+<?php if (empty($import_teams_by_zone)): ?>
+                            <p>No teams found for this player in the selected Territory War.</p>
+<?php else: ?>
+<?php foreach ($tw_zones as $import_zone): ?>
+<?php if (!empty($import_teams_by_zone[$import_zone])): ?>
+                            <div class="card tw-zone">
+                                <div class="tw-zone-header"><h4><?php echo htmlspecialchars($import_zone, ENT_QUOTES, 'UTF-8'); ?></h4><span class="tw-zone-command"><?php echo htmlspecialchars($zones['home'][$import_zone]['commandMsg'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></div>
+<?php foreach ($import_teams_by_zone[$import_zone] as $import_team): ?>
+                                <div class="tw-team">
+                                    <div class="tw-team-portraits">
+<?php foreach ($import_team['unitData'] as $import_unit): ?>
+                                        <div<?php echo ($import_unit['isShip'] && array_search($import_unit, $import_team['unitData'], true) >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
+<?php endforeach; ?>
+<?php echo $import_team['datacronHtml']; ?>
+                                    </div>
+                                    <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode($import_team, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
+                                </div>
+<?php endforeach; ?>
+                            </div>
+<?php endif; ?>
+<?php endforeach; ?>
+<?php endif; ?>
+                        </div>
+                    </div>
+                </section>
 
             </div>
 <?php endif; ?>
@@ -808,6 +955,34 @@ foreach (array_keys($player_datacron_sets) as $set_id):
     </div>
 </div>
 <script>
+document.querySelectorAll('.tw-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tw-tab').forEach((item) => {
+            const active = item === tab;
+            item.classList.toggle('active', active);
+            item.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        document.querySelectorAll('.tw-tab-panel').forEach((panel) => {
+            panel.hidden = panel.id !== tab.getAttribute('aria-controls');
+        });
+    });
+});
+const historySelect = document.getElementById('tw-history-select');
+if (historySelect) {
+    historySelect.addEventListener('change', () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('history_tw_id', historySelect.value);
+        window.location.href = url.toString();
+    });
+}
+const importZoneSelect = document.getElementById('tw-import-zone-select');
+const importZoneCommand = document.getElementById('tw-import-zone-command');
+const twZoneCommandsForImport = <?php echo json_encode(array_map(function ($zone) use ($zones) { return $zones['home'][$zone]['commandMsg'] ?? ''; }, array_combine($tw_zones, $tw_zones)), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+if (importZoneSelect && importZoneCommand) {
+    const updateImportZoneCommand = () => { importZoneCommand.textContent = twZoneCommandsForImport[importZoneSelect.value] || ''; };
+    importZoneSelect.addEventListener('change', updateImportZoneCommand);
+    updateImportZoneCommand();
+}
 const twUnits = <?php echo json_encode($roster_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
 const twDatacrons = <?php echo json_encode($player_datacron_html, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
@@ -1096,7 +1271,7 @@ if (zoneSelect) {
             portraits.className = 'tw-team-portraits';
 
             team.units.forEach((unitId, index) => {
-                const unit = twUnits.find((entry) => entry.id === unitId);
+                const unit = (team.unitData || []).find((entry) => entry.id === unitId) || twUnits.find((entry) => entry.id === unitId);
                 if (!unit) return;
 
                 const portrait = document.createElement('div');
@@ -1112,9 +1287,9 @@ if (zoneSelect) {
                 portraits.appendChild(portrait);
             });
 
-            if (team.datacronId && twDatacrons[team.datacronId]) {
+            if (team.datacronId && (team.datacronHtml || twDatacrons[team.datacronId])) {
                 const datacron = document.createElement('div');
-                datacron.innerHTML = twDatacrons[team.datacronId];
+                datacron.innerHTML = team.datacronHtml || twDatacrons[team.datacronId];
                 portraits.appendChild(datacron);
             }
 
@@ -1164,6 +1339,7 @@ if (zoneSelect) {
                 : String(Date.now()) + '-' + Math.random(),
             zone: zoneSelect.value,
             units: [...selectedUnits],
+            unitData: selectedUnits.map((unitId) => twUnits.find((entry) => entry.id === unitId)).filter(Boolean),
             datacronId: fleet ? '' : (datacronIdInput.value || ''),
             element: null
         };
@@ -1224,6 +1400,27 @@ if (zoneSelect) {
     }
 
     let previousFleetStatus = fleetZone();
+
+    document.querySelectorAll('.tw-import-add').forEach((button) => {
+        button.addEventListener('click', () => {
+            let imported;
+            try { imported = JSON.parse(button.dataset.team || '{}'); } catch (e) { return; }
+            if (!Array.isArray(imported.units) || imported.units.length === 0) return;
+            proposedTeams.push({
+                id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random(),
+                zone: imported.zone,
+                units: imported.units,
+                unitData: imported.unitData || [],
+                datacronId: imported.datacronId || '',
+                datacronHtml: imported.datacronHtml || '',
+                element: null
+            });
+            renderProposedTeams();
+            renderResults();
+            updateDatacrons();
+            document.getElementById('tw-create-tab-button').click();
+        });
+    });
 
     createTeamButton.addEventListener('click', createProposedTeam);
     pushProposedButton.addEventListener('click', pushProposedTeams);
