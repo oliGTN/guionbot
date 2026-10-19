@@ -973,7 +973,12 @@ foreach (array_keys($player_datacron_sets) as $set_id):
 <?php endforeach; ?>
 <?php echo $import_team['datacronHtml']; ?>
                                             </div>
-                                            <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode($import_team, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
+                                            <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode([
+                                                'zone' => $import_team['zone'],
+                                                'units' => $import_team['units'],
+                                                'datacronId' => $import_team['datacronId'],
+                                                'datacronHtml' => $import_team['datacronHtml'],
+                                            ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
                                         </div>
                                     </div>
 <?php endforeach; ?>
