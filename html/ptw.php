@@ -60,23 +60,22 @@ if ($tw_id !== false && $tw_id !== null) {
     include 'twvariables.php';
 }
 
-// Load the five most recent TWs for the player's current guild for the import tab.
+// Load all recorded TWs for the player's guild. The current/latest TW is
+// intentionally omitted from the import selector and historical team list.
 $tw_history_options = [];
+$previous_tw_ids = [];
 try {
     $history_stmt = $conn_guionbot->prepare(
         "SELECT id, start_date FROM tw_history
          WHERE guild_id = :guild_id
-         ORDER BY start_date DESC LIMIT 5"
+         ORDER BY start_date DESC"
     );
     $history_stmt->execute([':guild_id' => $player['guild_id']]);
-    $tw_history_options = $history_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $all_tw_history = $history_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $tw_history_options = array_slice($all_tw_history, 1);
+    $previous_tw_ids = array_map('intval', array_column($tw_history_options, 'id'));
 } catch (PDOException $e) {
     error_log('Error fetching TW history options: ' . $e->getMessage());
-}
-$selected_history_tw_id = isset($_GET['history_tw_id']) ? (int) $_GET['history_tw_id'] : 0;
-$valid_history_ids = array_map('intval', array_column($tw_history_options, 'id'));
-if (!in_array($selected_history_tw_id, $valid_history_ids, true)) {
-    $selected_history_tw_id = !empty($tw_history_options) ? (int) $tw_history_options[0]['id'] : 0;
 }
 
 // Get the player's squads for this TW.
@@ -374,10 +373,18 @@ $rarity_values = [
     'SEVEN_STAR' => 7,
 ];
 
-// Fetch the selected historical TW's teams for this player.
-$import_squad_list = [];
-if ($selected_history_tw_id > 0) {
+// Fetch all historical teams for this player in one query. The selector filters
+// the preloaded results client-side, so changing TW never reloads the page.
+$import_teams_by_tw = [];
+if (!empty($previous_tw_ids)) {
     try {
+        $history_placeholders = [];
+        $history_params = [':player_name' => $player['name']];
+        foreach ($previous_tw_ids as $index => $history_tw_id) {
+            $placeholder = ':history_tw_' . $index;
+            $history_placeholders[] = $placeholder;
+            $history_params[$placeholder] = $history_tw_id;
+        }
         $import_stmt = $conn_guionbot->prepare(
             "SELECT tw_squads.id AS squad_id, tw_squads.tw_id, tw_squads.zone_name,
                     tw_squad_cells.defId, tw_squad_cells.cellIndex,
@@ -392,26 +399,29 @@ if ($selected_history_tw_id > 0) {
              FROM tw_squads
              JOIN tw_squad_cells ON tw_squad_cells.squad_id = tw_squads.id
              LEFT JOIN datacrons ON datacrons.id = tw_squads.datacron_id
-             WHERE tw_squads.tw_id = :tw_id AND tw_squads.player_name = :player_name
-             ORDER BY FIELD(tw_squads.zone_name, 'B1','T1','B2','T2','B3','T3','B4','T4','F1','F2'),
+             WHERE tw_squads.tw_id IN (" . implode(', ', $history_placeholders) . ")
+               AND tw_squads.player_name = :player_name
+             ORDER BY tw_squads.tw_id DESC,
+                      FIELD(tw_squads.zone_name, 'B1','T1','B2','T2','B3','T3','B4','T4','F1','F2'),
                       tw_squads.id, tw_squad_cells.cellIndex"
         );
-        $import_stmt->execute([
-            ':tw_id' => $selected_history_tw_id,
-            ':player_name' => $player['name'],
-        ]);
+        $import_stmt->execute($history_params);
         $import_squad_list = $import_stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log('Error fetching historical TW squads: ' . $e->getMessage());
+        $import_squad_list = [];
     }
+} else {
+    $import_squad_list = [];
 }
-$import_teams_by_zone = [];
 foreach ($import_squad_list as $cell) {
+    $twKey = (string) $cell['tw_id'];
     $sid = (string) $cell['squad_id'];
     $zone = (string) $cell['zone_name'];
-    if (!isset($import_teams_by_zone[$zone][$sid])) {
-        $import_teams_by_zone[$zone][$sid] = [
-            'id' => $sid, 'zone' => $zone, 'units' => [], 'unitData' => [],
+    if (!isset($import_teams_by_tw[$twKey][$zone][$sid])) {
+        $import_teams_by_tw[$twKey][$zone][$sid] = [
+            'id' => $sid, 'twId' => (int) $cell['tw_id'], 'zone' => $zone,
+            'units' => [], 'unitData' => [],
             'datacronId' => (string) ($cell['datacron_id'] ?? ''),
             'datacronHtml' => '',
             'datacron' => !empty($cell['datacron_id']) ? [
@@ -438,16 +448,18 @@ foreach ($import_squad_list as $cell) {
         $isShip && (int) $cell['cellIndex'] >= 4
     );
     $portraitHtml = ob_get_clean();
-    $import_teams_by_zone[$zone][$sid]['units'][] = $shortId;
-    if (!empty($cell['datacron_id']) && $import_teams_by_zone[$zone][$sid]['datacronHtml'] === '') {
+    $teamRef =& $import_teams_by_tw[$twKey][$zone][$sid];
+    $teamRef['units'][] = $shortId;
+    if (!empty($cell['datacron_id']) && $teamRef['datacronHtml'] === '') {
         ob_start();
-        display_datacron($import_teams_by_zone[$zone][$sid]['datacron'], $datacron_icons, true);
-        $import_teams_by_zone[$zone][$sid]['datacronHtml'] = ob_get_clean();
+        display_datacron($teamRef['datacron'], $datacron_icons, true);
+        $teamRef['datacronHtml'] = ob_get_clean();
     }
-    $import_teams_by_zone[$zone][$sid]['unitData'][] = [
+    $teamRef['unitData'][] = [
         'id' => $shortId, 'portrait' => $portraitHtml,
         'name' => $dict_units[$shortId]['name'] ?? $shortId, 'isShip' => $isShip,
     ];
+    unset($teamRef);
 }
 ?>
 <!DOCTYPE html>
@@ -467,6 +479,10 @@ foreach ($import_squad_list as $cell) {
         .tw-tab.active { background: #fff; font-weight: bold; border-color: #888; }
         .tw-tab-panel { border-top: 1px solid #888; padding-top: 1rem; }
         .tw-import-add { margin: 0.5rem 0; }
+        .tw-shared-zone-controls { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0 0.5rem; }
+        .tw-inline-select { display: inline-flex; align-items: center; gap: 0.5rem; }
+        .tw-inline-select label { margin: 0; white-space: nowrap; }
+        .tw-inline-select select { width: auto; max-width: 100%; }
         .tw-zone-teams {
             display: grid;
             gap: 1.25rem;
@@ -832,6 +848,18 @@ foreach ($squad['cells'] as $unit) {
 <?php endif; ?>
                 </div>
 
+                <div class="tw-shared-zone-controls">
+                    <div class="tw-inline-select">
+                        <label for="tw-zone-select"><b>Zone</b></label>
+                        <select id="tw-zone-select">
+<?php foreach ($tw_zones as $zone): ?>
+                            <option value="<?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?> (<?php echo $zone_team_counts[$zone]; ?>)</option>
+<?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div id="tw-zone-command-creator" class="tw-zone-command-creator"></div>
+                </div>
+
                 <div class="tw-tabs" role="tablist" aria-label="TW team tools">
                     <button type="button" class="tw-tab active" role="tab" aria-selected="true" aria-controls="tw-create-tab" id="tw-create-tab-button">Create a new TW team</button>
                     <button type="button" class="tw-tab" role="tab" aria-selected="false" aria-controls="tw-import-tab" id="tw-import-tab-button">Import previous TW team</button>
@@ -840,17 +868,7 @@ foreach ($squad['cells'] as $unit) {
                 <button type="button" class="tw-push-proposed" id="tw-push-proposed">Push proposed teams to game</button>
 
                 <div class="card tw-team-creator" id="create-team">
-                    <h3>Create a new TW team</h3>
                     <div id="tw-team-form">
-
-                        <label for="tw-zone-select"><b>Zone</b></label>
-                        <select id="tw-zone-select">
-<?php foreach ($tw_zones as $zone): ?>
-                            <option value="<?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?> (<?php echo $zone_team_counts[$zone]; ?>)</option>
-<?php endforeach; ?>
-                        </select>
-
-                        <div id="tw-zone-command-creator" class="tw-zone-command-creator"></div>
 
                         <div class="tw-unit-picker">
                             <div>
@@ -905,40 +923,44 @@ foreach (array_keys($player_datacron_sets) as $set_id):
 
                 <section id="tw-import-tab" class="tw-tab-panel" role="tabpanel" aria-labelledby="tw-import-tab-button" hidden>
                     <div class="card tw-team-creator">
-                        <label for="tw-import-zone-select"><b>Zone</b></label>
-                        <select id="tw-import-zone-select">
-<?php foreach ($tw_zones as $zone): ?>
-                            <option value="<?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?></option>
-<?php endforeach; ?>
-                        </select>
-                        <div id="tw-import-zone-command" class="tw-zone-command-creator"></div>
-                        <label for="tw-history-select"><b>Previous Territory War</b></label>
-                        <select id="tw-history-select">
+                        <div class="tw-inline-select">
+                            <label for="tw-history-select"><b>Previous Territory War</b></label>
+                            <select id="tw-history-select">
 <?php foreach ($tw_history_options as $history): ?>
-                            <option value="<?php echo (int) $history['id']; ?>" <?php echo (int) $history['id'] === $selected_history_tw_id ? 'selected' : ''; ?>><?php echo htmlspecialchars(substr((string) $history['start_date'], 0, 10), ENT_QUOTES, 'UTF-8'); ?></option>
+                                <option value="<?php echo (int) $history['id']; ?>"><?php echo htmlspecialchars(substr((string) $history['start_date'], 0, 10), ENT_QUOTES, 'UTF-8'); ?></option>
 <?php endforeach; ?>
-                        </select>
+                            </select>
+                        </div>
                         <div id="tw-import-teams">
-<?php if (empty($import_teams_by_zone)): ?>
-                            <p>No teams found for this player in the selected Territory War.</p>
+<?php if (empty($import_teams_by_tw)): ?>
+                            <p>No teams found for this player in previous Territory Wars.</p>
+<?php else: ?>
+<?php foreach ($tw_history_options as $history_index => $history): ?>
+                            <div class="tw-history-teams" data-tw-id="<?php echo (int) $history['id']; ?>" <?php echo $history_index === 0 ? '' : 'hidden'; ?>>
+<?php $import_tw_key = (string) $history['id']; ?>
+<?php if (empty($import_teams_by_tw[$import_tw_key])): ?>
+                                <p>No teams found for this player in this Territory War.</p>
 <?php else: ?>
 <?php foreach ($tw_zones as $import_zone): ?>
-<?php if (!empty($import_teams_by_zone[$import_zone])): ?>
-                            <div class="card tw-zone">
-                                <div class="tw-zone-header"><h4><?php echo htmlspecialchars($import_zone, ENT_QUOTES, 'UTF-8'); ?></h4><span class="tw-zone-command"><?php echo htmlspecialchars($zones['home'][$import_zone]['commandMsg'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></div>
-<?php foreach ($import_teams_by_zone[$import_zone] as $import_team): ?>
-                                <div class="tw-team">
-                                    <div class="tw-team-portraits">
-<?php foreach ($import_team['unitData'] as $import_unit): ?>
-                                        <div<?php echo ($import_unit['isShip'] && array_search($import_unit, $import_team['unitData'], true) >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
+<?php if (!empty($import_teams_by_tw[$import_tw_key][$import_zone])): ?>
+                                <div class="card tw-zone">
+                                    <div class="tw-zone-header"><h4><?php echo htmlspecialchars($import_zone, ENT_QUOTES, 'UTF-8'); ?></h4><span class="tw-zone-command"><?php echo htmlspecialchars($zones['home'][$import_zone]['commandMsg'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></div>
+<?php foreach ($import_teams_by_tw[$import_tw_key][$import_zone] as $import_team): ?>
+                                    <div class="tw-team">
+                                        <div class="tw-team-portraits">
+<?php foreach ($import_team['unitData'] as $import_unit_index => $import_unit): ?>
+                                            <div<?php echo ($import_unit['isShip'] && $import_unit_index >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
 <?php endforeach; ?>
 <?php echo $import_team['datacronHtml']; ?>
+                                        </div>
+                                        <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode($import_team, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
                                     </div>
-                                    <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode($import_team, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
-                                </div>
 <?php endforeach; ?>
-                            </div>
+                                </div>
 <?php endif; ?>
+<?php endforeach; ?>
+<?php endif; ?>
+                            </div>
 <?php endforeach; ?>
 <?php endif; ?>
                         </div>
@@ -971,18 +993,10 @@ document.querySelectorAll('.tw-tab').forEach((tab) => {
 const historySelect = document.getElementById('tw-history-select');
 if (historySelect) {
     historySelect.addEventListener('change', () => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('history_tw_id', historySelect.value);
-        window.location.href = url.toString();
+        document.querySelectorAll('.tw-history-teams').forEach((panel) => {
+            panel.hidden = panel.dataset.twId !== historySelect.value;
+        });
     });
-}
-const importZoneSelect = document.getElementById('tw-import-zone-select');
-const importZoneCommand = document.getElementById('tw-import-zone-command');
-const twZoneCommandsForImport = <?php echo json_encode(array_map(function ($zone) use ($zones) { return $zones['home'][$zone]['commandMsg'] ?? ''; }, array_combine($tw_zones, $tw_zones)), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-if (importZoneSelect && importZoneCommand) {
-    const updateImportZoneCommand = () => { importZoneCommand.textContent = twZoneCommandsForImport[importZoneSelect.value] || ''; };
-    importZoneSelect.addEventListener('change', updateImportZoneCommand);
-    updateImportZoneCommand();
 }
 const twUnits = <?php echo json_encode($roster_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
@@ -1409,7 +1423,7 @@ if (zoneSelect) {
             if (!Array.isArray(imported.units) || imported.units.length === 0) return;
             proposedTeams.push({
                 id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random(),
-                zone: imported.zone,
+                zone: zoneSelect.value,
                 units: imported.units,
                 unitData: imported.unitData || [],
                 datacronId: imported.datacronId || '',
