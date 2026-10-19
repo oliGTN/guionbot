@@ -130,81 +130,6 @@ if ($tw) {
     }
 }
 
-// Fetch the selected historical TW's teams for this player.
-$import_squad_list = [];
-if ($selected_history_tw_id > 0) {
-    try {
-        $import_stmt = $conn_guionbot->prepare(
-            "SELECT tw_squads.id AS squad_id, tw_squads.tw_id, tw_squads.zone_name,
-                    tw_squad_cells.defId, tw_squad_cells.cellIndex,
-                    tw_squad_cells.level, tw_squad_cells.tier,
-                    tw_squad_cells.unitRelicTier, tw_squad_cells.zetaCount,
-                    tw_squad_cells.omicronCount,
-                    datacrons.id AS datacron_id, datacrons.setId AS datacron_setId,
-                    datacrons.focused AS datacron_focused,
-                    datacrons.level_3 AS datacron_level_3, datacrons.level_6 AS datacron_level_6,
-                    datacrons.level_9 AS datacron_level_9, datacrons.level_12 AS datacron_level_12,
-                    datacrons.level_15 AS datacron_level_15
-             FROM tw_squads
-             JOIN tw_squad_cells ON tw_squad_cells.squad_id = tw_squads.id
-             LEFT JOIN datacrons ON datacrons.id = tw_squads.datacron_id
-             WHERE tw_squads.tw_id = :tw_id AND tw_squads.player_name = :player_name
-             ORDER BY FIELD(tw_squads.zone_name, 'B1','T1','B2','T2','B3','T3','B4','T4','F1','F2'),
-                      tw_squads.id, tw_squad_cells.cellIndex"
-        );
-        $import_stmt->execute([
-            ':tw_id' => $selected_history_tw_id,
-            ':player_name' => $player['name'],
-        ]);
-        $import_squad_list = $import_stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log('Error fetching historical TW squads: ' . $e->getMessage());
-    }
-}
-$import_teams_by_zone = [];
-foreach ($import_squad_list as $cell) {
-    $sid = (string) $cell['squad_id'];
-    $zone = (string) $cell['zone_name'];
-    if (!isset($import_teams_by_zone[$zone][$sid])) {
-        $import_teams_by_zone[$zone][$sid] = [
-            'id' => $sid, 'zone' => $zone, 'units' => [], 'unitData' => [],
-            'datacronId' => (string) ($cell['datacron_id'] ?? ''),
-            'datacronHtml' => '',
-            'datacron' => !empty($cell['datacron_id']) ? [
-                'id' => $cell['datacron_id'], 'setId' => $cell['datacron_setId'],
-                'focused' => $cell['datacron_focused'], 'level_3' => $cell['datacron_level_3'],
-                'level_6' => $cell['datacron_level_6'], 'level_9' => $cell['datacron_level_9'],
-                'level_12' => $cell['datacron_level_12'], 'level_15' => $cell['datacron_level_15'],
-            ] : null,
-        ];
-    }
-    $parts = explode(':', (string) $cell['defId']);
-    $shortId = (string) $parts[0];
-    $isShip = (int) ($dict_units[$shortId]['combatType'] ?? 1) === 2;
-    ob_start();
-    display_portrait(
-        $shortId,
-        $dict_units[$shortId]['forceAlignment'] ?? 0,
-        $rarity_values[$parts[1] ?? 'SEVEN_STAR'] ?? 7,
-        $isShip ? 0 : (int) $cell['tier'],
-        (int) $cell['unitRelicTier'],
-        (int) $cell['zetaCount'],
-        (int) $cell['omicronCount'],
-        $isShip,
-        $isShip && (int) $cell['cellIndex'] >= 4
-    );
-    $portraitHtml = ob_get_clean();
-    $import_teams_by_zone[$zone][$sid]['units'][] = $shortId;
-    if (!empty($cell['datacron_id']) && $import_teams_by_zone[$zone][$sid]['datacronHtml'] === '') {
-        ob_start();
-        display_datacron($import_teams_by_zone[$zone][$sid]['datacron'], $datacron_icons, true);
-        $import_teams_by_zone[$zone][$sid]['datacronHtml'] = ob_get_clean();
-    }
-    $import_teams_by_zone[$zone][$sid]['unitData'][] = [
-        'id' => $shortId, 'portrait' => $portraitHtml,
-        'name' => $dict_units[$shortId]['name'] ?? $shortId, 'isShip' => $isShip,
-    ];
-}
 // Group cells into teams, then teams by zone.
 $squads_by_zone = [];
 foreach ($squad_list as $cell) {
@@ -448,6 +373,82 @@ $rarity_values = [
     'SIX_STAR' => 6,
     'SEVEN_STAR' => 7,
 ];
+
+// Fetch the selected historical TW's teams for this player.
+$import_squad_list = [];
+if ($selected_history_tw_id > 0) {
+    try {
+        $import_stmt = $conn_guionbot->prepare(
+            "SELECT tw_squads.id AS squad_id, tw_squads.tw_id, tw_squads.zone_name,
+                    tw_squad_cells.defId, tw_squad_cells.cellIndex,
+                    tw_squad_cells.level, tw_squad_cells.tier,
+                    tw_squad_cells.unitRelicTier, tw_squad_cells.zetaCount,
+                    tw_squad_cells.omicronCount,
+                    datacrons.id AS datacron_id, datacrons.setId AS datacron_setId,
+                    datacrons.focused AS datacron_focused,
+                    datacrons.level_3 AS datacron_level_3, datacrons.level_6 AS datacron_level_6,
+                    datacrons.level_9 AS datacron_level_9, datacrons.level_12 AS datacron_level_12,
+                    datacrons.level_15 AS datacron_level_15
+             FROM tw_squads
+             JOIN tw_squad_cells ON tw_squad_cells.squad_id = tw_squads.id
+             LEFT JOIN datacrons ON datacrons.id = tw_squads.datacron_id
+             WHERE tw_squads.tw_id = :tw_id AND tw_squads.player_name = :player_name
+             ORDER BY FIELD(tw_squads.zone_name, 'B1','T1','B2','T2','B3','T3','B4','T4','F1','F2'),
+                      tw_squads.id, tw_squad_cells.cellIndex"
+        );
+        $import_stmt->execute([
+            ':tw_id' => $selected_history_tw_id,
+            ':player_name' => $player['name'],
+        ]);
+        $import_squad_list = $import_stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('Error fetching historical TW squads: ' . $e->getMessage());
+    }
+}
+$import_teams_by_zone = [];
+foreach ($import_squad_list as $cell) {
+    $sid = (string) $cell['squad_id'];
+    $zone = (string) $cell['zone_name'];
+    if (!isset($import_teams_by_zone[$zone][$sid])) {
+        $import_teams_by_zone[$zone][$sid] = [
+            'id' => $sid, 'zone' => $zone, 'units' => [], 'unitData' => [],
+            'datacronId' => (string) ($cell['datacron_id'] ?? ''),
+            'datacronHtml' => '',
+            'datacron' => !empty($cell['datacron_id']) ? [
+                'id' => $cell['datacron_id'], 'setId' => $cell['datacron_setId'],
+                'focused' => $cell['datacron_focused'], 'level_3' => $cell['datacron_level_3'],
+                'level_6' => $cell['datacron_level_6'], 'level_9' => $cell['datacron_level_9'],
+                'level_12' => $cell['datacron_level_12'], 'level_15' => $cell['datacron_level_15'],
+            ] : null,
+        ];
+    }
+    $parts = explode(':', (string) $cell['defId']);
+    $shortId = (string) $parts[0];
+    $isShip = (int) ($dict_units[$shortId]['combatType'] ?? 1) === 2;
+    ob_start();
+    display_portrait(
+        $shortId,
+        $dict_units[$shortId]['forceAlignment'] ?? 0,
+        $rarity_values[$parts[1] ?? 'SEVEN_STAR'] ?? 7,
+        $isShip ? 0 : (int) $cell['tier'],
+        (int) $cell['unitRelicTier'],
+        (int) $cell['zetaCount'],
+        (int) $cell['omicronCount'],
+        $isShip,
+        $isShip && (int) $cell['cellIndex'] >= 4
+    );
+    $portraitHtml = ob_get_clean();
+    $import_teams_by_zone[$zone][$sid]['units'][] = $shortId;
+    if (!empty($cell['datacron_id']) && $import_teams_by_zone[$zone][$sid]['datacronHtml'] === '') {
+        ob_start();
+        display_datacron($import_teams_by_zone[$zone][$sid]['datacron'], $datacron_icons, true);
+        $import_teams_by_zone[$zone][$sid]['datacronHtml'] = ob_get_clean();
+    }
+    $import_teams_by_zone[$zone][$sid]['unitData'][] = [
+        'id' => $shortId, 'portrait' => $portraitHtml,
+        'name' => $dict_units[$shortId]['name'] ?? $shortId, 'isShip' => $isShip,
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html>
