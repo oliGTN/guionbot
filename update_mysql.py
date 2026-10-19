@@ -1649,6 +1649,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
         for squad in squads:
             zone_name = squad["zone_short_name"]
             player_name = squad["player_name"]
+            player_id = squad["player_id"]
             cells = squad["list_defId"]
             is_beaten = squad["is_beaten"]
             fights = squad["fights"]
@@ -1662,10 +1663,12 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
 
             # Check / create squads in DB
             if not squad_id in dict_tw_squads:
-                query = "INSERT INTO tw_squads(id, tw_id, side, zone_name, player_name, "\
+                query = "INSERT INTO tw_squads(id, tw_id, side, zone_name, "\
+                        "player_name, player_id, "\
                         "is_beaten, fights, gp, datacron_id) "\
                         "VALUES('"+squad_id+"', "+str(tw_db_id)+", '"+side+"', "\
                         "'"+zone_name+"', '"+player_name.replace("'", "''")+"', "\
+                        "'"+player_id+"', "\
                         ""+str(is_beaten)+", "+str(fights)+", "+str(squad_gp)+", "\
                         ""+datacron_id_txt+")"
                 golog.log("DBG", query)
