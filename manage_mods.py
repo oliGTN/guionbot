@@ -348,7 +348,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                 #Transitory inventory is the current state of dict_player_mods,
                 # but before the latest mods have been added from inventory 
                 # to the target Unit.
-                tmp_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None] + len(mods_to_add)
+                tmp_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None] + mods_to_add
                 golog.log("INFO", "Transitory inventory ("+allyCode+") during "+target_char_defId+": "+str(len(tmp_inventory)))
                 if len(tmp_inventory) > max_inventory:
                     max_inventory = len(tmp_inventory)
