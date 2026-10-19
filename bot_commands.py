@@ -1109,6 +1109,7 @@ async def sell_codex_mods(
         fichier, 
         max_mods=0,
         only_unequipped=False):
+
     # Add command to queue, check if bot is locked, check queue size
     ret_add, resp_msg = await add_command_to_queue(ctx_interaction)
     if ret_add != 0:
@@ -1203,7 +1204,11 @@ async def sell_codex_mods(
 
 #######################################"
 async def bronzium_open(ctx_interaction, quantity):
-    resp_msg = await command_ack(ctx_interaction)
+    # Add command to queue, check if bot is locked, check queue size
+    ret_add, resp_msg = await add_command_to_queue(ctx_interaction)
+    if ret_add != 0:
+        remove_command_from_queue(ctx_interaction)
+        return
 
     channel_id = ctx_interaction.channel_id
 
@@ -1211,6 +1216,7 @@ async def bronzium_open(ctx_interaction, quantity):
     ec, et, bot_infos = await get_mysql.get_google_player_info(channel_id)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
+        remove_command_from_queue(ctx_interaction)
         return
 
     txt_allyCode = str(bot_infos["allyCode"])
@@ -1220,6 +1226,7 @@ async def bronzium_open(ctx_interaction, quantity):
     #check validity of quantity (N x 250)
     if quantity%250 != 0:
         await command_error(ctx_interaction, resp_msg, "La quantité doit être un multiple de 250")
+        remove_command_from_queue(ctx_interaction)
         return
 
     #Request pack opening
@@ -1245,6 +1252,7 @@ async def bronzium_open(ctx_interaction, quantity):
             prev_display_time = time.time()
 
     await command_ok(ctx_interaction, resp_msg, "Ouverture terminée")
+    remove_command_from_queue(ctx_interaction)
 
     return
 

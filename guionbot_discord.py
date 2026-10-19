@@ -47,7 +47,14 @@ import manage_events
 import emojis
 import register
 from semaphores import acquire_sem, release_sem, list_semaphores
-from cmd_q import lock_bot, unlock_bot, islocked_bot, add_command_to_queue, remove_command_from_queue, display_command_queue
+from cmd_q import (
+    lock_bot,
+    unlock_bot,
+    islocked_bot,
+    add_command_to_queue,
+    remove_command_from_queue,
+    display_command_queue,
+)
 from swgoh_mod_optimizer_fast import profile_from_my_progress, optimize_mods_from_profile
 
 # Generic configuration
@@ -3154,12 +3161,13 @@ class TwCog(commands.GroupCog, name="gt"):
                 txt = emojis.check+" statut GT mis à jour dans <#"+str(statusChan)+">"
 
             await interaction.edit_original_response(content=txt)
-            remove_command_from_queue(interaction)
 
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
-            remove_command_from_queue(interaction)
+
+        remove_command_from_queue(interaction)
+        return
 
     @app_commands.command(name="stats")
     async def tw_stats(self, interaction: discord.Interaction):
@@ -3349,11 +3357,18 @@ class TbCog(commands.GroupCog, name="bt"):
     @app_commands.command(name="pose-pelotons")
     async def deploy_platoons(self, interaction: discord.Interaction):
         try:
+            # Add command to queue, check if bot is locked, check queue size
+            ret_add, resp_msg = await add_command_to_queue(interaction)
+            if ret_add != 0:
+                remove_command_from_queue(interaction)
+                return
+
             # Check if not is locked
             is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
             if islocked_bot() and not is_owner:
                 golog.log("WAR", "bot is locked")
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                remove_command_from_queue(interaction)
                 return
 
             # acknowledge command reception
@@ -3364,6 +3379,7 @@ class TbCog(commands.GroupCog, name="bt"):
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
                 return
 
             guild_id = bot_infos["guild_id"]
@@ -3372,6 +3388,7 @@ class TbCog(commands.GroupCog, name="bt"):
             if tbChannel_id==0:
                 txt = emojis.redcross+" ERR: warbot mal configuré (tbChannel_id=0)"
                 await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
                 return
 
             allyCode = bot_infos["allyCode"]
@@ -3406,6 +3423,11 @@ class TbCog(commands.GroupCog, name="bt"):
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
+        remove_command_from_queue(interaction)
+        return
+
+
     @app_commands.command(name="rare-toons")
     async def rare_toons(self, interaction: discord.Interaction,
                          guilde: str="me",
@@ -3487,6 +3509,7 @@ class TbCog(commands.GroupCog, name="bt"):
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            remove_command_from_queue(interaction)
 
 ##############################################################
 # Class: ModsCog - for Google accounts
@@ -3756,14 +3779,12 @@ class ModsCog(commands.GroupCog, name="mods"):
             else:
                 await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
-            remove_command_from_queue(interaction)
-            return
-
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
-            remove_command_from_queue(interaction)
-            return
+
+        remove_command_from_queue(interaction)
+        return
 
     # Function used to get dynamic parameters in applique-conf and delete-conf
     async def list_player_configurations(self, interaction: discord.Interaction, current: str):
@@ -4021,6 +4042,9 @@ class ModsCog(commands.GroupCog, name="mods"):
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            remove_command_from_queue(interaction)
+
+
     @app_commands.command(name="pose-inventaire")
     async def allocate_random_mods(self, interaction: discord.Interaction):
         try:
@@ -4030,6 +4054,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            remove_command_from_queue(interaction)
 
     @app_commands.command(name="vend-codex")
     async def sell_codex_mods(self, interaction: discord.Interaction,
@@ -4047,6 +4072,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            remove_command_from_queue(interaction)
 
 ##############################################################
 # Class: BronziumCog - for Google accounts
@@ -4074,6 +4100,7 @@ class BronziumCog(commands.GroupCog, name="bronzium"):
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            remove_command_from_queue(interaction)
 
 ##############################################################
 # Class: AuthCog - for connected accounts
