@@ -1,4 +1,18 @@
 <?php
+$ptw_request_started_at = microtime(true);
+
+/** Log timings without exposing SQL parameters or player identifiers. */
+function ptw_log_timing($label, $startedAt, $rowCount = null) {
+    $message = sprintf('[ptw-timing] %s: %.2f ms', $label, (microtime(true) - $startedAt) * 1000);
+    if ($rowCount !== null) {
+        $message .= sprintf(' (%d rows)', $rowCount);
+    }
+    error_log($message);
+}
+register_shutdown_function(function () use ($ptw_request_started_at) {
+    ptw_log_timing('total PHP request', $ptw_request_started_at);
+});
+
 require_once 'security.php';
 
 ini_set('session.gc_maxlifetime', 3600 * 24 * 7);
@@ -39,6 +53,7 @@ include 'portrait.php';
 // Find the most recent TW recorded for the player's current guild.
 $tw_id = null;
 try {
+    $query_started_at = microtime(true);
     $stmt = $conn_guionbot->prepare(
         "SELECT id
          FROM tw_history
@@ -48,6 +63,7 @@ try {
     );
     $stmt->execute([':guild_id' => $player['guild_id']]);
     $tw_id = $stmt->fetchColumn();
+    ptw_log_timing('latest TW lookup', $query_started_at, $tw_id === false ? 0 : 1);
 } catch (PDOException $e) {
     error_log('Error fetching player TW: ' . $e->getMessage());
 }
@@ -57,7 +73,9 @@ try {
 $tw = null;
 if ($tw_id !== false && $tw_id !== null) {
     $tw_id = (int) $tw_id;
+    $twvariables_started_at = microtime(true);
     include 'twvariables.php';
+    ptw_log_timing('twvariables.php include (includes its DB work)', $twvariables_started_at);
 }
 
 // Load all recorded TWs for the player's guild. The current/latest TW is
@@ -65,6 +83,7 @@ if ($tw_id !== false && $tw_id !== null) {
 $tw_history_options = [];
 $previous_tw_ids = [];
 try {
+    $query_started_at = microtime(true);
     $history_stmt = $conn_guionbot->prepare(
         "SELECT id, start_date FROM tw_history
          WHERE guild_id = :guild_id
@@ -72,6 +91,7 @@ try {
     );
     $history_stmt->execute([':guild_id' => $player['guild_id']]);
     $all_tw_history = $history_stmt->fetchAll(PDO::FETCH_ASSOC);
+    ptw_log_timing('TW history list', $query_started_at, count($all_tw_history));
     $tw_history_options = array_slice($all_tw_history, 1);
     $previous_tw_ids = array_map('intval', array_column($tw_history_options, 'id'));
 } catch (PDOException $e) {
@@ -82,6 +102,7 @@ try {
 $squad_list = [];
 if ($tw) {
     try {
+        $query_started_at = microtime(true);
         $stmt = $conn_guionbot->prepare(
             "SELECT
                 tw_squad_cells.squad_id,
@@ -124,6 +145,7 @@ if ($tw) {
             ':player_name' => $player['name'],
         ]);
         $squad_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        ptw_log_timing('current TW squads', $query_started_at, count($squad_list));
     } catch (PDOException $e) {
         error_log('Error fetching player TW squads: ' . $e->getMessage());
     }
@@ -215,6 +237,7 @@ foreach ($squad_list as $cell) {
 
 $roster_units = [];
 try {
+    $query_started_at = microtime(true);
     $stmt = $conn_guionbot->prepare(
         "SELECT
             r.defId,
@@ -252,9 +275,11 @@ try {
             r.relic_currentTier
          ORDER BY r.combatType, r.gp DESC"
     );
-    $stmt->execute([':allycode' => $allycode]);
+    $roster_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    ptw_log_timing('roster + skills query/fetch', $query_started_at, count($roster_rows));
+    $roster_processing_started_at = microtime(true);
 
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $roster_unit) {
+    foreach ($roster_rows as $roster_unit) {
         $def_id = (string) $roster_unit['defId'];
 
         if (!isset($dict_units[$def_id]) || isset($used_unit_ids[$def_id])) {
@@ -314,6 +339,7 @@ try {
             'portrait' => $portrait_html,
         ];
     }
+    ptw_log_timing('roster unit processing + portrait rendering', $roster_processing_started_at, count($roster_units));
 }
 
 catch (PDOException $e) {
@@ -323,6 +349,7 @@ catch (PDOException $e) {
 $player_datacrons = [];
 if ($tw) {
     try {
+        $query_started_at = microtime(true);
         $stmt = $conn_guionbot->prepare(
             "SELECT id, setId, focused, level_3, level_6, level_9, level_12, level_15
              FROM datacrons
@@ -351,6 +378,7 @@ if ($tw) {
             ':player_name' => $player['name'],
         ]);
         $player_datacrons = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        ptw_log_timing('player datacrons query/fetch', $query_started_at, count($player_datacrons));
     } catch (PDOException $e) {
         error_log('Error fetching player datacrons: ' . $e->getMessage());
     }
@@ -385,6 +413,7 @@ if (!empty($previous_tw_ids)) {
             $history_placeholders[] = $placeholder;
             $history_params[$placeholder] = $history_tw_id;
         }
+        $query_started_at = microtime(true);
         $import_stmt = $conn_guionbot->prepare(
             "SELECT tw_squads.id AS squad_id, tw_squads.tw_id, tw_squads.zone_name,
                     tw_squad_cells.defId, tw_squad_cells.cellIndex,
@@ -407,6 +436,7 @@ if (!empty($previous_tw_ids)) {
         );
         $import_stmt->execute($history_params);
         $import_squad_list = $import_stmt->fetchAll(PDO::FETCH_ASSOC);
+        ptw_log_timing('historical TW squads query/fetch', $query_started_at, count($import_squad_list));
     } catch (PDOException $e) {
         error_log('Error fetching historical TW squads: ' . $e->getMessage());
         $import_squad_list = [];
@@ -414,6 +444,7 @@ if (!empty($previous_tw_ids)) {
 } else {
     $import_squad_list = [];
 }
+$import_processing_started_at = microtime(true);
 foreach ($import_squad_list as $cell) {
     $twKey = (string) $cell['tw_id'];
     $sid = (string) $cell['squad_id'];
@@ -461,6 +492,7 @@ foreach ($import_squad_list as $cell) {
     ];
     unset($teamRef);
 }
+ptw_log_timing('historical team grouping + portrait/datacron rendering', $import_processing_started_at, count($import_squad_list));
 ?>
 <!DOCTYPE html>
 <html>
