@@ -969,7 +969,7 @@ foreach (array_keys($player_datacron_sets) as $set_id):
                                         <div class="tw-import-team-row">
                                             <div class="tw-team-portraits">
 <?php foreach ($import_team['unitData'] as $import_unit_index => $import_unit): ?>
-                                                <div data-unit-id="<?php echo htmlspecialchars($import_unit['id'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($import_unit['isShip'] && $import_unit_index >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
+                                                <div data-unit-id="<?php echo htmlspecialchars($import_unit['id'], ENT_QUOTES, 'UTF-8'); ?>" data-base-title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($import_unit['isShip'] && $import_unit_index >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
 <?php endforeach; ?>
 <?php echo $import_team['datacronHtml']; ?>
                                             </div>
@@ -1020,27 +1020,6 @@ if (historySelect) {
     });
 }
 const twUnits = <?php echo json_encode($roster_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-const availableUnitIds = new Set(twUnits.map((unit) => unit.id));
-document.querySelectorAll('.tw-history-teams').forEach((historyPanel) => {
-    historyPanel.querySelectorAll('.tw-import-team-row').forEach((teamRow) => {
-        const addButton = teamRow.querySelector('.tw-import-add');
-        if (!addButton) return;
-        let imported;
-        try { imported = JSON.parse(addButton.dataset.team || '{}'); } catch (e) { addButton.disabled = true; return; }
-        const unavailableIds = new Set((imported.units || []).filter((unitId) => !availableUnitIds.has(unitId)));
-        teamRow.querySelectorAll('[data-unit-id]').forEach((unitElement) => {
-            if (unavailableIds.has(unitElement.dataset.unitId)) {
-                unitElement.classList.add('tw-import-unit-unavailable');
-                unitElement.title = (unitElement.title || unitElement.dataset.unitId) + ' — unavailable in the create-team unit selector';
-            }
-        });
-        if (unavailableIds.size > 0) {
-            addButton.disabled = true;
-            addButton.title = 'Cannot add this team because one or more units are unavailable in the create-team unit selector.';
-        }
-    });
-});
-
 const twDatacrons = <?php echo json_encode($player_datacron_html, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 const twZoneCommands = <?php
 $creator_zone_commands = [];
@@ -1071,6 +1050,53 @@ if (zoneSelect) {
     let selectedUnits = [];
     let selectedDatacronHtml = '';
     let proposedTeams = [];
+
+    function refreshImportTeamAvailability() {
+        const unavailableIds = new Set(selectedUnits);
+        proposedTeams.forEach((team) => {
+            (team.units || []).forEach((unitId) => unavailableIds.add(unitId));
+        });
+
+        document.querySelectorAll('.tw-history-teams').forEach((historyPanel) => {
+            historyPanel.querySelectorAll('.tw-import-team-row').forEach((teamRow) => {
+                const addButton = teamRow.querySelector('.tw-import-add');
+                if (!addButton) return;
+
+                let imported;
+                try {
+                    imported = JSON.parse(addButton.dataset.team || '{}');
+                } catch (e) {
+                    addButton.disabled = true;
+                    return;
+                }
+
+                const missingIds = (imported.units || []).filter((unitId) =>
+                    !twUnits.some((unit) => unit.id === unitId)
+                );
+                const conflictingIds = (imported.units || []).filter((unitId) =>
+                    unavailableIds.has(unitId)
+                );
+                const blockedIds = new Set([...missingIds, ...conflictingIds]);
+
+                teamRow.querySelectorAll('[data-unit-id]').forEach((unitElement) => {
+                    const unitId = unitElement.dataset.unitId;
+                    const blocked = blockedIds.has(unitId);
+                    unitElement.classList.toggle('tw-import-unit-unavailable', blocked);
+                    if (blocked) {
+                        unitElement.title = (unitElement.dataset.baseTitle || unitElement.title || unitId)
+                            + ' — unavailable in the create-team unit selector';
+                    } else if (unitElement.dataset.baseTitle) {
+                        unitElement.title = unitElement.dataset.baseTitle;
+                    }
+                });
+
+                addButton.disabled = blockedIds.size > 0;
+                addButton.title = blockedIds.size > 0
+                    ? 'Cannot add this team because one or more units are unavailable in the create-team unit selector.'
+                    : '';
+            });
+        });
+    }
 
     function fleetZone() {
         return zoneSelect.value === 'F1' || zoneSelect.value === 'F2';
@@ -1380,6 +1406,7 @@ if (zoneSelect) {
 
         pushProposedButton.style.display = proposedTeams.length > 0 ? 'block' : 'none';
         updateZoneCounts();
+        refreshImportTeamAvailability();
     }
 
     function deleteProposedTeam(teamId) {
@@ -1428,6 +1455,7 @@ if (zoneSelect) {
         renderResults();
         updateDatacrons();
         renderProposedTeams();
+        refreshImportTeamAvailability();
         document.getElementById('tw-create-tab-button').click();
         unitSearch.focus();
     }
@@ -1504,6 +1532,7 @@ if (zoneSelect) {
         renderSelected();
         renderResults();
         updateDatacrons();
+        refreshImportTeamAvailability();
     }
 
     let previousFleetStatus = fleetZone();
@@ -1525,6 +1554,7 @@ if (zoneSelect) {
             renderProposedTeams();
             renderResults();
             updateDatacrons();
+            refreshImportTeamAvailability();
         });
     });
 
@@ -1540,6 +1570,7 @@ if (zoneSelect) {
     updateCreator();
     updateZoneCounts();
     renderProposedTeams();
+    refreshImportTeamAvailability();
 }
 </script>
 </body>
