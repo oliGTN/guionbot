@@ -527,13 +527,30 @@ foreach ($import_squad_list as $cell) {
 
         .tw-team-proposed-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             gap: 1rem;
             margin-bottom: 0.5rem;
             color: #b35a00;
             font-weight: bold;
         }
+        .tw-proposed-team-row { display: flex; align-items: flex-start; gap: 0.75rem; }
+        .tw-proposed-team-row .tw-team-portraits { flex: 1 1 auto; min-width: 0; }
+        .tw-team-actions { display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; flex: 0 0 auto; }
+        .tw-team-edit { border: 0; border-radius: 4px; cursor: pointer; padding: 0.25rem 0.6rem; }
+        .tw-import-unit-unavailable { position: relative; opacity: 0.7; }
+        .tw-import-unit-unavailable::after {
+            content: "";
+            position: absolute;
+            left: -12%;
+            top: 50%;
+            width: 124%;
+            border-top: 4px solid #d00000;
+            transform: rotate(-35deg);
+            transform-origin: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .tw-import-add:disabled { cursor: not-allowed; opacity: 0.45; }
 
         .tw-team-delete,
         .tw-add-team {
@@ -952,7 +969,7 @@ foreach (array_keys($player_datacron_sets) as $set_id):
                                         <div class="tw-import-team-row">
                                             <div class="tw-team-portraits">
 <?php foreach ($import_team['unitData'] as $import_unit_index => $import_unit): ?>
-                                                <div<?php echo ($import_unit['isShip'] && $import_unit_index >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
+                                                <div data-unit-id="<?php echo htmlspecialchars($import_unit['id'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($import_unit['isShip'] && $import_unit_index >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
 <?php endforeach; ?>
 <?php echo $import_team['datacronHtml']; ?>
                                             </div>
@@ -1003,6 +1020,28 @@ if (historySelect) {
     });
 }
 const twUnits = <?php echo json_encode($roster_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+const availableUnitIds = new Set(twUnits.map((unit) => unit.id));
+document.querySelectorAll('.tw-history-teams').forEach((historyPanel) => {
+    historyPanel.querySelectorAll('.tw-import-team-row').forEach((teamRow) => {
+        const addButton = teamRow.querySelector('.tw-import-add');
+        if (!addButton) return;
+        let imported;
+        try { imported = JSON.parse(addButton.dataset.team || '{}'); } catch (e) { addButton.disabled = true; return; }
+        const unavailableIds = new Set((imported.units || []).filter((unitId) => !availableUnitIds.has(unitId)));
+        teamRow.querySelectorAll('[data-unit-id]').forEach((unitElement) => {
+            if (unavailableIds.has(unitElement.dataset.unitId)) {
+                unitElement.classList.add('tw-import-unit-unavailable');
+                unitElement.title = (unitElement.title || unitElement.dataset.unitId) + ' — unavailable in the create-team unit selector';
+            }
+        });
+        if (unavailableIds.size > 0) {
+            addButton.disabled = true;
+            addButton.title = 'Cannot add this team because one or more units are unavailable in the create-team unit selector.';
+        }
+    });
+}
+
+
 
 const twDatacrons = <?php echo json_encode($player_datacron_html, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 const twZoneCommands = <?php
@@ -1275,17 +1314,10 @@ if (zoneSelect) {
             const label = document.createElement('span');
             label.textContent = 'Proposed team';
             header.appendChild(label);
-
-            const remove = document.createElement('button');
-            remove.type = 'button';
-            remove.className = 'tw-team-delete';
-            remove.textContent = 'Delete';
-            remove.title = 'Delete proposed team';
-            remove.addEventListener('click', () => deleteProposedTeam(team.id));
-            header.appendChild(remove);
-
             teamElement.appendChild(header);
 
+            const teamRow = document.createElement('div');
+            teamRow.className = 'tw-proposed-team-row';
             const portraits = document.createElement('div');
             portraits.className = 'tw-team-portraits';
 
@@ -1312,7 +1344,28 @@ if (zoneSelect) {
                 portraits.appendChild(datacron);
             }
 
-            teamElement.appendChild(portraits);
+            teamRow.appendChild(portraits);
+
+            const actions = document.createElement('div');
+            actions.className = 'tw-team-actions';
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'tw-team-delete';
+            remove.textContent = 'Delete';
+            remove.title = 'Delete proposed team';
+            remove.addEventListener('click', () => deleteProposedTeam(team.id));
+            actions.appendChild(remove);
+
+            const edit = document.createElement('button');
+            edit.type = 'button';
+            edit.className = 'tw-team-edit';
+            edit.textContent = 'Edit';
+            edit.title = 'Edit proposed team';
+            edit.addEventListener('click', () => editProposedTeam(team.id));
+            actions.appendChild(edit);
+
+            teamRow.appendChild(actions);
+            teamElement.appendChild(teamRow);
             zoneCard.appendChild(teamElement);
             team.element = teamElement;
         });
@@ -1344,6 +1397,36 @@ if (zoneSelect) {
         renderProposedTeams();
         renderResults();
         updateDatacrons();
+    }
+
+    function editProposedTeam(teamId) {
+        const index = proposedTeams.findIndex((team) => team.id === teamId);
+        if (index < 0) return;
+
+        const team = proposedTeams[index];
+        const oldZone = team.zone;
+        if (team.element) team.element.remove();
+        proposedTeams.splice(index, 1);
+
+        const oldZoneCard = zoneTeamsContainer.querySelector('[data-tw-zone="' + oldZone + '"]');
+        if (oldZoneCard && !oldZoneCard.querySelector('.tw-team')) oldZoneCard.remove();
+
+        zoneSelect.value = team.zone;
+        selectedUnits = [...team.units];
+        datacronIdInput.value = team.datacronId || '';
+        if (datacronList) {
+            datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
+                card.classList.toggle('selected', card.dataset.datacronId === datacronIdInput.value);
+            });
+        }
+
+        updateCreator();
+        renderSelected();
+        renderResults();
+        updateDatacrons();
+        renderProposedTeams();
+        document.getElementById('tw-create-tab-button').click();
+        unitSearch.focus();
     }
 
     function createProposedTeam() {
