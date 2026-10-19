@@ -478,8 +478,10 @@ foreach ($import_squad_list as $cell) {
         .tw-tab { padding: 0.65rem 1rem; border: 1px solid #bbb; border-bottom: 0; border-radius: 5px 5px 0 0; cursor: pointer; background: #eee; color: inherit; }
         .tw-tab.active { background: #fff; font-weight: bold; border-color: #888; }
         .tw-tab-panel { border-top: 1px solid #888; padding-top: 1rem; }
-        .tw-import-add { margin: 0.5rem 0; }
-        .tw-shared-zone-controls { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0 0.5rem; }
+        .tw-import-add { margin: 0; }
+        .tw-import-team-row { display: flex; align-items: flex-start; gap: 0.5rem; }
+        .tw-import-team-row .tw-team-portraits { flex: 1 1 auto; min-width: 0; }
+        .tw-shared-zone-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; margin: 1rem 0 0.5rem; }
         .tw-inline-select { display: inline-flex; align-items: center; gap: 0.5rem; }
         .tw-inline-select label { margin: 0; white-space: nowrap; }
         .tw-inline-select select { width: auto; max-width: 100%; }
@@ -947,13 +949,15 @@ foreach (array_keys($player_datacron_sets) as $set_id):
                                     <div class="tw-zone-header"><h4><?php echo htmlspecialchars($import_zone, ENT_QUOTES, 'UTF-8'); ?></h4><span class="tw-zone-command"><?php echo htmlspecialchars($zones['home'][$import_zone]['commandMsg'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></div>
 <?php foreach ($import_teams_by_tw[$import_tw_key][$import_zone] as $import_team): ?>
                                     <div class="tw-team">
-                                        <div class="tw-team-portraits">
+                                        <div class="tw-import-team-row">
+                                            <div class="tw-team-portraits">
 <?php foreach ($import_team['unitData'] as $import_unit_index => $import_unit): ?>
-                                            <div<?php echo ($import_unit['isShip'] && $import_unit_index >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
+                                                <div<?php echo ($import_unit['isShip'] && $import_unit_index >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
 <?php endforeach; ?>
 <?php echo $import_team['datacronHtml']; ?>
+                                            </div>
+                                            <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode($import_team, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
                                         </div>
-                                        <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode($import_team, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
                                     </div>
 <?php endforeach; ?>
                                 </div>
@@ -1433,7 +1437,6 @@ if (zoneSelect) {
             renderProposedTeams();
             renderResults();
             updateDatacrons();
-            document.getElementById('tw-create-tab-button').click();
         });
     });
 
