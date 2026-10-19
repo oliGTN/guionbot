@@ -1071,6 +1071,7 @@ const creatorLimit = document.getElementById('tw-creator-limit');
 
 if (zoneSelect) {
     let selectedUnits = [];
+    let selectedDatacronHtml = '';
     let proposedTeams = [];
 
     function fleetZone() {
@@ -1157,10 +1158,11 @@ if (zoneSelect) {
         if (selectedDatacronContainer) {
             selectedDatacronContainer.innerHTML = '';
             const datacronId = datacronIdInput ? datacronIdInput.value : '';
-            if (datacronId && twDatacrons[datacronId]) {
+            const datacronHtml = datacronId ? (twDatacrons[datacronId] || selectedDatacronHtml) : '';
+            if (datacronHtml) {
                 const datacron = document.createElement('div');
                 datacron.className = 'tw-selected-datacron-item';
-                datacron.innerHTML = twDatacrons[datacronId];
+                datacron.innerHTML = datacronHtml;
 
                 const removeDatacron = document.createElement('button');
                 removeDatacron.type = 'button';
@@ -1168,6 +1170,7 @@ if (zoneSelect) {
                 removeDatacron.title = 'Remove datacron';
                 removeDatacron.addEventListener('click', () => {
                     datacronIdInput.value = '';
+                    selectedDatacronHtml = '';
                     datacronList.querySelectorAll('.tw-datacron-card').forEach((item) => item.classList.remove('selected'));
                     renderSelected();
                 });
@@ -1255,6 +1258,7 @@ if (zoneSelect) {
                 datacronList.querySelectorAll('.tw-datacron-card').forEach((item) => item.classList.remove('selected'));
                 card.classList.add('selected');
                 datacronIdInput.value = card.dataset.datacronId;
+                selectedDatacronHtml = '';
                 renderSelected();
             });
         });
@@ -1414,6 +1418,7 @@ if (zoneSelect) {
         zoneSelect.value = team.zone;
         selectedUnits = [...team.units];
         datacronIdInput.value = team.datacronId || '';
+        selectedDatacronHtml = team.datacronHtml || '';
         if (datacronList) {
             datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
                 card.classList.toggle('selected', card.dataset.datacronId === datacronIdInput.value);
@@ -1443,6 +1448,7 @@ if (zoneSelect) {
             units: [...selectedUnits],
             unitData: selectedUnits.map((unitId) => twUnits.find((entry) => entry.id === unitId)).filter(Boolean),
             datacronId: fleet ? '' : (datacronIdInput.value || ''),
+            datacronHtml: fleet ? '' : (selectedDatacronHtml || twDatacrons[datacronIdInput.value] || ''),
             element: null
         };
 
@@ -1450,6 +1456,7 @@ if (zoneSelect) {
 
         selectedUnits = [];
         datacronIdInput.value = '';
+        selectedDatacronHtml = '';
 
         if (datacronList) {
             datacronList.querySelectorAll('.tw-datacron-card')
