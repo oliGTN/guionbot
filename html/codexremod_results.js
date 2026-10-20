@@ -193,10 +193,11 @@
     const adviceBySlot = slotAdvice(row, tier);
     const moves = movesFor(row);
     const replacements = SLOT_ORDER.filter(slot => replacementDecision(slot, adviceBySlot.get(slot) || {}, moves.find(m => String(m.slot).toLowerCase() === slot))).length;
-    const beforeQ = row.advice && (row.advice.pts_now != null ? row.advice.pts_now : row.before && row.before.points);
-    const afterQ = tier && tier.pts != null ? tier.pts : (row.advice && row.advice.pts_ideal != null ? row.advice.pts_ideal : row.after && row.after.points);
+    const beforeQ = row.before && row.before.points != null ? row.before.points : (row.advice && row.advice.pts_now);
+    const afterQ = row.after && row.after.points != null ? row.after.points : (tier && tier.pts != null ? tier.pts : (row.advice && row.advice.pts_ideal));
     const gainRaw = Number(afterQ) - Number(beforeQ);
     const gain = beforeQ != null && afterQ != null && Number.isFinite(gainRaw) ? gainRaw : Number(row.advice && row.advice.gain);
+    const statQMax = row.before && Array.isArray(row.before.stats) ? row.before.stats.length * 4 : (row.before && row.before.max != null ? row.before.max : maxQ);
     const name = row.hero || row.name || row.base || ('Character ' + (index + 1));
     const base = row.base || row.id || '';
     const statSummary = stats.slice(0, 3).map(s => statLabel(s.stat) + ' ' + signed(Number(s.after) - Number(s.before), String(s.stat) === 'speed' ? 1 : 0)).join(' · ');
@@ -232,7 +233,7 @@
       (portrait ? portraitMarkup(base, restoreData, name) : '<span class="remod-portrait remod-initials">' + esc(String(name).split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase()) + '</span>') +
       '<span class="remod-identity"><strong>' + esc(name) + '</strong><small>' + esc(base) + ' · ' + replacements + ' mod(s) to replace</small><small class="remod-stat-summary">' + esc(statSummary || 'Stat comparison unavailable') + '</small></span>' +
       '<span class="remod-gain ' + (gain > 0 ? 'remod-positive' : gain < 0 ? 'remod-negative' : '') + '">' + (Number.isFinite(gain) ? esc(signed(gain, 0) + ' StatQ') : 'StatQ —') + '</span><span class="remod-chevron">⌄</span></summary>' +
-      '<div class="remod-plan-expanded"><div class="remod-plan-meta"><span><strong>StatQ:</strong> ' + esc(beforeQ == null ? '—' : beforeQ) + ' → ' + esc(afterQ == null ? '—' : afterQ) + ' / ' + esc(maxQ) + '</span><span><strong>Sets:</strong> ' + esc(setText || 'Not specified') + '</span><span><strong>Time:</strong> ' + esc(row.seconds == null ? '—' : num(row.seconds, 2) + ' s') + '</span></div>' +
+      '<div class="remod-plan-expanded"><div class="remod-plan-meta"><span><strong>Stat&#x51;:</strong> ' + esc(beforeQ == null ? '—' : beforeQ) + ' → ' + esc(afterQ == null ? '—' : afterQ) + ' / ' + esc(statQMax) + '</span><span><strong>Sets:</strong> ' + esc(setText || 'Not specified') + '</span></div>' +
       '<h4>Stat changes</h4><div class="remod-table-wrap"><table class="remod-plan-table"><thead><tr><th>Stat</th><th>Before</th><th>Projected after</th><th>Change</th><th>Target</th><th>Target %</th></tr></thead><tbody>' + (statRows || '<tr><td colspan="6">No stat details in this plan entry.</td></tr>') + '</tbody></table></div>' +
       '<h4>Mods</h4><div class="remod-table-wrap"><table class="remod-plan-table remod-mod-table"><tbody>' + modRows + '</tbody></table></div>' +
       (tierRows ? '<details class="remod-alternatives"><summary>Alternative plans (' + alternatives.length + ')</summary><div class="remod-table-wrap"><table class="remod-plan-table"><thead><tr><th>StatQ</th><th>Gain</th><th>Replacements</th><th>Sets</th></tr></thead><tbody>' + tierRows + '</tbody></table></div></details>' : '') +
