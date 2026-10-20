@@ -4785,44 +4785,28 @@ async def deploy_tb(guild_id, txt_allyCode, zone_shortname, list_character_txt):
 
 ############################################################
 # transforms aliases into defID and zone alias into zone Id
-# IN: list_teams = [ [zone_shortname, characters, datacron_id=None], ...]
-async def deploy_def_tw(guild_id, txt_allyCode, list_teams):
+async def deploy_def_tw(guild_id, txt_allyCode, zone_shortname, characters, datacron_id=None):
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_tw=godata.dict_tw
 
-    total_team_txt = ""
-    for team in list_teams:
-        #specific list of characters for one player
-        zone_shortname = team[0]
-        characters = team[1]
-        if len(team)>2:
-            datacron_id = team[2]
-        else:
-            datacron_id = None
+    #specific list of characters for one player
+    list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(characters)
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
-        list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(characters)
-        if txt != '':
-            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+    if zone_shortname in dict_tw:
+        zone_name = dict_tw[zone_shortname]
+    else:
+        return 1, "Zone GT inconnue"
 
+    ec, txt = await connect_rpc.deploy_tw(
+            guild_id, 
+            txt_allyCode, 
+            zone_name, 
+            list_character_ids,
+            datacron_id=datacron_id)
 
-        if zone_shortname in dict_tw:
-            zone_name = dict_tw[zone_shortname]
-        else:
-            return 1, "Zone GT inconnue"
-
-        ec, txt = await connect_rpc.deploy_tw(
-                guild_id, 
-                txt_allyCode, 
-                zone_name, 
-                list_character_ids,
-                datacron_id=datacron_id)
-
-        if ec != 0:
-            return ec, txt
-
-        total_team_txt += txt+'\n'
-
-    return ec, total_team_txt
+    return ec, txt
 
 ############################################################
 # transforms aliases into defID and platoon_name into zone Id
@@ -6893,11 +6877,12 @@ async def update_tw_from_guild(dict_guild):
     ret_dict = await connect_rpc.get_tw_status(guild_id, 0, dict_guild=dict_guild)
 
     tw_id = ret_dict["tw_id"]
+    tw_round = ret_dict["currentRound"]
     homeGuild = ret_dict["homeGuild"]
     awayGuild = ret_dict["awayGuild"]
 
     await update_mysql.update_tw(guild_id, tw_id, opp_guild_id,
-              opp_guild_name, score, opp_score,
+              opp_guild_name, score, opp_score, tw_round,
               homeGuild, awayGuild)
 
 

@@ -1435,6 +1435,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
                  for x in tw['homeGuild']['conflictStatus']])
     opp_score = sum([int(x['zoneStatus']['score']) \
                      for x in tw['awayGuild']['conflictStatus']])
+    currentRound = tw["currentRound"]
 
     # Check event for TW start, and load opponent guild
     swgohgg_opp_url = None
@@ -1458,6 +1459,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
     # update DB
     await update_mysql.update_tw(guild_id, tw_id, opp_guild_id,
                                   opp_guild_name, score, opp_score,
+                                  currentRound,
                                   homeGuild, awayGuild)
 
     # Display Link to opponent guild

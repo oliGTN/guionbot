@@ -1497,8 +1497,16 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
 
 #################################
 # update TW in DB
-async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score,
-              homeGuild, awayGuild):
+async def update_tw(
+        guild_id, 
+        tw_id, 
+        opp_guild_id, 
+        opp_guild_name, 
+        score, 
+        opp_score,
+        currentRound,
+        homeGuild, 
+        awayGuild):
     dict_tw = data.dict_tw
 
     # Check / Create the TW in DB
@@ -1513,9 +1521,12 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
         tw_ts = int(tw_id.split(":")[1][1:-3])
         tw_date = datetime.datetime.fromtimestamp(tw_ts).strftime("%Y/%m/%d %H:%M:%S")
         query = "INSERT INTO tw_history(tw_id, start_date, guild_id, " \
-                "away_guild_id, away_guild_name, homeScore, awayScore) " \
+                "away_guild_id, away_guild_name, " \
+                "currentRound, " \
+                "homeScore, awayScore) " \
                 "VALUES('"+tw_id+"', '"+tw_date+"', '"+guild_id+"', " \
                 "'"+opp_guild_id+"', '"+opp_guild_name.replace("'", "''")+"', "\
+                ""+str(currentRound)+", "\
                 ""+str(score)+", "+str(opp_score)+") "
         golog.log("DBG", query)
         await simple_execute_async(query)
@@ -1971,6 +1982,7 @@ async def update_extguild(dict_guild):
         for twr in dict_guild["recentTerritoryWarResult"]:
             tw_endtime = twr["endTimeSeconds"]
             tw_warid = twr["territoryWarId"]
+            tw_round = twr["currentRound"]
             tw_score = twr["score"]
             tw_oppscore = twr["opponentScore"]
 
@@ -1979,7 +1991,8 @@ async def update_extguild(dict_guild):
             tw_letter = tw_warid[-1]
             tw_id = "TERRITORY_WAR_EVENT_"+tw_letter+":O"+str(tw_starttime)+"000"
 
-            query = "UPDATE tw_history SET homeScore="+tw_score+", "\
+            query = "UPDATE tw_history SET currentRound="+str(tw_round)+", "\
+                    "homeScore="+tw_score+" "\
                     "awayScore="+tw_oppscore+" "\
                     "WHERE guild_id='"+guild_id+"' "\
                     "AND tw_id='"+tw_id+"' "
