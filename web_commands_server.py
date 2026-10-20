@@ -121,8 +121,11 @@ async def handle_deploy_tw_teams(request):
         guild_id = str(payload.get("guild_id", ""))
         ally_code = str(payload.get("allyCode", ""))
         teams = payload.get("teams")
-        if not guild_id.isdigit() or not ally_code.isdigit():
-            return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
+        # guild_id is included for context but deploy_def_tw() does not use it;
+        # the game's deployment is addressed by allyCode. guildId values in the
+        # web database are not guaranteed to be numeric.
+        if not ally_code.isdigit():
+            return web.json_response({"err_code": 400, "err_txt": "Invalid allyCode"}, status=400)
         if not isinstance(teams, list) or not teams or len(teams) > 50:
             return web.json_response({"err_code": 400, "err_txt": "Select between 1 and 50 proposed teams"}, status=400)
 
