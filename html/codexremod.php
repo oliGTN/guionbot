@@ -32,14 +32,6 @@ if (!preg_match('/^\\d{5,12}$/', $codex_requested_ally_code)) {
     : [false, false, false, false];
 $codex_can_sell_mods = $codex_requested_ally_code !== '' && $codex_is_my_ally_code_confirmed;
 $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod_job']);
-$codex_stat_distributions = [];
-$codex_stats_file = __DIR__ . '/../DATA/stats_v2_top100.json';
-if (is_readable($codex_stats_file)) {
-    $codex_stats_data = json_decode(file_get_contents($codex_stats_file), true);
-    if (is_array($codex_stats_data)) {
-        $codex_stat_distributions = $codex_stats_data;
-    }
-}
 $codex_unit_search_metadata = [];
 $codex_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
 $codex_categories_file = __DIR__ . '/../DATA/categoryList_dict.json';
@@ -376,7 +368,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script>window.codexRemodStatDistributions = <?php echo json_encode($codex_stat_distributions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>; window.codexRemodSellScopeToken = <?php echo json_encode($codex_can_sell_mods ? hash_hmac('sha256', 'codex-sell:' . $codex_requested_ally_code, $_SESSION['codex_remod_csrf']) : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
+<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>; window.codexRemodSellScopeToken = <?php echo json_encode($codex_can_sell_mods ? hash_hmac('sha256', 'codex-sell:' . $codex_requested_ally_code, $_SESSION['codex_remod_csrf']) : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
 <script src="codexremod_results.js?v=20261021-percentiles1"></script>
 <script>
 (function () {
