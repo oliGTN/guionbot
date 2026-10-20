@@ -990,6 +990,7 @@ foreach ($squad['cells'] as $unit) {
 <?php endif; ?>
                 </div>
 
+<?php if ((int) ($tw['currentRound'] ?? -1) === 0): ?>
                 <button type="button" class="tw-push-proposed" id="tw-push-proposed" style="display:none" disabled>Push proposed teams to game</button>
 
                 <div class="tw-shared-zone-controls">
@@ -1730,6 +1731,7 @@ if (zoneSelect) {
     refreshImportTeamAvailability();
 }
 </script>
+<?php endif; // Team creation/import is available only before the TW starts. ?>
 </body>
 <?php include 'sitefooter.php'; ?>
 </html>
