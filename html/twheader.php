@@ -222,14 +222,19 @@ if (!function_exists('render_tw_map')) {
 }
 
 ?>
+<?php
+$title_emoji = ((int) ($tw['currentRound'] ?? -1) === 0)
+    ? '🛡️'
+    : (((int) ($tw['currentRound'] ?? -1) === 1) ? '⚔️' : '✔️');
+?>
 <?php if (empty($twheader_use_guild_links)) : ?>
     <div class="card">
 
-    <h3>TW for <a href="/tw.php?id=<?php echo htmlspecialchars((string) ($tw_id ?? $tw['tw_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tw['guild_name'], ENT_QUOTES, 'UTF-8'); ?>
+    <h3><?php echo $title_emoji; ?> TW for <a href="/tw.php?id=<?php echo htmlspecialchars((string) ($tw_id ?? $tw['tw_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tw['guild_name'], ENT_QUOTES, 'UTF-8'); ?>
         vs <?php echo htmlspecialchars($tw['away_guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
     </h3>
 <?php else : ?> <!-- empty($twheader_use_existing_zones -->
-    <h2>TW for <a href="/g.php?gid=<?php echo htmlspecialchars($tw['guild_id']); ?>"><?php echo htmlspecialchars($tw['guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
+    <h2><?php echo $title_emoji; ?> TW for <a href="/g.php?gid=<?php echo htmlspecialchars($tw['guild_id']); ?>"><?php echo htmlspecialchars($tw['guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
         vs <a href="/g.php?gid=<?php echo htmlspecialchars($tw['away_guild_id'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tw['away_guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
     </h2>
 
