@@ -51,7 +51,7 @@ $placeholders = [':tw_id_0'];
 $params = [':tw_id_0' => $tw_id];
 
 $query = "SELECT tw_history.id AS id, guild_id, gh.name AS homeName, ga.name AS awayName,
-                 homeScore, awayScore, zone_name, side, size, filled, victories, fails,
+                 homeScore, awayScore, tw_history.currentRound AS currentRound, zone_name, side, size, filled, victories, fails,
                  zoneState, tw_history.lastUpdated AS lastUpdated,
                  TIMESTAMPDIFF(HOUR, tw_history.lastUpdated, CURRENT_TIMESTAMP) >= 1 AS oldData
           FROM tw_history
@@ -82,6 +82,7 @@ foreach ($tw_db_data as $tw_line) {
             'homeScore' => $tw_line['homeScore'],
             'awayScore' => $tw_line['awayScore'],
             'lastUpdated' => $tw_line['lastUpdated'],
+            'currentRound' => $tw_line['currentRound'],
             'oldData' => $tw_line['oldData'],
             'zones' => ['home' => [], 'away' => []],
         ];
@@ -172,6 +173,7 @@ foreach ($tw_db_data as $tw_line) {
             'homeScore' => $tw['homeScore'],
             'awayScore' => $tw['awayScore'],
             'lastUpdated' => $tw['lastUpdated'],
+            'currentRound' => $tw['currentRound'],
         ];
 
         // twheader.php renders the title, timestamp and map. Access to
