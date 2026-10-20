@@ -175,8 +175,10 @@
     const band = (from, to, cls) => '<span class="remod-percentile-band ' + cls + '" style="left:' + pos(from).toFixed(2) + '%;width:' + Math.max(0, pos(to)-pos(from)).toFixed(2) + '%"></span>';
     return '<div class="remod-percentile">' +
       '<div class="remod-percentile-track">' +
+      band(low, percentiles[0], 'below-p10') +
       band(percentiles[0], percentiles[3], 'p10-p90') +
       band(percentiles[1], percentiles[2], 'p25-p75') +
+      band(percentiles[3], high, 'above-p90') +
       marker(before, 'before', 'Before: ' + num(before, 2)) +
       marker(after, 'after', 'After: ' + num(after, 2)) +
       '</div><div class="remod-percentile-labels"><span>P10 ' + esc(num(dist.p10, 2)) + '</span><span>P25 ' + esc(num(dist.p25, 2)) +
