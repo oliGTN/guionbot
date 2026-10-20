@@ -157,26 +157,33 @@
   function renderDistribution(stat, before, after, dist) {
     if (!dist) return '';
     const percentileKeys = ['p10', 'p25', 'p75', 'p90'];
-    const points = percentileKeys.map(key => Number(dist[key]));
-    if (!points.every(Number.isFinite)) return '';
-    const low = points[0], high = points[3];
-    if (!(high > low)) return '';
+    const percentiles = percentileKeys.map(key => Number(dist[key]));
+    if (!percentiles.every(Number.isFinite)) return '';
+    const values = [before, after].map(Number).filter(Number.isFinite);
+    if (!values.length) return '';
+    // Scale to include both values, even when outside the P10-P90 interval.
+    const dataMin = Math.min(percentiles[0], ...values);
+    const dataMax = Math.max(percentiles[3], ...values);
+    const span = dataMax - dataMin;
+    if (!(span > 0)) return '';
+    const padding = span * 0.06;
+    const low = dataMin - padding;
+    const high = dataMax + padding;
     const pos = value => Math.max(0, Math.min(100, (Number(value) - low) / (high - low) * 100));
-    const beforePos = Number.isFinite(Number(before)) ? pos(before) : null;
-    const afterPos = Number.isFinite(Number(after)) ? pos(after) : null;
-    const marker = (x, cls, label) => x === null ? '' :
-      '<span class="remod-percentile-marker ' + cls + '" style="left:' + x.toFixed(2) + '%" title="' + esc(label) + '"></span>';
+    const marker = (value, cls, label) => Number.isFinite(Number(value)) ?
+      '<span class="remod-percentile-marker ' + cls + '" style="left:' + pos(value).toFixed(2) + '%" title="' + esc(label) + '"></span>' : '';
+    const band = (from, to, cls) => '<span class="remod-percentile-band ' + cls + '" style="left:' + pos(from).toFixed(2) + '%;width:' + Math.max(0, pos(to)-pos(from)).toFixed(2) + '%"></span>';
     return '<div class="remod-percentile">' +
       '<div class="remod-percentile-track">' +
-      '<span class="remod-percentile-band" style="left:' + pos(points[1]).toFixed(2) + '%;width:' + Math.max(0, pos(points[2])-pos(points[1])).toFixed(2) + '%"></span>' +
-      marker(beforePos, 'before', 'Before: ' + num(before, 2)) +
-      marker(afterPos, 'after', 'After: ' + num(after, 2)) +
+      band(percentiles[0], percentiles[3], 'p10-p90') +
+      band(percentiles[1], percentiles[2], 'p25-p75') +
+      marker(before, 'before', 'Before: ' + num(before, 2)) +
+      marker(after, 'after', 'After: ' + num(after, 2)) +
       '</div><div class="remod-percentile-labels"><span>P10 ' + esc(num(dist.p10, 2)) + '</span><span>P25 ' + esc(num(dist.p25, 2)) +
       '</span><span>P75 ' + esc(num(dist.p75, 2)) + '</span><span>P90 ' + esc(num(dist.p90, 2)) + '</span></div>' +
       '<div class="remod-percentile-values"><span><i class="remod-percentile-dot before"></i>Before ' + esc(num(before, 2)) +
       '</span><span><i class="remod-percentile-dot after"></i>After ' + esc(num(after, 2)) + '</span></div></div>';
   }
-
   function renderCard(row, index, restoreData) {
     row = row && typeof row === 'object' ? row : {};
     const tier = bestTier(row);
