@@ -32,6 +32,14 @@ if (!preg_match('/^\\d{5,12}$/', $codex_requested_ally_code)) {
     : [false, false, false, false];
 $codex_can_sell_mods = $codex_requested_ally_code !== '' && $codex_is_my_ally_code_confirmed;
 $hasJob = isset($_SESSION['codex_remod_job']) && is_array($_SESSION['codex_remod_job']);
+$codex_stat_distributions = [];
+$codex_stats_file = __DIR__ . '/../DATA/stats_v2_top100.json';
+if (is_readable($codex_stats_file)) {
+    $codex_stats_data = json_decode(file_get_contents($codex_stats_file), true);
+    if (is_array($codex_stats_data)) {
+        $codex_stat_distributions = $codex_stats_data;
+    }
+}
 $codex_unit_search_metadata = [];
 $codex_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
 $codex_categories_file = __DIR__ . '/../DATA/categoryList_dict.json';
@@ -196,6 +204,17 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-plan-table { width:100%; border-collapse:collapse; font-size:13px; } .remod-plan-table th,.remod-plan-table td { text-align:left; vertical-align:top; padding:8px; border-bottom:1px solid #e5e7eb; }
         .remod-plan-table thead th { color:#626979; white-space:nowrap; } .remod-plan-table tbody th { white-space:nowrap; }
         .remod-positive { color:#16803c; } .remod-negative { color:#b42318; }
+        .remod-percentile-row td { padding-top:2px; background:#fafbfc; }
+        .remod-percentile { min-width:260px; padding:5px 2px 8px; }
+        .remod-percentile-track { height:9px; margin:8px 3px 5px; position:relative; border-radius:5px; background:linear-gradient(to right,#e5e7eb,#f3f4f6); }
+        .remod-percentile-band { position:absolute; top:0; bottom:0; background:#c7d2fe; border-radius:5px; }
+        .remod-percentile-marker { position:absolute; z-index:2; top:-4px; width:3px; height:17px; transform:translateX(-50%); border-radius:2px; }
+        .remod-percentile-marker.before { background:#2563eb; }
+        .remod-percentile-marker.after { background:#16a34a; }
+        .remod-percentile-labels,.remod-percentile-values { display:flex; justify-content:space-between; gap:8px; font-size:11px; color:#626979; flex-wrap:wrap; }
+        .remod-percentile-values { justify-content:flex-start; gap:16px; margin-top:4px; color:#343a46; }
+        .remod-percentile-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
+        .remod-percentile-dot.before { background:#2563eb; } .remod-percentile-dot.after { background:#16a34a; }
         .remod-decision { display:inline-block; padding:2px 7px; border-radius:10px; font-weight:700; font-size:12px; }
         .remod-decision.replace { background:#fff0e8; color:#a43f0b; } .remod-decision.keep { background:#eaf7ee; color:#176b35; }
         .remod-alternatives,.remod-technical { margin-top:12px; } .remod-alternatives > summary,.remod-technical > summary { cursor:pointer; padding:6px 0; font-weight:600; }
@@ -357,8 +376,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
-<script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>; window.codexRemodSellScopeToken = <?php echo json_encode($codex_can_sell_mods ? hash_hmac('sha256', 'codex-sell:' . $codex_requested_ally_code, $_SESSION['codex_remod_csrf']) : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261018-sellacl1"></script>
+<script>window.codexRemodStatDistributions = <?php echo json_encode($codex_stat_distributions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>; window.codexRemodSellScopeToken = <?php echo json_encode($codex_can_sell_mods ? hash_hmac('sha256', 'codex-sell:' . $codex_requested_ally_code, $_SESSION['codex_remod_csrf']) : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
+<script src="codexremod_results.js?v=20261021-percentiles1"></script>
 <script>
 (function () {
     'use strict';
