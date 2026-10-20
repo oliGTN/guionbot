@@ -127,7 +127,7 @@ async def handle_deploy_tw_teams(request):
             return web.json_response({"err_code": 400, "err_txt": "Select between 1 and 50 proposed teams"}, status=400)
 
         valid_zones = {"B1", "T1", "B2", "T2", "B3", "T3", "B4", "T4", "F1", "F2"}
-        unit_dictionary = go.godata.get("unitsList_dict.json")
+        unit_dictionary = godata.get("unitsList_dict.json")
         validated_teams = []
         for team in teams:
             if not isinstance(team, dict):

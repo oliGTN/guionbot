@@ -3609,6 +3609,10 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds, datacron_
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    if resp_json!=None and "err_code" in resp_json:
+        return 1, resp_json["err_txt"], None
 
     return 0, player_name+" a posé "+str(requested_defIds)+" en " + zone_id
 
