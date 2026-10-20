@@ -207,7 +207,10 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-percentile-marker { position:absolute; z-index:2; top:-4px; width:3px; height:17px; transform:translateX(-50%); border-radius:2px; }
         .remod-percentile-marker.before { background:#2563eb; }
         .remod-percentile-marker.after { background:#16a34a; }
-        .remod-percentile-labels,.remod-percentile-values { display:flex; justify-content:space-between; gap:8px; font-size:11px; color:#626979; flex-wrap:wrap; }
+        .remod-percentile-labels { position:relative; height:31px; margin:0 3px 3px; font-size:11px; color:#626979; }
+        .remod-percentile-label { position:absolute; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; white-space:nowrap; line-height:1.25; }
+        .remod-percentile-label strong { font-weight:600; }
+        .remod-percentile-values { display:flex; justify-content:space-between; gap:8px; font-size:11px; color:#626979; flex-wrap:wrap; }
         .remod-percentile-values { justify-content:flex-start; gap:16px; margin-top:4px; color:#343a46; }
         .remod-percentile-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
         .remod-percentile-dot.before { background:#2563eb; } .remod-percentile-dot.after { background:#16a34a; }
@@ -373,7 +376,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>; window.codexRemodSellScopeToken = <?php echo json_encode($codex_can_sell_mods ? hash_hmac('sha256', 'codex-sell:' . $codex_requested_ally_code, $_SESSION['codex_remod_csrf']) : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261021-percentilezones4"></script>
+<script src="codexremod_results.js?v=20261021-percentilelabels5"></script>
 <script>
 (function () {
     'use strict';
