@@ -143,6 +143,47 @@
     }
   }
 
+  function statDistributionFor(unitId, statName) {
+    const root = window.codexRemodStatDistributions;
+    if (!root || typeof root !== 'object') return null;
+    const units = root.units || root;
+    let unit = Array.isArray(units)
+      ? units.find(item => String(item.baseId || item.id || item.defId || '').toLowerCase() === String(unitId || '').toLowerCase())
+      : units[String(unitId || '')] || units[String(unitId || '').toLowerCase()];
+    // Some exports wrap each unit's stat rows in a nested "stats" object.
+    if (!unit || typeof unit !== 'object') return null;
+    let stats = unit.stats || unit.statRepartition || unit.stat_repartition || unit;
+    let entries = Array.isArray(stats) ? stats : Object.entries(stats).map(([key, value]) =>
+      value && typeof value === 'object' ? Object.assign({ stat: value.stat || key }, value) : ({ stat: key, value })
+    );
+    const normalized = String(statName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return entries.find(item => String(item.stat || item.name || item.statName || '').toLowerCase().replace(/[^a-z0-9]/g, '') === normalized) || null;
+  }
+
+  function renderDistribution(stat, before, after, unitId) {
+    const dist = statDistributionFor(unitId, stat);
+    if (!dist) return '';
+    const percentileKeys = ['p10', 'p25', 'p75', 'p90'];
+    const points = percentileKeys.map(key => Number(dist[key]));
+    if (!points.every(Number.isFinite)) return '';
+    const low = points[0], high = points[3];
+    if (!(high > low)) return '';
+    const pos = value => Math.max(0, Math.min(100, (Number(value) - low) / (high - low) * 100));
+    const beforePos = Number.isFinite(Number(before)) ? pos(before) : null;
+    const afterPos = Number.isFinite(Number(after)) ? pos(after) : null;
+    const marker = (x, cls, label) => x === null ? '' :
+      '<span class="remod-percentile-marker ' + cls + '" style="left:' + x.toFixed(2) + '%" title="' + esc(label) + '"></span>';
+    return '<div class="remod-percentile">' +
+      '<div class="remod-percentile-track">' +
+      '<span class="remod-percentile-band" style="left:' + pos(points[1]).toFixed(2) + '%;width:' + Math.max(0, pos(points[2])-pos(points[1])).toFixed(2) + '%"></span>' +
+      marker(beforePos, 'before', 'Before: ' + num(before, 2)) +
+      marker(afterPos, 'after', 'After: ' + num(after, 2)) +
+      '</div><div class="remod-percentile-labels"><span>P10 ' + esc(num(dist.p10, 2)) + '</span><span>P25 ' + esc(num(dist.p25, 2)) +
+      '</span><span>P75 ' + esc(num(dist.p75, 2)) + '</span><span>P90 ' + esc(num(dist.p90, 2)) + '</span></div>' +
+      '<div class="remod-percentile-values"><span><i class="remod-percentile-dot before"></i>Before ' + esc(num(before, 2)) +
+      '</span><span><i class="remod-percentile-dot after"></i>After ' + esc(num(after, 2)) + '</span></div></div>';
+  }
+
   function renderCard(row, index, restoreData) {
     row = row && typeof row === 'object' ? row : {};
     const tier = bestTier(row);
@@ -163,7 +204,9 @@
     const statRows = stats.map(s => {
       const delta = Number(s.after) - Number(s.before);
       const reached = s.target != null && Number(s.target) !== 0 && Number.isFinite(Number(s.after)) ? (Number(s.after) / Number(s.target) * 100) : null;
-      return '<tr><th>' + esc(statLabel(s.stat)) + '</th><td>' + esc(num(s.before, 2)) + '</td><td>' + esc(num(s.after, 2)) + '</td><td class="' + (delta > 0 ? 'remod-positive' : delta < 0 ? 'remod-negative' : '') + '">' + esc(signed(delta, 2)) + '</td><td>' + esc(num(s.target, 2)) + '</td><td>' + (reached == null ? '—' : esc(num(reached, 1) + '%')) + '</td></tr>';
+      const distribution = renderDistribution(s.stat, s.before, s.after, row.base || row.id || '');
+      return '<tr><th>' + esc(statLabel(s.stat)) + '</th><td>' + esc(num(s.before, 2)) + '</td><td>' + esc(num(s.after, 2)) + '</td><td class="' + (delta > 0 ? 'remod-positive' : delta < 0 ? 'remod-negative' : '') + '">' + esc(signed(delta, 2)) + '</td><td>' + esc(num(s.target, 2)) + '</td><td>' + (reached == null ? '—' : esc(num(reached, 1) + '%')) + '</td></tr>' +
+        (distribution ? '<tr class="remod-percentile-row"><td colspan="6">' + distribution + '</td></tr>' : '');
     }).join('');
     const modRows = SLOT_ORDER.map(slot => {
       const a = adviceBySlot.get(slot) || {};
