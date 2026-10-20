@@ -62,7 +62,11 @@
       const beforeValue = s.value != null ? s.value : (s.now != null ? s.now : s.after);
       const afterValue = a.value != null ? a.value : (a.after != null ? a.after : (a.now != null ? a.now : beforeValue));
       const target = s.target != null ? s.target : (row.before && Array.isArray(row.before.stats) ? ((row.before.stats.find(x => String(x.stat) === String(s.stat)) || {}).target) : null);
-      return { stat: s.stat, before: beforeValue, after: afterValue, target };
+      return {
+        stat: s.stat, before: beforeValue, after: afterValue, target,
+        p10: s.p10, p25: s.p25, p75: s.p75, p90: s.p90,
+        distribution: s
+      };
     });
   }
   function slotAdvice(row, tier) {
@@ -143,25 +147,7 @@
     }
   }
 
-  function statDistributionFor(unitId, statName) {
-    const root = window.codexRemodStatDistributions;
-    if (!root || typeof root !== 'object') return null;
-    const units = root.units || root;
-    let unit = Array.isArray(units)
-      ? units.find(item => String(item.baseId || item.id || item.defId || '').toLowerCase() === String(unitId || '').toLowerCase())
-      : units[String(unitId || '')] || units[String(unitId || '').toLowerCase()];
-    // Some exports wrap each unit's stat rows in a nested "stats" object.
-    if (!unit || typeof unit !== 'object') return null;
-    let stats = unit.stats || unit.statRepartition || unit.stat_repartition || unit;
-    let entries = Array.isArray(stats) ? stats : Object.entries(stats).map(([key, value]) =>
-      value && typeof value === 'object' ? Object.assign({ stat: value.stat || key }, value) : ({ stat: key, value })
-    );
-    const normalized = String(statName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    return entries.find(item => String(item.stat || item.name || item.statName || '').toLowerCase().replace(/[^a-z0-9]/g, '') === normalized) || null;
-  }
-
-  function renderDistribution(stat, before, after, unitId) {
-    const dist = statDistributionFor(unitId, stat);
+  function renderDistribution(stat, before, after, dist) {
     if (!dist) return '';
     const percentileKeys = ['p10', 'p25', 'p75', 'p90'];
     const points = percentileKeys.map(key => Number(dist[key]));
@@ -204,7 +190,7 @@
     const statRows = stats.map(s => {
       const delta = Number(s.after) - Number(s.before);
       const reached = s.target != null && Number(s.target) !== 0 && Number.isFinite(Number(s.after)) ? (Number(s.after) / Number(s.target) * 100) : null;
-      const distribution = renderDistribution(s.stat, s.before, s.after, row.base || row.id || '');
+      const distribution = renderDistribution(s.stat, s.before, s.after, s.distribution);
       return '<tr><th>' + esc(statLabel(s.stat)) + '</th><td>' + esc(num(s.before, 2)) + '</td><td>' + esc(num(s.after, 2)) + '</td><td class="' + (delta > 0 ? 'remod-positive' : delta < 0 ? 'remod-negative' : '') + '">' + esc(signed(delta, 2)) + '</td><td>' + esc(num(s.target, 2)) + '</td><td>' + (reached == null ? '—' : esc(num(reached, 1) + '%')) + '</td></tr>' +
         (distribution ? '<tr class="remod-percentile-row"><td colspan="6">' + distribution + '</td></tr>' : '');
     }).join('');
