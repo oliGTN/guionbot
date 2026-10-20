@@ -1119,6 +1119,7 @@ foreach (array_keys($player_datacron_sets) as $set_id):
 
             </div>
 <?php endif; ?>
+<?php endif; // Team creation/import is available only before the TW starts. ?>
 <?php else: ?>
         You are not allowed to see TW data for this guild
 <?php endif; //($isGuildMate||$isAdmin) ?>
@@ -1731,7 +1732,6 @@ if (zoneSelect) {
     refreshImportTeamAvailability();
 }
 </script>
-<?php endif; // Team creation/import is available only before the TW starts. ?>
 </body>
 <?php include 'sitefooter.php'; ?>
 </html>
