@@ -200,6 +200,8 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         .remod-percentile { min-width:260px; padding:5px 2px 8px; }
         .remod-percentile-track { height:9px; margin:8px 3px 5px; position:relative; border-radius:5px; background:linear-gradient(to right,#e5e7eb,#f3f4f6); }
         .remod-percentile-band { position:absolute; top:0; bottom:0; border-radius:5px; }
+        .remod-percentile-band.below-p10,
+        .remod-percentile-band.above-p90 { background:#f3f4f6; }
         .remod-percentile-band.p10-p90 { background:#e7edf7; }
         .remod-percentile-band.p25-p75 { background:#c7d8f4; }
         .remod-percentile-marker { position:absolute; z-index:2; top:-4px; width:3px; height:17px; transform:translateX(-50%); border-radius:2px; }
@@ -371,7 +373,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
 </div>
 </div>
 <script>window.codexRemodUnitMetadata = <?php echo json_encode($codex_unit_search_metadata, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodAllyCode = <?php echo json_encode($codex_requested_ally_code, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>; window.codexRemodCanSellMods = <?php echo $codex_can_sell_mods ? 'true' : 'false'; ?>; window.codexRemodSellScopeToken = <?php echo json_encode($codex_can_sell_mods ? hash_hmac('sha256', 'codex-sell:' . $codex_requested_ally_code, $_SESSION['codex_remod_csrf']) : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
-<script src="codexremod_results.js?v=20261021-percentilerange3"></script>
+<script src="codexremod_results.js?v=20261021-percentilezones4"></script>
 <script>
 (function () {
     'use strict';
