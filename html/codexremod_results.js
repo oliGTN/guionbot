@@ -54,18 +54,25 @@
     return [];
   }
   function getStats(row, tier) {
-    const before = statList((row.advice && row.advice.before) || (row.before && row.before.stats));
+    // plan.json contains the Kyber 1 Top 100 percentile distribution in
+    // before.stats and after.stats. The percentiles are identical, so use
+    // one distribution per stat and plot both values on the same graphic.
+    const before = statList((row.before && row.before.stats) || (row.advice && row.advice.before));
     const after = statList((row.after && row.after.stats) || (tier && tier.result));
+    const beforeByStat = new Map(before.map(s => [String(s.stat), s]));
     const afterByStat = new Map(after.map(s => [String(s.stat), s]));
-    return before.map(s => {
-      const a = afterByStat.get(String(s.stat)) || {};
+    const statKeys = Array.from(new Set([...beforeByStat.keys(), ...afterByStat.keys()]));
+    return statKeys.map(key => {
+      const s = beforeByStat.get(key) || {};
+      const a = afterByStat.get(key) || {};
       const beforeValue = s.value != null ? s.value : (s.now != null ? s.now : s.after);
       const afterValue = a.value != null ? a.value : (a.after != null ? a.after : (a.now != null ? a.now : beforeValue));
-      const target = s.target != null ? s.target : (row.before && Array.isArray(row.before.stats) ? ((row.before.stats.find(x => String(x.stat) === String(s.stat)) || {}).target) : null);
+      const target = s.target != null ? s.target : a.target;
+      const distribution = ['p10', 'p25', 'p75', 'p90'].every(k => s[k] != null) ? s : a;
       return {
-        stat: s.stat, before: beforeValue, after: afterValue, target,
-        p10: s.p10, p25: s.p25, p75: s.p75, p90: s.p90,
-        distribution: s
+        stat: s.stat != null ? s.stat : a.stat, before: beforeValue, after: afterValue, target,
+        p10: distribution.p10, p25: distribution.p25, p75: distribution.p75, p90: distribution.p90,
+        distribution
       };
     });
   }
