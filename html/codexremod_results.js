@@ -161,18 +161,19 @@
     if (!percentiles.every(Number.isFinite)) return '';
     const values = [before, after].map(Number).filter(Number.isFinite);
     if (!values.length) return '';
-    // Scale to include both values, even when outside the P10-P90 interval.
     const dataMin = Math.min(percentiles[0], ...values);
     const dataMax = Math.max(percentiles[3], ...values);
     const span = dataMax - dataMin;
     if (!(span > 0)) return '';
     const padding = span * 0.06;
-    const low = dataMin - padding;
-    const high = dataMax + padding;
+    const low = dataMin - padding, high = dataMax + padding;
     const pos = value => Math.max(0, Math.min(100, (Number(value) - low) / (high - low) * 100));
     const marker = (value, cls, label) => Number.isFinite(Number(value)) ?
       '<span class="remod-percentile-marker ' + cls + '" style="left:' + pos(value).toFixed(2) + '%" title="' + esc(label) + '"></span>' : '';
     const band = (from, to, cls) => '<span class="remod-percentile-band ' + cls + '" style="left:' + pos(from).toFixed(2) + '%;width:' + Math.max(0, pos(to)-pos(from)).toFixed(2) + '%"></span>';
+    const percentileLabels = percentileKeys.map((key, index) =>
+      '<span class="remod-percentile-label" style="left:' + pos(percentiles[index]).toFixed(2) + '%"><span>' + key.toUpperCase() + '</span><strong>' + esc(num(dist[key], 2)) + '</strong></span>'
+    ).join('');
     return '<div class="remod-percentile">' +
       '<div class="remod-percentile-track">' +
       band(low, percentiles[0], 'below-p10') +
@@ -181,8 +182,7 @@
       band(percentiles[3], high, 'above-p90') +
       marker(before, 'before', 'Before: ' + num(before, 2)) +
       marker(after, 'after', 'After: ' + num(after, 2)) +
-      '</div><div class="remod-percentile-labels"><span>P10 ' + esc(num(dist.p10, 2)) + '</span><span>P25 ' + esc(num(dist.p25, 2)) +
-      '</span><span>P75 ' + esc(num(dist.p75, 2)) + '</span><span>P90 ' + esc(num(dist.p90, 2)) + '</span></div>' +
+      '</div><div class="remod-percentile-labels">' + percentileLabels + '</div>' +
       '<div class="remod-percentile-values"><span><i class="remod-percentile-dot before"></i>Before ' + esc(num(before, 2)) +
       '</span><span><i class="remod-percentile-dot after"></i>After ' + esc(num(after, 2)) + '</span></div></div>';
   }
