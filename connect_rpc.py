@@ -1248,6 +1248,8 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
     else:
         chatLatest_ts = 0
 
+    golog.log("INFO", chatLatest_ts, identifier=guild_id)
+
     if allyCode!=None:
         bot_allyCode = allyCode
     elif bot_allyCode == None:
@@ -1259,6 +1261,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
             golog.log("ERR", err_txt)
             return 1, err_txt, None
 
+    golog.log("INFO", twlogChan_id, identifier=guild_id)
     # Get latest events only if the discord channel is defined
     if onlyLatest:
         eventTypes = []
@@ -1271,6 +1274,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
     else:
         eventTypes = ["CHAT", "TW", "TB"]
 
+    golog.log("INFO", onlyLatest, identifier=guild_id)
     # Get data from RPC
     if dict_events==None:
         err_code, err_txt, dict_events = await get_event_data(dict_guild, eventTypes, force_update, allyCode=allyCode)
@@ -1280,6 +1284,9 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
 
     list_chat_events, list_tw_logs, list_tb_logs = await get_logs_from_events(dict_events, guild_id, chatLatest_ts)
 
+    golog.log("INFO", len(list_chat_events), identifier=guild_id)
+    golog.log("INFO", len(list_tw_logs), identifier=guild_id)
+    golog.log("INFO", len(list_tb_logs), identifier=guild_id)
     list_all_logs = list_chat_events+list_tw_logs+list_tb_logs
     if len(list_all_logs)>0:
         list_all_logs = sorted(list_all_logs, key=lambda x:x[0])

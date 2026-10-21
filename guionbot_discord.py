@@ -1641,6 +1641,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
                             allyCode=allyCode,
                             dict_guild=dict_guild,
                             dict_events=dict_events)
+    golog.log("INFO", (ec, et), identifier=guild_id)
     if ec!=0:
         golog.log("ERR", et)
         return ec, et
@@ -1653,7 +1654,8 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
                           logType, 
                           channel_id, 
                           len(list_logs)
-                      )
+                      ),
+                      identifier=guild_id
                      )
             if channel_id != 0:
                 try:
