@@ -1982,7 +1982,7 @@ async def update_extguild(dict_guild):
         for twr in dict_guild["recentTerritoryWarResult"]:
             tw_endtime = twr["endTimeSeconds"]
             tw_warid = twr["territoryWarId"]
-            tw_round = twr["currentRound"]
+            tw_round = 2
             tw_score = twr["score"]
             tw_oppscore = twr["opponentScore"]
 
