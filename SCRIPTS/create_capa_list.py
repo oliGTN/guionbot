@@ -35,12 +35,15 @@ for unit in game_data["units"]:
         continue
     if not "any_obtainable" in unit["categoryId"]:
         continue
-    if unit["rarity"] != 1:
+    if not unit["obtainable"]:
         continue
     if unit["obtainableTime"] != "0":
         continue
 
     unit_id = unit["baseId"]
+    if unit_id in dict_capa:
+        continue
+
     dict_capa[unit_id] = {}
     list_skills = []
     for skillref in unit["skillReference"]:
