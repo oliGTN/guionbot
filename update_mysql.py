@@ -1992,7 +1992,7 @@ async def update_extguild(dict_guild):
             tw_id = "TERRITORY_WAR_EVENT_"+tw_letter+":O"+str(tw_starttime)+"000"
 
             query = "UPDATE tw_history SET currentRound="+str(tw_round)+", "\
-                    "homeScore="+tw_score+" "\
+                    "homeScore="+tw_score+", "\
                     "awayScore="+tw_oppscore+" "\
                     "WHERE guild_id='"+guild_id+"' "\
                     "AND tw_id='"+tw_id+"' "
