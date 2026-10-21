@@ -1634,9 +1634,13 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
 
     
     #Update log channels
-    ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True, 1, allyCode=allyCode,
-                                                               dict_guild=dict_guild,
-                                                               dict_events=dict_events)
+    ec, et, ret_data = await connect_rpc.get_guildLog_messages(
+                            guild_id, 
+                            True, 
+                            1, 
+                            allyCode=allyCode,
+                            dict_guild=dict_guild,
+                            dict_events=dict_events)
     if ec!=0:
         golog.log("ERR", et)
         return ec, et
@@ -1644,6 +1648,13 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
         for logType in ["CHAT", "TW", "TB"]:
             channel_id = ret_data[logType][0]
             list_logs = sorted(ret_data[logType][1], key=lambda x:x[0])
+            golog.log("INFO", 
+                      (
+                          logType, 
+                          channel_id, 
+                          len(list_logs)
+                      )
+                     )
             if channel_id != 0:
                 try:
                     output_channel = (bot.get_channel(channel_id) \
