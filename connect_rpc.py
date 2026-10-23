@@ -3607,19 +3607,19 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds, datacron_
                     resp_json = await(resp.json())
                 elif resp.status==201:
                     # rien à déployer
-                    return 1, "Erreur en posant une def de GT - code="+str(resp.status), None
+                    return 1, "Erreur en posant une def de GT - code="+str(resp.status)
                 else:
-                    return 1, "Erreur en posant une def de GT - code="+str(resp.status), None
+                    return 1, "Erreur en posant une def de GT - code="+str(resp.status)
 
     except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
 
     if resp_json!=None and "err_code" in resp_json:
-        return 1, resp_json["err_txt"], None
+        return 1, resp_json["err_txt"]
 
     return 0, player_name+" a posé "+str(requested_defIds)+" en " + zone_id
 

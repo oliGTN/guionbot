@@ -124,6 +124,15 @@ async def handle_deploy_tw_teams(request):
         ally_code = str(payload.get("allyCode", ""))
         teams = payload.get("teams")
 
+        golog.log(
+            "INFO",
+            "Deploy "
+            + guild_id
+            + " "
+            + ally_code
+            + " "
+            + str(teams)
+        )
         if not ally_code.isdigit():
             return web.json_response({"err_code": 400, "err_txt": "Invalid allyCode"}, status=400)
         if not isinstance(teams, list) or not teams or len(teams) > 50:
@@ -136,6 +145,15 @@ async def handle_deploy_tw_teams(request):
                 return web.json_response({"err_code": 400, "err_txt": "Invalid proposed team"}, status=400)
             zone_name = team.get("zone")
             unit_ids = team.get("units")
+
+            golog.log(
+                "INFO",
+                "Deploy "
+                + zone_name
+                + " "
+                + str(unit_ids)
+            )
+
             if not isinstance(zone_name, str) or zone_name not in valid_zones:
                 return web.json_response({"err_code": 400, "err_txt": "Invalid zone in proposed team"}, status=400)
             zone_id = godata.dict_tw.get(zone_name)
