@@ -3537,114 +3537,148 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
     return 0, "Déploiement OK de "+str(len(list_unit_ids))+" unités en " + zone_id
 
-async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds, datacron_id=None):
+##################
+# IN: teams = [{"zone_id": zone_id, "requested_defIds": , "datacron_id": }, ...]
+async def deploy_tw(guild_id, txt_allyCode, teams):
+    """
+    Deploy a batch  of teams by using a list
+    of team dictionaries. Each batch item contains zone_id,
+    requested_defIds, and optional datacron_id. Roster and guild/TW status
+    are fetched once for the entire batch.
+    """
     dict_unitsList = godata.get("unitsList_dict.json")
 
-    # get player roster
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         golog.log("ERR", err_txt)
-        return 1, "Erreur en se connectant au compte "+txt_allyCode
+        result = (1, "Erreur en se connectant au compte " + txt_allyCode, 0)
 
     player_name = dict_player["name"]
     dict_roster = {}
     for unit in dict_player["rosterUnit"]:
-        full_defId = unit["definitionId"]
-        defId = full_defId.split(":")[0]
+        defId = unit["definitionId"].split(":")[0]
         dict_roster[defId] = unit
 
-    # get guild tw info, including player deployed units
     err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
     if err_code != 0:
         golog.log("ERR", err_txt)
-        return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode
+        result = (1, "Erreur en récupérant les infos guilde de " + txt_allyCode, 0)
+    if not dict_guild.get("territoryWarStatus"):
+        result = (1, "Pas de GT en cours", 0)
 
-    if not "territoryWarStatus" in dict_guild:
-        return 1, "Pas de GT en cours"
-
-    dict_zone_states = {}
     tw = dict_guild["territoryWarStatus"][0]
     tw_id = tw["instanceId"]
-    for zone in tw["homeGuild"]["conflictStatus"]:
-        zone_status = zone["zoneStatus"]
+    if "playerStatus" not in tw:
+        result = (1, "ERR: " + player_name + " n'a pas rejoint la GT", 0)
+
+    dict_zone_states = {}
+    for zone in tw.get("homeGuild", {}).get("conflictStatus", []):
+        zone_status = zone.get("zoneStatus", {})
         if "commandState" in zone_status:
             dict_zone_states[zone_status["zoneId"]] = zone_status["commandState"]
 
-    if zone_id in dict_zone_states:
-        knownCommandState = dict_zone_states[zone_id]
-        zone_param = tw_id+":"+zone_id+":"+knownCommandState
-    else:
-        zone_param = tw_id+":"+zone_id
+    used_unit_ids = {
+        unit["unitId"] for unit in tw.get("playerStatus", {}).get("unitStatus", [])
+        if "unitId" in unit
+    }
+    prepared_teams = []
+    batch_unit_ids = set()
+    for index, team in enumerate(teams, start=1):
+        if not isinstance(team, dict):
+            result = (1, "Équipe invalide à la position " + str(index), 0)
+        team_zone_id = team.get("zone_id")
+        team_def_ids = team.get("requested_defIds")
+        team_datacron_id = team.get("datacron_id")
+        if team_datacron_id not in (None, "") and (
+                not isinstance(team_datacron_id, str) or len(team_datacron_id) != 22
+                or not all(ch.isalnum() or ch in "_-" for ch in team_datacron_id)):
+            result = (1, "Datacron ID invalide pour l'équipe " + str(index), 0)
+            return result if batch_mode else result[:2]
+        if not isinstance(team_zone_id, str) or not team_zone_id:
+            result = (1, "Zone GT invalide pour l'équipe " + str(index), 0)
+        if not isinstance(team_def_ids, list) or not team_def_ids:
+            result = (1, "Liste d'unités invalide pour l'équipe " + str(index), 0)
 
-    if not "playerStatus" in tw:
-        return 1, "ERR: " + player_name+" n'a pas rejoint la GT"
+        list_unit_ids = []
+        team_combatType = None
+        for defId in team_def_ids:
+            if defId not in dict_roster or defId not in dict_unitsList:
+                result = (1, "ERR: unité inconnue ou absente du roster: " + str(defId), 0)
+            roster_unit = dict_roster[defId]
+            unit_id = roster_unit["id"]
+            if unit_id in used_unit_ids or unit_id in batch_unit_ids:
+                result = (1, "ERR: " + player_name + " a déjà déployé ou sélectionné " + defId, 0)
+            list_unit_ids.append(defId + ":" + str(unit_id) + ":" +
+                                 str(roster_unit["currentLevel"]) + ":" +
+                                 str(roster_unit["currentTier"]))
+            batch_unit_ids.add(unit_id)
 
-    list_used_units = []
-    if "unitStatus" in tw["playerStatus"]:
-        for unit in tw["playerStatus"]["unitStatus"]:
-            list_used_units.append(unit["unitId"])
+            unit_combatType = dict_unitsList[defId]["combatType"]
+            if team_combatType is None or team_combatType == unit_combatType:
+                team_combatType = unit_combatType
+            else:
+                golog.log("ERR", "Mixing chars and ships")
+                result = (1, "ERR: ne pas mélanger persos et vaisseaux svp", 0)
 
-    list_unit_ids = []
-    team_combatType = None
-    for defId in requested_defIds:
-        unit_id = dict_roster[defId]["id"]
-        unit_level = str(dict_roster[defId]["currentLevel"])
-        unit_tier = str(dict_roster[defId]["currentTier"])
-        if unit_id in list_used_units:
-            return 1, "ERR: " + player_name + " a déjà déployé " + defId
+        if team_combatType == 1 and len(list_unit_ids) != 5:
+            result = (1, "ERR: il faut exactement 5 persos", 0)
+        if team_combatType == 2 and len(list_unit_ids) < 4:
+            result = (1, "ERR: il faut au moins 4 vaisseaux", 0)
 
-        list_unit_ids.append(defId+":"+unit_id+":"+unit_level+":"+unit_tier)
-        unit_combatType = dict_unitsList[defId]["combatType"]
-        if team_combatType==None or team_combatType==unit_combatType:
-            team_combatType=unit_combatType
-        else:
-            golog.log("ERR", "Mixing chars and ships")
-            return 1, "ERR: ne pas mélanger persos et vaisseaux svp"
-            
-    if team_combatType == 1 and len(list_unit_ids) != 5:
-        golog.log("ERR", "Need 5 units but found "+str(list_unit_ids))
-        return 1, "ERR: il faut exactement 5 persos"
+        prepared_teams.append({
+            "zone_id": team_zone_id,
+            "list_unit_ids": list_unit_ids,
+            "team_combatType": team_combatType,
+            "datacron_id": team_datacron_id,
+            "def_ids": team_def_ids,
+        })
 
-    if team_combatType == 2 and len(list_unit_ids) < 4:
-        golog.log("ERR", "Need at least 4 units but found "+str(list_unit_ids))
-        return 1, "ERR: il faut au moins 4 vaisseaux"
+    # The current deployTW RPC accepts one team per request. All expensive
+    # roster/guild reads are shared; only the actual deployment calls repeat.
+    completed = 0
+    for team in prepared_teams:
+        team_zone_id = team["zone_id"]
+        params = {
+            "allyCode": txt_allyCode,
+            "tw_id": tw_id,
+            "zone_id": team_zone_id,
+            "cmd_state": dict_zone_states.get(team_zone_id),
+            "list_units": team["list_unit_ids"],
+            "fleet_mode": team["team_combatType"] == 2,
+        }
+        if team["datacron_id"] not in (None, ""):
+            params["datacron_id"] = team["datacron_id"]
 
-    # RPC REQUEST for deployTW
-    url = "http://localhost:8000/deployTW"
-    params = {"allyCode": txt_allyCode,
-              "tw_id": tw_id,
-              "zone_id": zone_id,
-              "cmd_state": knownCommandState,
-              "list_units": list_unit_ids,
-              "fleet_mode": (team_combatType==2)}
-    if not datacron_id is None:
-        params["datacron_id"] = datacron_id
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post("http://localhost:8000/deployTW", data=json_dumps(params)) as resp:
+                    golog.log("DBG", "POST deployTW status=" + str(resp.status))
+                    if resp.status == 200:
+                        resp_json = await resp.json()
+                    else:
+                        err_txt = "Erreur en posant une def de GT - code=" + str(resp.status)
+                        return (1, err_txt, completed)
+        except asyncio.exceptions.TimeoutError:
+            err_txt = "Timeout lors de la requete RPC, merci de ré-essayer"
+            return (1, err_txt, completed)
+        except aiohttp.client_exceptions.ServerDisconnectedError:
+            err_txt = "Erreur lors de la requete RPC, merci de ré-essayer"
+            return (1, err_txt, completed)
+        except aiohttp.client_exceptions.ClientConnectorError:
+            err_txt = "Erreur lors de la requete RPC, merci de ré-essayer"
+            return (1, err_txt, completed)
 
-    req_data = json_dumps(params)
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=req_data) as resp:
-                golog.log("DBG", "POST deployTW status="+str(resp.status))
-                if resp.status==200:
-                    #normale case
-                    resp_json = await(resp.json())
-                elif resp.status==201:
-                    # rien à déployer
-                    return 1, "Erreur en posant une def de GT - code="+str(resp.status)
-                else:
-                    return 1, "Erreur en posant une def de GT - code="+str(resp.status)
+        if resp_json is not None and "err_code" in resp_json:
+            err_txt = resp_json["err_txt"]
+            return (1, err_txt, completed)
 
-    except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
-    except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
-    except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+        completed += 1
+        golog.log("INFO", "Deployed TW team for allyCode " + txt_allyCode +
+                  " in zone " + team_zone_id + " (" + str(len(team["list_unit_ids"])) + " units)")
 
-    if resp_json!=None and "err_code" in resp_json:
-        return 1, resp_json["err_txt"]
-
-    return 0, player_name+" a posé "+str(requested_defIds)+" en " + zone_id
+    return (0, 
+            "Déploiement OK de " + str(completed) + " équipe(s) pour " + player_name,
+            completed)
 
 ################################################
 # IN: zone_id = tb3_mixed_phase03_conflict01

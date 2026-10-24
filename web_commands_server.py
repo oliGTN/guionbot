@@ -123,16 +123,6 @@ async def handle_deploy_tw_teams(request):
         guild_id = str(payload.get("guild_id", ""))
         ally_code = str(payload.get("allyCode", ""))
         teams = payload.get("teams")
-
-        golog.log(
-            "INFO",
-            "Deploy "
-            + guild_id
-            + " "
-            + ally_code
-            + " "
-            + str(teams)
-        )
         if not ally_code.isdigit():
             return web.json_response({"err_code": 400, "err_txt": "Invalid allyCode"}, status=400)
         if not isinstance(teams, list) or not teams or len(teams) > 50:
@@ -145,21 +135,18 @@ async def handle_deploy_tw_teams(request):
                 return web.json_response({"err_code": 400, "err_txt": "Invalid proposed team"}, status=400)
             zone_name = team.get("zone")
             unit_ids = team.get("units")
-
-            golog.log(
-                "INFO",
-                "Deploy "
-                + zone_name
-                + " "
-                + str(unit_ids)
-            )
-
+            datacron_id = team.get("datacronId") or ""
             if not isinstance(zone_name, str) or zone_name not in valid_zones:
                 return web.json_response({"err_code": 400, "err_txt": "Invalid zone in proposed team"}, status=400)
+            # SWGOH datacron IDs are 16-byte URL-safe Base64 values (22 chars, no padding).
+            if not isinstance(datacron_id, str) or (datacron_id and
+                    (len(datacron_id) != 22 or not all(ch in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-" for ch in datacron_id))):
+                return web.json_response({"err_code": 400, "err_txt": "Invalid datacron ID in proposed team"}, status=400)
+            if zone_name in {"F1", "F2"} and datacron_id:
+                return web.json_response({"err_code": 400, "err_txt": "Datacrons cannot be deployed with fleet teams"}, status=400)
             zone_id = godata.dict_tw.get(zone_name)
             if not zone_id:
                 return web.json_response({"err_code": 400, "err_txt": "Unknown TW zone: " + zone_name}, status=400)
-
             max_units = 8 if zone_name in {"F1", "F2"} else 5
             if not isinstance(unit_ids, list) or not 1 <= len(unit_ids) <= max_units:
                 return web.json_response({"err_code": 400, "err_txt": "Invalid unit count in proposed team"}, status=400)
@@ -167,28 +154,24 @@ async def handle_deploy_tw_teams(request):
                    or not all(ch.isalnum() or ch in "_-" for ch in unit_id)
                    for unit_id in unit_ids) or len(set(unit_ids)) != len(unit_ids):
                 return web.json_response({"err_code": 400, "err_txt": "Invalid or duplicate unit ID in proposed team"}, status=400)
+            validated_teams.append({
+                "zone_id": zone_id,
+                "requested_defIds": unit_ids,
+                "datacron_id": datacron_id or None,
+            })
 
-            validated_teams.append((zone_name, zone_id, unit_ids))
-
-        completed = 0
-        for zone_name, zone_id, unit_ids in validated_teams:
-            err_code, err_txt = await connect_rpc.deploy_tw(
-                guild_id, ally_code, zone_id, unit_ids
-            )
-            if err_code != 0:
-                golog.log("WAR", "TW team deployment failed for allyCode " + ally_code + " in zone " + zone_name + ": " + str(err_txt))
-                return web.json_response({
-                    "err_code": int(err_code), "err_txt": str(err_txt),
-                    "completed": completed, "failed_zone": zone_name
-                }, status=400)
-            completed += 1
-            golog.log("INFO", "Deployed proposed TW team for allyCode " + ally_code + " in zone " + zone_name
-                      + " (" + str(len(unit_ids)) + " units)")
-
+        err_code, err_txt, completed = await connect_rpc.deploy_tw(
+            guild_id, ally_code, validated_teams, None
+        )
+        if err_code != 0:
+            return web.json_response({
+                "err_code": int(err_code), "err_txt": str(err_txt),
+                "completed": int(completed)
+            }, status=400)
         return web.json_response({
             "err_code": 0,
             "err_txt": "Successfully deployed " + str(completed) + " proposed team(s).",
-            "completed": completed
+            "completed": int(completed)
         })
     except Exception as error:
         golog.log("ERR", "Deploy TW teams command error: " + str(error))

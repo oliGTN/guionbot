@@ -84,9 +84,20 @@ if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METH
         if (!is_array($team)) $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid proposed team.']);
         $zone = $team['zone'] ?? '';
         $units = $team['units'] ?? null;
+        $datacronId = $team['datacronId'] ?? '';
+        if ($datacronId === null) {
+            $datacronId = '';
+        }
         if (!is_string($zone) || !in_array($zone, $validZones, true) || !is_array($units) || count($units) < 1
             || count($units) > (in_array($zone, ['F1', 'F2'], true) ? 8 : 5)) {
             $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid zone or unit count in proposed team.']);
+        }
+        // SWGOH datacron IDs are 16-byte URL-safe Base64 values (22 chars, no padding).
+        if (!is_string($datacronId) || ($datacronId !== '' && !preg_match('/^[A-Za-z0-9_-]{22}$/', $datacronId))) {
+            $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid datacron ID in proposed team.']);
+        }
+        if (in_array($zone, ['F1', 'F2'], true) && $datacronId !== '') {
+            $respond(400, ['err_code' => 400, 'err_txt' => 'Datacrons cannot be deployed with fleet teams.']);
         }
         $seenUnits = [];
         foreach ($units as $unitId) {
@@ -95,7 +106,7 @@ if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METH
             }
             $seenUnits[$unitId] = true;
         }
-        $validatedTeams[] = ['zone' => $zone, 'units' => array_values($units)];
+        $validatedTeams[] = ['zone' => $zone, 'units' => array_values($units), 'datacronId' => $datacronId];
     }
     $tokenFile = '/home/pi/GuionBot/web_commands.token';
     if (!is_readable($tokenFile)) {
@@ -1630,7 +1641,7 @@ if (zoneSelect) {
 
     async function pushProposedTeams() {
         if (!canPushProposedTeams || proposedTeams.length === 0 || pushProposedButton.disabled) return;
-        const teamsToPush = proposedTeams.map((team) => ({ zone: team.zone, units: [...team.units] }));
+        const teamsToPush = proposedTeams.map((team) => ({ zone: team.zone, units: [...team.units], datacronId: team.datacronId || '' }));
         if (!window.confirm('Push ' + teamsToPush.length + ' proposed team(s) to the game? This will deploy their units and cannot be undone from this page.')) return;
 
         pushProposedButton.disabled = true;
