@@ -1359,7 +1359,12 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
 # Parameters: guild_id (string)
 # Purpose: crée ou met à jour le statut de GT
 ##############################################################
-async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
+async def update_tw_status(
+        guild_id, 
+        backup_channel_id=None, 
+        allyCode=None,
+        update_discord_logs=False):
+
     golog.log("DBG", (guild_id, backup_channel_id, allyCode))
     if allyCode==None:
         #using the warbot
@@ -1428,6 +1433,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
 
     # TW ongoing
     dict_guild = ret_tw_status['rpc']['guild']
+    dict_events = ret_tw_status['rpc']['events']
     tw = dict_guild["territoryWarStatus"][0]
     opp_guild_id = tw["awayGuild"]["profile"]["id"]
     opp_guild_name = tw["awayGuild"]["profile"]["name"]
@@ -1461,6 +1467,14 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
                                   opp_guild_name, score, opp_score,
                                   currentRound,
                                   homeGuild, awayGuild)
+    
+    if update_discord_logs:
+        #update events in discord channel
+        # this function does not require RPC call as the required data
+        # is provided in arguments
+        #This is optional as bot users get this update from the update_rpc_data
+        # in the update_rpc_60secs loop
+        await connect_rpc.get_guildLog_messages(guild_id, True, False, None, dict_guild=dict_guild, dict_events=dict_events)
 
     # Display Link to opponent guild
     if swgohgg_opp_url != None:
@@ -3163,7 +3177,12 @@ class TwCog(commands.GroupCog, name="gt"):
             #    remove_command_from_queue(interaction)
             #    return
 
-            err_code, err_txt, statusChan = await update_tw_status(guild_id, backup_channel_id=interaction.channel.id, allyCode=allyCode)
+            err_code, err_txt, statusChan = await update_tw_status(
+                    guild_id, 
+                    backup_channel_id=interaction.channel.id, 
+                    allyCode=allyCode,
+                    update_discord_logs=True)
+
             if err_code != 0:
                 txt = emojis.redcross+" ERR: "+err_txt
                 await interaction.edit_original_response(content=txt)

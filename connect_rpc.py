@@ -122,9 +122,15 @@ async def get_guild_rpc_data(
     calling_func = inspect.stack()[1][3]
     golog.log(
             "INFO", 
-            "START ["+str(calling_func)+"]get_guild_rpc_data("+str(guild_id) \
+            "START ("+guild_id \
             +", "+str(event_types) \
-            +", "+str(force_update)+", "+str(allyCode)+")")
+            +", "+str(force_update) \
+            +", "+str(allyCode) \
+            +", "+str(dict_guild is None) \
+            +", "+str(dict_TBmapstats is None) \
+            +", "+str(dict_events is None) \
+            +", "+str(guild_bots is None)+")" \
+            +" from "+str(calling_func))
 
     ### guild
     if dict_guild==None:
@@ -1260,11 +1266,6 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
         chatLatest_ts = 0
 
     golog.log("INFO", chatLatest_ts, identifier=guild_id)
-
-    if allyCode!=None:
-        bot_allyCode = allyCode
-    elif bot_allyCode == None:
-        return 1, "ERR: no RPC bot for guild "+guild_id, None
 
     if dict_guild==None:
         err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
@@ -3135,6 +3136,17 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
     global prev_mapstats
 
     dict_tw=godata.dict_tw
+
+    calling_func = inspect.stack()[1][3]
+    golog.log(
+            "INFO", 
+            "START ("+guild_id \
+            +", "+str(force_update) \
+            +", "+str(with_attacks) \
+            +", "+str(allyCode) \
+            +", "+str(manage_tw_end) \
+            +", "+str(dict_guild is None)+")" \
+            +" from "+str(calling_func))
 
     if with_attacks or allyCode!=None:
         #events are gathered when necessary (with_attacks) 
