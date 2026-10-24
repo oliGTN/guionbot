@@ -138,8 +138,9 @@ async def handle_deploy_tw_teams(request):
             datacron_id = team.get("datacronId", "")
             if not isinstance(zone_name, str) or zone_name not in valid_zones:
                 return web.json_response({"err_code": 400, "err_txt": "Invalid zone in proposed team"}, status=400)
+            # SWGOH datacron IDs are 16-byte URL-safe Base64 values (22 chars, no padding).
             if not isinstance(datacron_id, str) or (datacron_id and
-                    (len(datacron_id) > 128 or not all(ch.isalnum() or ch in "_-" for ch in datacron_id))):
+                    (len(datacron_id) != 22 or not all(ch.isalnum() or ch in "_-" for ch in datacron_id))):
                 return web.json_response({"err_code": 400, "err_txt": "Invalid datacron ID in proposed team"}, status=400)
             if zone_name in {"F1", "F2"} and datacron_id:
                 return web.json_response({"err_code": 400, "err_txt": "Datacrons cannot be deployed with fleet teams"}, status=400)
