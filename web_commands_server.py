@@ -145,6 +145,7 @@ async def handle_deploy_tw_teams(request):
                 return web.json_response({"err_code": 400, "err_txt": "Invalid proposed team"}, status=400)
             zone_name = team.get("zone")
             unit_ids = team.get("units")
+            datacron_id = team.get("datacronId", "")
 
             golog.log(
                 "INFO",
@@ -152,10 +153,16 @@ async def handle_deploy_tw_teams(request):
                 + zone_name
                 + " "
                 + str(unit_ids)
+                + str(datacron_id)
             )
 
             if not isinstance(zone_name, str) or zone_name not in valid_zones:
                 return web.json_response({"err_code": 400, "err_txt": "Invalid zone in proposed team"}, status=400)
+            if not isinstance(datacron_id, str) or (datacron_id and
+                    (len(datacron_id) > 128 or not all(ch.isalnum() or ch in "_-" for ch in datacron_id))):
+                return web.json_response({"err_code": 400, "err_txt": "Invalid datacron ID in proposed team"}, status=400)
+            if zone_name in {"F1", "F2"} and datacron_id:
+                return web.json_response({"err_code": 400, "err_txt": "Datacrons cannot be deployed with fleet teams"}, status=400)
             zone_id = godata.dict_tw.get(zone_name)
             if not zone_id:
                 return web.json_response({"err_code": 400, "err_txt": "Unknown TW zone: " + zone_name}, status=400)
@@ -168,12 +175,13 @@ async def handle_deploy_tw_teams(request):
                    for unit_id in unit_ids) or len(set(unit_ids)) != len(unit_ids):
                 return web.json_response({"err_code": 400, "err_txt": "Invalid or duplicate unit ID in proposed team"}, status=400)
 
-            validated_teams.append((zone_name, zone_id, unit_ids))
+            validated_teams.append((zone_name, zone_id, unit_ids, datacron_id))
 
         completed = 0
-        for zone_name, zone_id, unit_ids in validated_teams:
+        for zone_name, zone_id, unit_ids, datacron_id in validated_teams:
             err_code, err_txt = await connect_rpc.deploy_tw(
-                guild_id, ally_code, zone_id, unit_ids
+                guild_id, ally_code, zone_id, unit_ids,
+                datacron_id=datacron_id or None
             )
             if err_code != 0:
                 golog.log("WAR", "TW team deployment failed for allyCode " + ally_code + " in zone " + zone_name + ": " + str(err_txt))
