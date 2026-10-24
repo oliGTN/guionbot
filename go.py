@@ -4799,12 +4799,17 @@ async def deploy_def_tw(guild_id, txt_allyCode, zone_shortname, characters, data
     else:
         return 1, "Zone GT inconnue"
 
-    ec, txt = await connect_rpc.deploy_tw(
-            guild_id, 
-            txt_allyCode, 
-            zone_name, 
-            list_character_ids,
-            datacron_id=datacron_id)
+    # Use the batch-capable path for this single-team command too.
+    ec, txt, _completed = await connect_rpc.deploy_tw(
+        guild_id,
+        txt_allyCode,
+        [{
+            "zone_id": zone_name,
+            "requested_defIds": list_character_ids,
+            "datacron_id": datacron_id,
+        }],
+        None,
+    )
 
     return ec, txt
 
