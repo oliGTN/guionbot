@@ -121,7 +121,7 @@ async def get_guild_rpc_data(
 
     calling_func = inspect.stack()[1][3]
     golog.log(
-            "DBG", 
+            "INFO", 
             "START ["+str(calling_func)+"]get_guild_rpc_data("+str(guild_id) \
             +", "+str(event_types) \
             +", "+str(force_update)+", "+str(allyCode)+")")
@@ -427,9 +427,9 @@ async def _get_event_events(session, event_type, guild_id, bot_allyCode,
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
 async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
-    calling_func = inspect.stack()[1][3]
     guild_id = dict_guild["profile"]["id"]
 
+    calling_func = inspect.stack()[1][3]
     golog.log(
         "INFO",
         "START (" + str(guild_id)
@@ -1227,6 +1227,17 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
 
 ##################################################
 async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=None, dict_guild=None, dict_events=None):
+
+    calling_func = inspect.stack()[1][3]
+    golog.log(
+            "INFO", 
+            "START ("+str(guild_id) \
+            +", "+str(onlyLatest) \
+            +", "+str(force_update) \
+            +", "+str(allyCode) \
+            +", "+str(dict_guild is None) \
+            +", "+str(dict_events is None)+")" \
+            +" from "+str(calling_func))
 
     query = "SELECT allyCode, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
             "FROM guild_bot_infos "\
