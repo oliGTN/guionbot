@@ -1692,7 +1692,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
 #                "TW":   [twlogChan_id, list_tw_logs],
 #                "TB":   [tblogChan_id, list_tb_logs]
 #               }
-async def send_discord_logs(log_data):
+async def send_discord_logs(log_data, guild_id):
     for logType in ["CHAT", "TW", "TB"]:
         channel_id = log_data[logType][0]
         list_logs = sorted(log_data[logType][1], key=lambda x:x[0])
