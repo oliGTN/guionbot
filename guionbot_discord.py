@@ -1488,7 +1488,7 @@ async def update_tw_status(
             log_data = {"CHAT": ret_data["CHAT"],
                         "TW": ret_data["TW"],
                         "TB": ret_data["TB"]}
-            ec, et = await send_discord_logs(log_data)
+            ec, et = await send_discord_logs(log_data, guild_id)
             if ec!=0:
                 golog.log("WAR", et)
 
@@ -1680,7 +1680,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
         log_data = {"CHAT": ret_data["CHAT"],
                     "TW": ret_data["TW"],
                     "TB": ret_data["TB"]}
-        ec, et = await send_discord_logs(log_data)
+        ec, et = await send_discord_logs(log_data, guild_id)
         if ec!=0:
             #failure to send logs is not critical
             return 0, et
