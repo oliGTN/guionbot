@@ -1474,7 +1474,23 @@ async def update_tw_status(
         # is provided in arguments
         #This is optional as bot users get this update from the update_rpc_data
         # in the update_rpc_60secs loop
-        await connect_rpc.get_guildLog_messages(guild_id, True, False, None, dict_guild=dict_guild, dict_events=dict_events)
+        ec, et, ret_data = await connect_rpc.get_guildLog_messages(
+                guild_id, 
+                True, False, None, 
+                dict_guild=dict_guild, 
+                dict_events=dict_events)
+
+        golog.log("INFO", (ec, et), identifier=guild_id)
+        if ec!=0:
+            golog.log("ERR", et)
+            return ec, et, None
+        else:
+            log_data = {"CHAT": ret_data["CHAT"],
+                        "TW": ret_data["TW"],
+                        "TB": ret_data["TB"]}
+            ec, et = await send_discord_logs(log_data)
+            if ec!=0:
+                golog.log("WAR", et)
 
     # Display Link to opponent guild
     if swgohgg_opp_url != None:
@@ -1655,52 +1671,67 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
                             allyCode=allyCode,
                             dict_guild=dict_guild,
                             dict_events=dict_events)
+
     golog.log("INFO", (ec, et), identifier=guild_id)
     if ec!=0:
         golog.log("ERR", et)
         return ec, et
     else:
-        for logType in ["CHAT", "TW", "TB"]:
-            channel_id = ret_data[logType][0]
-            list_logs = sorted(ret_data[logType][1], key=lambda x:x[0])
-            golog.log("INFO", 
-                      (
-                          logType, 
-                          channel_id, 
-                          len(list_logs)
-                      ),
-                      identifier=guild_id
-                     )
-            if channel_id != 0:
-                try:
-                    output_channel = (bot.get_channel(channel_id) \
-                                     or await bot.fetch_channel(channel_id))
-                except Exception as e:
-                    output_channel = None
-
-                if output_channel!=None:
-                    output_txt = ""
-                    golog.log("INFO", "list_logs="+str(list_logs), identifier=guild_id)
-                    for line in list_logs:
-                        ts = line[0]
-                        txt = line[1]
-                        ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
-                        output_txt+=ts_txt+" - "+txt+"\n"
-                    if output_txt != "":
-                        output_txt = output_txt[:-1]
-                        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                            await output_channel.send(txt)
-                            golog.log(
-                                "INFO", 
-                                "send '"+txt+"' to channel "+str(channel_id),
-                                identifier=guild_id)
-                else:
-                    war_msg="Error while getting channel for id "+str(channel_id)
-                    golog.log("WAR", war_msg)
-                    return 0, war_msg
+        log_data = {"CHAT": ret_data["CHAT"],
+                    "TW": ret_data["TW"],
+                    "TB": ret_data["TB"]}
+        ec, et = await send_discord_logs(log_data)
+        if ec!=0:
+            #failure to send logs is not critical
+            return 0, et
 
     return 0, ""
 
+###################
+#IN: log_data = {"CHAT": [chatChan_id, list_chat_events],
+#                "TW":   [twlogChan_id, list_tw_logs],
+#                "TB":   [tblogChan_id, list_tb_logs]
+#               }
+async def send_discord_logs(log_data):
+    for logType in ["CHAT", "TW", "TB"]:
+        channel_id = log_data[logType][0]
+        list_logs = sorted(log_data[logType][1], key=lambda x:x[0])
+        golog.log("INFO", 
+                  (
+                      logType, 
+                      channel_id, 
+                      len(list_logs)
+                  ),
+                  identifier=guild_id
+                 )
+        if channel_id != 0:
+            try:
+                output_channel = (bot.get_channel(channel_id) \
+                                 or await bot.fetch_channel(channel_id))
+            except Exception as e:
+                output_channel = None
+
+            if output_channel!=None:
+                output_txt = ""
+                golog.log("INFO", "list_logs="+str(list_logs), identifier=guild_id)
+                for line in list_logs:
+                    ts = line[0]
+                    txt = line[1]
+                    ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
+                    output_txt+=ts_txt+" - "+txt+"\n"
+                if output_txt != "":
+                    output_txt = output_txt[:-1]
+                    for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                        await output_channel.send(txt)
+                        golog.log(
+                            "INFO", 
+                            "send '"+txt+"' to channel "+str(channel_id),
+                            identifier=guild_id)
+            else:
+                war_msg="Error while getting channel for id "+str(channel_id)
+                golog.log("WAR", war_msg)
+                return 1, war_msg
+    return 0, ""
 
 ##############################################################
 # Function: get_channel_from_channelname
