@@ -4807,8 +4807,7 @@ async def deploy_def_tw(guild_id, txt_allyCode, zone_shortname, characters, data
             "zone_id": zone_name,
             "requested_defIds": list_character_ids,
             "datacron_id": datacron_id,
-        }],
-        None,
+        }]
     )
 
     return ec, txt
