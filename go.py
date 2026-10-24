@@ -4800,7 +4800,7 @@ async def deploy_def_tw(guild_id, txt_allyCode, zone_shortname, characters, data
         return 1, "Zone GT inconnue"
 
     # Use the batch-capable path for this single-team command too.
-    ec, txt, _completed = await connect_rpc.deploy_tw(
+    ec, txt, _completed, _lastestTWstatus = await connect_rpc.deploy_tw(
         guild_id,
         txt_allyCode,
         [{

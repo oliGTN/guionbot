@@ -160,7 +160,7 @@ async def handle_deploy_tw_teams(request):
                 "datacron_id": datacron_id or None,
             })
 
-        err_code, err_txt, completed = await connect_rpc.deploy_tw(
+        err_code, err_txt, completed, latestTWstatus = await connect_rpc.deploy_tw(
             guild_id, ally_code, validated_teams, None
         )
         if err_code != 0:
@@ -168,6 +168,10 @@ async def handle_deploy_tw_teams(request):
                 "err_code": int(err_code), "err_txt": str(err_txt),
                 "completed": int(completed)
             }, status=400)
+
+        #Update TW data in DB thanks to returned TW status
+        #TO-DO
+
         return web.json_response({
             "err_code": 0,
             "err_txt": "Successfully deployed " + str(completed) + " proposed team(s).",
