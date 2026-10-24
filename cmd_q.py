@@ -42,7 +42,7 @@ async def add_command_to_queue(ctx_interaction):
 
     if bot_locked and not is_owner:
         golog.log("WAR", "bot is locked")
-        await command_error(ctx_interaction, resp_msg, content=emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+        await command_error(ctx_interaction, resp_msg, err_txt=emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
         return 1, resp_msg
 
     # Add command to queue
