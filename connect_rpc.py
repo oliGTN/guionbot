@@ -3589,6 +3589,11 @@ async def deploy_tw(guild_id, txt_allyCode, teams):
         team_zone_id = team.get("zone_id")
         team_def_ids = team.get("requested_defIds")
         team_datacron_id = team.get("datacron_id")
+        if team_datacron_id not in (None, "") and (
+                not isinstance(team_datacron_id, str) or len(team_datacron_id) != 22
+                or not all(ch.isalnum() or ch in "_-" for ch in team_datacron_id)):
+            result = (1, "Datacron ID invalide pour l'équipe " + str(index), 0)
+            return result if batch_mode else result[:2]
         if not isinstance(team_zone_id, str) or not team_zone_id:
             result = (1, "Zone GT invalide pour l'équipe " + str(index), 0)
         if not isinstance(team_def_ids, list) or not team_def_ids:
