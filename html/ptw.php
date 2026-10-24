@@ -85,6 +85,9 @@ if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METH
         $zone = $team['zone'] ?? '';
         $units = $team['units'] ?? null;
         $datacronId = $team['datacronId'] ?? '';
+        if ($datacronId === null) {
+            $datacronId = '';
+        }
         if (!is_string($zone) || !in_array($zone, $validZones, true) || !is_array($units) || count($units) < 1
             || count($units) > (in_array($zone, ['F1', 'F2'], true) ? 8 : 5)) {
             $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid zone or unit count in proposed team.']);
