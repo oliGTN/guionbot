@@ -89,7 +89,8 @@ if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METH
             || count($units) > (in_array($zone, ['F1', 'F2'], true) ? 8 : 5)) {
             $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid zone or unit count in proposed team.']);
         }
-        if (!is_string($datacronId) || ($datacronId !== '' && !preg_match('/^[A-Za-z0-9_-]{1,128}$/', $datacronId))) {
+        // SWGOH datacron IDs are 16-byte URL-safe Base64 values (22 chars, no padding).
+        if (!is_string($datacronId) || ($datacronId !== '' && !preg_match('/^[A-Za-z0-9_-]{22}$/', $datacronId))) {
             $respond(400, ['err_code' => 400, 'err_txt' => 'Invalid datacron ID in proposed team.']);
         }
         if (in_array($zone, ['F1', 'F2'], true) && $datacronId !== '') {
