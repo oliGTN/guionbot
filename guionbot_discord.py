@@ -2778,6 +2778,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     ##############################################################
     @commands.command(name='cmd', help='Shell sur le serveur')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.cmd")
     async def cmd(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -2798,6 +2799,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     ##############################################################
     @commands.command(name='info', help='Statut du bot')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.info")
     async def info(self, ctx):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -2840,6 +2842,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     ##############################################################
     @commands.command(name='sql', help='Requête SQL dans la database')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.sql")
     async def sql(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -2868,6 +2871,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                  help="Force la synchro API d'une Guilde\n\n"\
                       "Exemple: go.fsg 123456789")
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.fsg")
     async def fsg(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -2904,6 +2908,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                       "Exemple: go.fsj 123456789 Alex 123123123\n"\
                       "Exemple: go.fsj me clearcache")
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.fsj")
     async def fsj(self, ctx, *options):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -2972,6 +2977,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #############################################################
     @commands.command(name='lockbot', help='Verrouille le bot')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.lockbot")
     async def lockbot(self, ctx):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -2987,6 +2993,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
     @commands.command(name='unlockbot', help='Verrouille le bot')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.unlockbot")
     async def unlockbot(self, ctx):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -3002,6 +3009,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #############################################################
     @commands.command(name='servers', help='Liste des serveurs discord du bot')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.servers")
     async def servers(self, ctx):
         await ctx.message.add_reaction(emojis.thumb)
         output_txt = ""
@@ -3025,12 +3033,14 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #############################################################
     @commands.command(name='test', help='Réservé aux admins')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.test")
     async def test(self, ctx, *args):
         for g in bot.guilds:
             print(g.name, g.owner)
 
     @commands.command(name='reactioncheck', help='Liste ceux qui ont raégit à un message')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.reactioncheck")
     async def reactioncheck(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -3080,6 +3090,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                  brief="Lit des Allocations de EchoBot",
                  help="Lit des Allocations de BT de EchoBot dans le salon dédié\n\n"\
                       "Exemple : go.laeb")
+    @golog.with_operation_context("admin.laeb")
     async def laeb(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -3139,6 +3150,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
     @commands.check(admin_command)
     @commands.command(name='sync', brief="Synchronise les commands slash")
+    @golog.with_operation_context("admin.sync")
     async def sync(self, ctx, *arg):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -3207,6 +3219,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #############################################################
     @commands.command(name='releasesem', help='Deverrouile un sémaphore')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.releasesem")
     async def releasesem(self, ctx, id: str):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -3222,6 +3235,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #############################################################
     @commands.command(name='listsem', help='Liste les sémaphores actifs')
     @commands.check(admin_command)
+    @golog.with_operation_context("admin.listsem")
     async def listsem(self, ctx, id: str):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -3487,6 +3501,7 @@ class TbCog(commands.GroupCog, name="bt"):
         super().__init__()
 
     @app_commands.command(name="pose-pelotons")
+    @golog.with_operation_context("tb.deploy_platoons")
     async def deploy_platoons(self, interaction: discord.Interaction):
         try:
             # Add command to queue, check if bot is locked, check queue size
@@ -3561,6 +3576,7 @@ class TbCog(commands.GroupCog, name="bt"):
 
 
     @app_commands.command(name="rare-toons")
+    @golog.with_operation_context("tb.rare_toons")
     async def rare_toons(self, interaction: discord.Interaction,
                          guilde: str="me",
                          liste_zones: str="",
@@ -3589,6 +3605,7 @@ class TbCog(commands.GroupCog, name="bt"):
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     # Function used to get BT open zones, not forbidden
+    @golog.with_operation_context("tb.list_allowed_tb_open_zones")
     async def list_allowed_tb_open_zones(self, interaction: discord.Interaction, current: str):
         try:
             user_id = interaction.channel.id
@@ -3624,6 +3641,7 @@ class TbCog(commands.GroupCog, name="bt"):
     @app_commands.command(name="déploie")
     @app_commands.rename(list_alias_txt="liste-persos")
     @app_commands.autocomplete(zone=list_allowed_tb_open_zones)
+    @golog.with_operation_context("tb.deploy_tb")
     async def deploy_tb(self, interaction: discord.Interaction,
                         zone: str="",
                         list_alias_txt: str=""):
@@ -4227,6 +4245,7 @@ class BronziumCog(commands.GroupCog, name="bronzium"):
 
     @app_commands.command(name="ouvrir")
     @app_commands.rename(quantity="quantité")
+    @golog.with_operation_context("bronzium.bronzium_open")
     async def bronzium_open(self, interaction: discord.Interaction, quantity: int):
         try:
             # Check if not is locked
@@ -4254,6 +4273,7 @@ class AuthCog(commands.GroupCog, name="connect"):
         super().__init__()
 
     @app_commands.command(name="envoie-otc")
+    @golog.with_operation_context("auth.send_otc")
     async def send_otc(self, interaction: discord.Interaction,
                        code: str):
         try:
@@ -4316,6 +4336,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                          "Exemple: go.logs Chaton72\n" \
                                          "Exemple: go.logs a perdu\n" \
                                          "Exemple: go.logs -graph      # avec un graphique")
+    @golog.with_operation_context("server.logs")
     async def logs(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -4421,6 +4442,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                       "Exemple : go.vdp #batailles-des-territoires > liste les déploiements dans le salon spécifié\n"\
                       "Exemple : go.vdp deploybot\n" \
                       "Exemple : go.vdp -free=DS:1,2,4/MS:3,5/LS")
+    @golog.with_operation_context("server.vdp")
     async def vdp(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -4506,6 +4528,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='bot.enable',
             brief="Active le compte warbot",
             help="Active le compte bot pour permettre de suivre la guilde")
+    @golog.with_operation_context("server.botenable")
     async def botenable(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -4555,6 +4578,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='bot.disable',
             brief="Désactive le compte warbot",
             help="Désactive le compte bot pour permettre de le jouer")
+    @golog.with_operation_context("server.botdisable")
     async def botdisable(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -4587,6 +4611,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='bot.jointw',
             brief="Inscrit le bot à la GT",
             help="Inscrit le bot à la GT en cours")
+    @golog.with_operation_context("server.botjointw")
     async def botjointw(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -4618,6 +4643,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='bot.deftw',
                       brief="Défense GT pour le warbot",
                       help="Pose des teams en défense GT pour le warbot")
+    @golog.with_operation_context("server.botdeftw")
     async def botdeftw(self, ctx, zone, *characters):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -4650,6 +4676,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='bot.lastdeftw',
                       brief="Précédente défense GT pour le warbot",
                       help="Affiche les défenses de la dernière fois, pour aider à poser des teams en défense GT pour le warbot")
+    @golog.with_operation_context("server.lastbotdeftw")
     async def lastbotdeftw(self, ctx):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -4696,6 +4723,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='bot.deploytb',
             brief="Déploie le warbot en BT",
             help="Déploie des persos en BT")
+    @golog.with_operation_context("server.botdeploytb")
     async def botdeploytb(self, ctx, zone, list_alias_txt):
         try:
             await bot_commands.deploy_tb(ctx, zone, list_alias_txt)
@@ -4709,6 +4737,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='tbrappel',
             brief="Tag les joueurs qui n'ont pas tout déployé en BT",
             help="go.tbrappel > tag les joueurs qui n'ont pas tout déployé")
+    @golog.with_operation_context("server.tbrappel")
     async def tbrappel(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -4816,6 +4845,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                  "go.twrappel 3 2 > [phase de def] tag les joueurs qui ont posé moins de 3 escouades au sol ou moins de 2 en vaisseaux\n" \
                  "go.twrappel 3 2 > [phase d'attaque] tag les joueurs qui ont fait moins de 3 attaques au sol ou moins de 2 en vaisseaux\n" \
                  "go.twrappel <options> #salon > envoie lebresultat dans #salon")
+    @golog.with_operation_context("server.twrappel")
     async def twrappel(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -4938,6 +4968,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='coliseum',
             brief="Affiche les scores du jour au Colisée",
             help="go.coliseum")
+    @golog.with_operation_context("server.coliseum")
     async def coliseum(self, ctx):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -4993,6 +5024,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Tag les joueurs qui n'ont pas assez attaqué en raid",
             help="go.raidrappel    > tag les joueurs sous 50% par défaut\n" \
                  "go.raidrappel 80 > tag les joueurs sous 80%")
+    @golog.with_operation_context("server.raidrappel")
     async def raidrappel(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -5120,6 +5152,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Tag les joueurs qui n'ont pas fait leurs tickets",
             help="go.ticketsrappel     > tag les joueurs sous 600 par défaut\n" \
                  "go.ticketsrappel 450 > tag les joueurs sous 450 tickets")
+    @golog.with_operation_context("server.ticketsrappel")
     async def ticketsrappel(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -5213,6 +5246,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                  "go.tbs -ignore=me/chaton75 (joueurs inactifs à ignorer)\n" \
                  "go.tbs DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0 (combats estimés, 6 pelotons en DS, 4 en MS)\n" \
                  "go.tbs -simu=ROTE DS:1/LS:3/MS:2 -e=DS:55%/MS:70%/LS:60% -p=DS:6/MS:4/LS:0 (simulation de TB de type ROTE)")
+    @golog.with_operation_context("server.tbs")
     async def tbs(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -5386,6 +5420,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Statut des missions spéciales en BT",
             help="Statut des missions spéciales en BT avec les résultats par joueur\n" \
                  "go.spe ROTE2-LS")
+    @golog.with_operation_context("server.spe")
     async def spe(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -5459,6 +5494,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                  "go.tbstats chaton73 > pour toute la BT du joueur chaton75\n" \
                  "go.tbstats 2 5      > pour le 2e et le 5e jour, tous les joueurs\n" \
                  "go.tbstats 2 5 toto > pour le 2e et le 5e jour du joueur toto")
+    @golog.with_operation_context("server.tbstats")
     async def tbstats(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -5533,6 +5569,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Objectif de phase de la BT",
             help="Objectif de la phase de BT en fonctions des zone:étoiles demandés\n" \
                  "go.tbo DS:1 LS:3 MS:2")
+    @golog.with_operation_context("server.tbo")
     async def tbo(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -5592,6 +5629,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                       "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
                       "Exemple: go.spg all JMK\n"\
                       "Exemple: go.spg F1 -v Executor")
+    @golog.with_operation_context("server.spgt")
     async def spgt(self, ctx, tw_zone, *characters):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -5654,6 +5692,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='bot.gettwlogs',
                  brief="Télécharge le fichier JSON complet des logs de la dernière GT",
                  help="Télécharge le fichier JSON complet des logs de la dernière GT")
+    @golog.with_operation_context("server.botgettwlogs")
     async def botgettwlogs(self, ctx):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -5705,6 +5744,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='gettbdata',
                  brief="Télécharge les données brutes de la dernière BT",
                  help="Télécharge les données brutes de la dernière BT")
+    @golog.with_operation_context("server.gettbdata")
     async def gettbdata(self, ctx):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -5840,6 +5880,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='gettwbest',
                       brief="Affiche les meilleures défenses de la BT",
                       help="Affiche les meilleures défenses de la GT")
+    @golog.with_operation_context("server.gettwbest")
     async def gettwbest(self, ctx):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -5919,6 +5960,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                        help ="Compte les tags de joueurs dans un channel\n" \
                                              "Exemple: go.tagcount #avertos\n" \
                                              "Exemple: go.tagcount #avertos -pédagogique")
+    @golog.with_operation_context("officer.tagcount")
     async def tagcount(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -5995,6 +6037,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     @commands.check(officer_command)
     @commands.command(name='lgs', brief="Lit les dernières infos du google sheet",
                       help="Lit les dernières infos du google sheet")
+    @golog.with_operation_context("officer.lgs")
     async def lgs(self, ctx):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -6047,6 +6090,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                       "Exemple : go.tpg me -Leia:ulti ---> ceux qui ont Leia mais pas Leia avec ulti\n"\
                       "Exemple : go.tpg me LV !Jabba -TW ---> ceux qui ont LV et qui n'ont pas attaqué Jabba en GT\n"\
                       "Exemple : go.tpg me JMK / Jabba ceux qui ont JMK, puis ceux qui ont Jabba (commande lancée 2 fois)")
+    @golog.with_operation_context("officer.tpg")
     async def tpg(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6194,6 +6238,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                  help="Liste les joueurs et leur compte discord\n\n"\
                       "Exemple: go.registercheck me\n"\
                       "Exemple: go.registercheck 123456789")
+    @golog.with_operation_context("officer.registercheck")
     async def registercheck(self, ctx, allyCode):
         await bot_commands.registercheck(ctx, allyCode)
 
@@ -6226,6 +6271,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       help="Vérifie la possibilité d'un contre en GT\n\n"\
                            "Exemple: go.gtcontrej 123456789 ITvsGEOS\n"\
                            "Exemple: go.gtcontrej 123456789 SEEvsJMK")
+    @golog.with_operation_context("member.gtcontrej")
     async def gtcontrej(self, ctx, allyCode, counter_type):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6273,6 +6319,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.register 123456789\n"\
                            "Exemple: go.register 123456789 @chatondu75\n"\
                            "Exemple: go.register 123456789 confirm")
+    @golog.with_operation_context("member.register")
     async def register(self, ctx, *args):
         await bot_commands.register_player(ctx, args)
 
@@ -6281,6 +6328,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       brief="Délie un code allié de tout compte discord",
                       help="Délie un code allié de tout compte discord\n\n"\
                            "Exemple: go.unregister 123456789")
+    @golog.with_operation_context("member.unregister")
     async def unregister(self, ctx, *args):
         await bot_commands.unregister(ctx, args)
 
@@ -6293,6 +6341,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       brief="Affiche le kit d'un perso",
                       help="Affiche le kit d'un perso\n\n"\
                            "Exemple: go.kit kitfisto")
+    @golog.with_operation_context("member.kit")
     async def kit(self, ctx, alias):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -6324,6 +6373,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.qui dark Patoche\n"\
                            "Exemple: go.qui @chaton372\n"\
                            "Exemple: go.qui -TW")
+    @golog.with_operation_context("member.qui")
     async def qui(self, ctx, *alias):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6445,6 +6495,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.vtg 192126111 NS\n"\
                            "Exemple: go.vtg 192126111 PADME NS DR\n"\
                            "Exemple: go.vtg me NS")
+    @golog.with_operation_context("member.vtg")
     async def vtg(self, ctx, allyCode, *teams):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6530,6 +6581,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.vtj 192126111 NS\n"\
                       "Exemple: go.vtj 192126111 PADME NS DR\n"\
                       "Exemple: go.vtj me NS")
+    @golog.with_operation_context("member.vtj")
     async def vtj(self, ctx, allyCode, *teams):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6611,6 +6663,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Donne les Farmings d'Eclats pour le Guide de Voyage, ou pour tous les persos quiexistent avec l'option -all\n\n"\
                       "Exemple: go.fegv me\n"\
                       "         go.fegv me -all")
+    @golog.with_operation_context("member.fegv")
     async def fegv(self, ctx, allyCode, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -6644,6 +6697,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Donne le progrès de farming d'une team chez un joueur",
                  help="Donne le progrès de farming d'une team chez un joueur\n\n"\
                       "Exemple: go.ftj me ROTE")
+    @golog.with_operation_context("member.ftj")
     async def ftj(self, ctx, allyCode, team):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -6697,6 +6751,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvj 192126111 all\n"\
                       "Exemple: go.gvj me SEE\n"\
                       "Exemple: go.gvj me thrawn JKL")
+    @golog.with_operation_context("member.gvj")
     async def gvj(self, ctx, allyCode, *characters):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6750,6 +6805,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.raf 192126111 all\n"\
                       "Exemple: go.raf me SEE\n"\
                       "Exemple: go.raf me thrawn JKL")
+    @golog.with_operation_context("member.raf")
     async def raf(self, ctx, allyCode, *characters):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6804,6 +6860,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvg me SEE\n"\
                       "Exemple: go.gvg me thrawn JKL\n"\
                       "La commande n'affiche que les 40 premiers.")
+    @golog.with_operation_context("member.gvg")
     async def gvg(self, ctx, allyCode, *characters):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6852,6 +6909,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Donne le progrès dans le guide de voyage pour un perso dans le shard\n\n"\
                       "Exemple: go.gvs me Profundity\n"\
                       "Exemple: go.gvg 123456789 Jabba")
+    @golog.with_operation_context("member.gvs")
     async def gvs(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -6892,6 +6950,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.spj me JKR -étoiles\n"\
                       "Exemple: go.spj me -v \"Dark Maul\" Bastila\n"\
                       "Exemple: go.spj me -p all")
+    @golog.with_operation_context("member.spj")
     async def spj(self, ctx, allyCode, *characters):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6950,6 +7009,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.spg 123456789 JKR\n"\
                       "Exemple: go.spg me JKR -étoiles\n"\
                       "Exemple: go.spg me -v \"Dark Maul\"")
+    @golog.with_operation_context("member.spg")
     async def spg(self, ctx, allyCode, *characters):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -7006,6 +7066,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gdp me\n"\
                       "Exemple: go.gdp 123456789\n"\
                       "Exemple: go.gdp -TW")
+    @golog.with_operation_context("member.gdp")
     async def gdp(self, ctx, allyCode):
         await bot_commands.gdp(ctx, allyCode)
 
@@ -7024,6 +7085,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.farmeqpt me bensolo:R5\n"\
                       "Exemple: go.farmeqpt me guide:BKM\n"\
                       "Exemple: go.farmeqpt me tag:gungan")
+    @golog.with_operation_context("member.farmeqpt")
     async def farmeqpt(self, ctx, allyCode, *list_alias):
         await bot_commands.farmeqpt(ctx, allyCode, list_alias)
 
@@ -7039,6 +7101,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.ggac me\n"\
                       "Exemple: go.ggac 123456789\n"\
                       "Exemple: go.ggac -TW")
+    @golog.with_operation_context("member.ggac")
     async def ggac(self, ctx, allyCode):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7085,6 +7148,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.ggv me/chaton75 SEE\n"\
                       "Exemple: go.ggv me FARM\n"\
                       "Exemple: go.ggv 123456789 JMK")
+    @golog.with_operation_context("member.ggv")
     async def ggv(self, ctx, allyCode, *characters):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -7150,6 +7214,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Graphique dans le temps chez un Joueur\n\n"\
                       "Exemple: go.graphj me modq #graph sur 12 mois\n" \
                       "Exemple: go.graphj me -Y modq #graph sur un an")
+    @golog.with_operation_context("member.graphj")
     async def graphj(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -7221,6 +7286,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Graphique dans le temps dans une guilde\n\n"\
                       "Exemple: go.graphg me modq #graph sur 12 mois\n" \
                       "Exemple: go.graphg me -Y modq #graph sur un an")
+    @golog.with_operation_context("member.graphg")
     async def graphg(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -7287,6 +7353,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "         go.statqj 123456789 tag:jedi\n"
                       "         go.statqj 123456789 -statscore\n"
                       "         go.statqj 123456789 -unitscore")
+    @golog.with_operation_context("member.statqj")
     async def statqj(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -7450,6 +7517,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Affiche le StatQ de la guilde",
                  help="Affiche le StatQ de la guilde\n\n"\
                       "Exemple: go.statqg me")
+    @golog.with_operation_context("member.statqg")
     async def statqg(self, ctx, allyCode):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7488,6 +7556,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Affiche le modQ de la guilde",
                  help="Affiche le modQ de la guilde\n\n"\
                       "Exemple: go.modqg me")
+    @golog.with_operation_context("member.modqg")
     async def modqg(self, ctx, allyCode):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7522,6 +7591,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Portraits de Perso d'un Joueur\n"\
                       "Exemple: go.ppj 123456789 JKR\n"\
                       "Exemple: go.ppj me -v \"Dark Maul\" Bastila\n")
+    @golog.with_operation_context("member.ppj")
     async def ppj(self, ctx, allyCode, *characters):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -7578,6 +7648,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Image d'un Résultat en Guerre de Territoire",
                  help="Image d'un Résultat en Guerre de Territoire\n"\
                       "Exemple: go.rgt me GAS echo cra fives rex VS DR\n")
+    @golog.with_operation_context("member.rgt")
     async def rgt(self, ctx, *options):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7692,6 +7763,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gsp me GAS:R8 vitesse (pour filtrer sur les GAS R8)\n" \
                       "Exemple: go.gsp me GAS:R5+ vitesse (pour filtrer sur les GAS R5 et plus)\n" \
                       "Exemple: go.gsp me GAS:R7- vitesse (pour filtrer sur les GAS R7 et moins)")
+    @golog.with_operation_context("member.gsp")
     async def gsp(self, ctx, *options):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7734,6 +7806,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Evolution du Roster d'un Joueur",
                  help="Evolution du roster d'un joueur sur 30 jours\n"\
                       "Exemple: go.erj me")
+    @golog.with_operation_context("member.erj")
     async def erj(self, ctx, allyCode):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7766,6 +7839,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Evolution du Roster d'une Guilde",
                  help="Evolution du roster d'un joueur sur 30 jours\n"\
                       "Exemple: go.erg me")
+    @golog.with_operation_context("member.erg")
     async def erg(self, ctx, allyCode):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7800,6 +7874,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.loj 123456789 \n"\
                       "Exemple: go.loj 123456789 Mara\n"\
                       "Exemple: go.loj 123456789 mode:GA")
+    @golog.with_operation_context("member.loj")
     async def loj(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7858,6 +7933,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.log 123456789 \n"\
                       "Exemple: go.log 123456789 Mara\n"\
                       "Exemple: go.log 123456789 mode:TW")
+    @golog.with_operation_context("member.log")
     async def log(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7908,6 +7984,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Liste des Datacrons d'une Guilde\n"\
                       "Exemple: go.dtcg 123456789 \n"\
                       "Exemple: go.dtcg 123456789 Boushh")
+    @golog.with_operation_context("member.dtcg")
     async def dtcg(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -7976,6 +8053,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Nombre de Teams en GT\n\n"\
                       "Exemple : go.ntg me 27\n"\
                       "Exemple : go.ntg 123456789 23 toto123 345123678")
+    @golog.with_operation_context("member.ntg")
     async def ntg(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -8062,6 +8140,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                               "Exemple : go.cpg me > les GL par défaut\n" \
                               "Exemple : go.cpg me SEE Maul GAS > une liste spécifique\n" \
                               "Exemple : go.cpg -TW SEE Maul GAS > compare avec la guilde adverse en TW")
+    @golog.with_operation_context("member.cpg")
     async def cpg(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -8281,6 +8360,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple : go.shard me ship 123456789 > ajoute le joueur 123456789 à la liste des joueurs  de l'arène de vaisseaux\n"\
                       "Exemple : go.shard me ship -123456789 > retire le joueur 123456789 de la liste des joueurs  de l'arène de vaisseaux\n"\
                       "Exemple : go.shard me char > affiche la liste des joueurs connus de l'arène de persos")
+    @golog.with_operation_context("member.shard")
     async def shard(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
