@@ -1542,6 +1542,7 @@ async def update_tw(
         tw_db_id = str(db_data)
         query = "UPDATE tw_history "\
                 "SET lastUpdated=CURRENT_TIMESTAMP(), "\
+                "    currentRound="+str(currentRound)+", "\
                 "    homeScore="+str(score)+", "\
                 "    awayScore="+str(opp_score)+" "\
                 "WHERE id="+str(tw_db_id)
