@@ -2639,37 +2639,60 @@ class Loop60secsCog(commands.Cog):
 
     @tasks.loop(seconds=60)
     async def _check_locked_bots_60secs(self):
-        golog.log("INFO", "Loop check_locked_bots_60secs")
-        await check_locked_bots_60secs(self.bot)
+        # Each iteration gets a distinct run_id. Context propagates through
+        # awaited calls into nested helpers that use golog.log().
+        with golog.operation_context("check_locked_bots_60secs"):
+            golog.log("INFO", "Loop check_locked_bots_60secs")
+            try:
+                await check_locked_bots_60secs(self.bot)
+            except Exception:
+                # Log the traceback before the context is reset, so it can be
+                # correlated with the rest of this iteration's log messages.
+                golog.log("ERR", traceback.format_exc())
+                raise
+
     @_check_locked_bots_60secs.before_loop
     async def before_checked_locked_bots_60secs(self):
-        golog.log("INFO", "Waiting for Discord ready: check_locked_bots_60secs")
-        await self.bot.wait_until_ready()
-        golog.log("INFO", "Discord ready: check_locked_bots_60secs")
+        with golog.operation_context("check_locked_bots_60secs.before_loop"):
+            golog.log("INFO", "Waiting for Discord ready: check_locked_bots_60secs")
+            await self.bot.wait_until_ready()
+            golog.log("INFO", "Discord ready: check_locked_bots_60secs")
+
     @_check_locked_bots_60secs.error
     async def check_locked_bots_60secs_error(self, error):
-        golog.log(
-            "ERR",
-            f"check_locked_bots_60secs stopped: {type(error).__name__}: {error}"
-        )
-        golog.log("ERR", traceback.format_exc())
+        with golog.operation_context("check_locked_bots_60secs.error"):
+            golog.log(
+                "ERR",
+                f"check_locked_bots_60secs stopped: {type(error).__name__}: {error}"
+            )
+            golog.log("ERR", traceback.format_exc())
 
     @tasks.loop(seconds=60)
     async def _update_rpc_60secs(self):
-        golog.log("INFO", "Loop update_rpc_60secs")
-        await update_rpc_60secs(self.bot)
+        # Separate operation name and run_id from the locked-bot loop.
+        with golog.operation_context("update_rpc_60secs"):
+            golog.log("INFO", "Loop update_rpc_60secs")
+            try:
+                await update_rpc_60secs(self.bot)
+            except Exception:
+                golog.log("ERR", traceback.format_exc())
+                raise
+
     @_update_rpc_60secs.before_loop
     async def before_update_rpcts_60secs(self):
-        golog.log("INFO", "Waiting for Discord ready: update_rpc_60secs")
-        await self.bot.wait_until_ready()
-        golog.log("INFO", "Discord ready: update_rpc_60secs")
+        with golog.operation_context("update_rpc_60secs.before_loop"):
+            golog.log("INFO", "Waiting for Discord ready: update_rpc_60secs")
+            await self.bot.wait_until_ready()
+            golog.log("INFO", "Discord ready: update_rpc_60secs")
+
     @_update_rpc_60secs.error
     async def update_rpc_60secs_error(self, error):
-        golog.log(
-            "ERR",
-            f"update_rpc_60secs stopped: {type(error).__name__}: {error}"
-        )
-        golog.log("ERR", traceback.format_exc())
+        with golog.operation_context("update_rpc_60secs.error"):
+            golog.log(
+                "ERR",
+                f"update_rpc_60secs stopped: {type(error).__name__}: {error}"
+            )
+            golog.log("ERR", traceback.format_exc())
 
 class Loop5minutes(commands.Cog):
     def __init__(self, bot):
