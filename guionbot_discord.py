@@ -3609,6 +3609,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         super().__init__()
 
     @app_commands.command(name="modoptimizer")
+    @golog.with_operation_context("mods.modoptimizer")
     async def modoptimizer(self, interaction: discord.Interaction,
                            fichier: discord.Attachment,
                            simulation: bool=False):
@@ -3722,6 +3723,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         return
 
     @app_commands.command(name="auto-remod")
+    @golog.with_operation_context("mods.auto-remod")
     async def auto_remod(
             self, 
             interaction: discord.Interaction,
@@ -3815,6 +3817,7 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.command(name="enregistre-conf")
     @app_commands.rename(conf_name="nom-conf")
     @app_commands.rename(list_alias_txt="liste-persos")
+    @golog.with_operation_context("mods.enregistre-conf")
     async def save_conf(self, interaction: discord.Interaction,
                            conf_name: str,
                            list_alias_txt: str):
@@ -3875,6 +3878,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         return
 
     # Function used to get dynamic parameters in applique-conf and delete-conf
+    @golog.with_operation_context("mods.list_player_configurations")
     async def list_player_configurations(self, interaction: discord.Interaction, current: str):
         try:
             user_id = interaction.channel.id
@@ -3899,6 +3903,7 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.command(name="applique-conf")
     @app_commands.rename(conf_name="nom-conf")
     @app_commands.autocomplete(conf_name=list_player_configurations)
+    @golog.with_operation_context("mods.applique-conf")
     async def apply_conf(self, interaction: discord.Interaction,
                          conf_name: str,
                          simulation: bool=False):
@@ -3990,6 +3995,7 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.command(name="supprime-conf")
     @app_commands.rename(conf_name="nom-conf")
     @app_commands.autocomplete(conf_name=list_player_configurations)
+    @golog.with_operation_context("mods.supprime-conf")
     async def delete_conf(self, interaction: discord.Interaction,
                          conf_name: str):
         try:
@@ -4040,6 +4046,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="exporte-liste")
+    @golog.with_operation_context("mods.exporte-liste")
     async def export_modoptimizer(self, interaction: discord.Interaction):
         try:
             # Add command to queue, check if bot is locked, check queue size
@@ -4113,6 +4120,7 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.choices(target_level=[
         app_commands.Choice(name="12", value=12),
         app_commands.Choice(name="15", value=15)])
+    @golog.with_operation_context("mods.level-up")
     async def upgrade_mod_level_up(self, interaction: discord.Interaction,
                                       target_level: int,
                                       simulation: bool=False,
@@ -4134,6 +4142,7 @@ class ModsCog(commands.GroupCog, name="mods"):
 
 
     @app_commands.command(name="pose-inventaire")
+    @golog.with_operation_context("mods.pose-inventaire")
     async def allocate_random_mods(self, interaction: discord.Interaction):
         try:
             # run command
@@ -4145,6 +4154,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             remove_command_from_queue(interaction)
 
     @app_commands.command(name="vend-codex")
+    @golog.with_operation_context("mods.vend-codex")
     async def sell_codex_mods(self, interaction: discord.Interaction,
                            fichier: discord.Attachment,
                            max_mods: int=0,
