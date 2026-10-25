@@ -2,6 +2,7 @@
 from datetime import datetime
 from contextlib import contextmanager
 from contextvars import ContextVar
+from functools import wraps
 import inspect
 import uuid
 
@@ -74,6 +75,20 @@ def operation_context(operation, run_id=None, parent_run_id=None):
         yield _log_run_id.get()
     finally:
         reset_log_context(tokens)
+
+
+def with_operation_context(operation):
+    """
+    Decorate an async command/task entry point with its own logging context.
+    The operation name is fixed; each invocation receives a new run_id.
+    """
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            with operation_context(operation):
+                return await func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 ################################################
