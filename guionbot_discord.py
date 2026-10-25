@@ -3241,6 +3241,7 @@ class TwCog(commands.GroupCog, name="gt"):
         super().__init__()
 
     @app_commands.command(name="statut")
+    @golog.with_operation_context("gt.statut")
     async def tw_status(self, interaction: discord.Interaction):
         try:
             # Add command to queue, check if bot is locked, check queue size
@@ -3297,6 +3298,7 @@ class TwCog(commands.GroupCog, name="gt"):
         return
 
     @app_commands.command(name="stats")
+    @golog.with_operation_context("gt.stats")
     async def tw_stats(self, interaction: discord.Interaction):
         try:
             # Check if not is locked
@@ -3341,6 +3343,7 @@ class TwCog(commands.GroupCog, name="gt"):
 
     @app_commands.command(name="défense")
     @app_commands.rename(units="unités")
+    @golog.with_operation_context("gt.défense")
     async def tw_defense(self, interaction: discord.Interaction,
                          zone: str,
                          units: str):
@@ -3378,6 +3381,7 @@ class TwCog(commands.GroupCog, name="gt"):
             await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
     # Function used to get dynamic list of TW opponents
+    @golog.with_operation_context("gt.list_tw_opponents")
     async def list_tw_opponents(self, interaction: discord.Interaction, current: str):
         try:
             user_id = interaction.user.id
@@ -3410,6 +3414,7 @@ class TwCog(commands.GroupCog, name="gt"):
     @app_commands.command(name="contres")
     @app_commands.rename(opponent="adversaire")
     @app_commands.autocomplete(opponent=list_tw_opponents)
+    @golog.with_operation_context("gt.contres")
     async def tw_counters(self, interaction: discord.Interaction,
                          opponent: str):
 
