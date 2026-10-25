@@ -2701,10 +2701,30 @@ class Loop5minutes(commands.Cog):
 
     @tasks.loop(minutes=5)
     async def loop_5minutes(self):
-        await bot_loop_5minutes(self.bot)
+        with golog.operation_context("loop_5minutes"):
+            try:
+                golog.log("INFO", "Loop loop_5minutes")
+                await bot_loop_5minutes(self.bot)
+            except Exception:
+                golog.log("ERR", traceback.format_exc())
+                raise
+
     @loop_5minutes.before_loop
     async def before_loop_5minutes(self):
-        await self.bot.wait_until_ready()
+        with golog.operation_context("loop_5minutes.before_loop"):
+            golog.log("INFO", "Waiting for Discord ready: loop_5minutes")
+            await self.bot.wait_until_ready()
+            golog.log("INFO", "Discord ready: loop_5minutes")
+
+    @loop_5minutes.error
+    async def loop_5minutes_error(self, error):
+        with golog.operation_context("loop_5minutes.error"):
+            golog.log(
+                "ERR",
+                f"loop_5minutes stopped: {type(error).__name__}: {error}"
+            )
+            golog.log("ERR", traceback.format_exc())
+
 
 class Loop60minutes(commands.Cog):
     def __init__(self, bot):
@@ -2713,10 +2733,29 @@ class Loop60minutes(commands.Cog):
 
     @tasks.loop(minutes=60)
     async def loop_60minutes(self):
-        await bot_loop_60minutes(self.bot)
+        with golog.operation_context("loop_60minutes"):
+            try:
+                golog.log("INFO", "Loop loop_60minutes")
+                await bot_loop_60minutes(self.bot)
+            except Exception:
+                golog.log("ERR", traceback.format_exc())
+                raise
+
     @loop_60minutes.before_loop
     async def before_loop_60minutes(self):
-        await self.bot.wait_until_ready()
+        with golog.operation_context("loop_60minutes.before_loop"):
+            golog.log("INFO", "Waiting for Discord ready: loop_60minutes")
+            await self.bot.wait_until_ready()
+            golog.log("INFO", "Discord ready: loop_60minutes")
+
+    @loop_60minutes.error
+    async def loop_60minutes_error(self, error):
+        with golog.operation_context("loop_60minutes.error"):
+            golog.log(
+                "ERR",
+                f"loop_60minutes stopped: {type(error).__name__}: {error}"
+            )
+            golog.log("ERR", traceback.format_exc())
 
 ##############################################################
 # Class: AdminCog
