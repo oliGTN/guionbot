@@ -1343,4 +1343,123 @@ async def sell_mods(
     # Only sell after every required unequip operation has succeeded.
     return await connect_rpc.sell_mods(final_list_mods, txt_allyCode)
 
+################
+# IN: targetTier = "5C" or "5A" or "6E"...
+async def upgrade_tier_mods(dict_player_mods, target_tier, allyCode, is_simu=False, only_speed_sec=False):
+
+    mod_list = godata.get("modList_dict.json")
+
+    if not target_tier in ["5D", "5C", "5B", "5A", "6E", "6D", "6C", "6B", "6A"]:
+        return 1, "Le tier souhaité n'est pas valable"
+
+    target_rarity = int(target_tier[0])
+    target_tier = "EDCBA".index(target_tier[1])+1
+
+    # list all mods below target_tier
+    list_mods = []
+    upgrade_cost = {}
+    for mod_id in dict_player_mods:
+        mod = dict_player_mods[mod_id]
+        mod_tier = mod["tier"]
+        mod_setId = mod["setId"]
+        mod_set = modList[mod_setId]
+        mod_rarity = mod_set["rarity"]
+
+        if mod_rarity<target_rarity or mod_tier<target_tier:
+            if mod_rarity<5:
+                #no upgrade of 4 pip mods and lower
+                continue
+
+            if only_speed_sec:
+                if not "secondaryStat" in mod:
+                    # no secondary = no speed secondary
+                    # exit loop and go to next mod
+                    continue
+
+                has_speed_sec = False
+                for secStat in mod["secondaryStat"]:
+                    if secStat["stat"]["unitStatId"] == 5:
+                        has_speed_sec = True
+                if not has_speed_sec:
+                    # no speed secondary
+                    # exit loop and go to next mod
+                    continue
+
+            list_mods.append(mod_id)
+
+            #Compute cost for tier up
+            if mod_rarity == target_rarity:
+                for recipe_id in range(mod_tier, target_tier):
+                    for ingredient in mod_set["tierUpRecipeTable"][recipe_id]:
+                        if not ingredient in upgrade_cost:
+                            upgrade_cost[ingredient] = 0
+                        upgrade_cost[ingredient] += mod_set["tierUpRecipeTable"][recipe_id][ingredient]
+
+            else:
+                # neet to upgrade tiers, then promote then re-upgrade
+                # 1 upgrade to tier 5
+                for recipe_id in range(mod_tier, 5):
+                    for ingredient in mod_set["tierUpRecipeTable"][recipe_id]:
+                        if not ingredient in upgrade_cost:
+                            upgrade_cost[ingredient] = 0
+                        upgrade_cost[ingredient] += mod_set["tierUpRecipeTable"][recipe_id][ingredient]
+
+                # 2 promote
+                for ingredient in mod_set["promotionRecipe"]:
+                    if not ingredient in upgrade_cost:
+                        upgrade_cost[ingredient] = 0
+                    upgrade_cost[ingredient] += mod_set["tierUpRecipeTable"][recipe_id][ingredient]
+
+                # 3 upgrade to tier 5
+                promoted_mod_set_id = mod_set["promotionId"]
+                promoted_mod_set = modList[promoted_mod_set_id]
+                for recipe_id in range(mod_tier, 5):
+                    for ingredient in promoted_mod_set["tierUpRecipeTable"][recipe_id]:
+                        if not ingredient in upgrade_cost:
+                            upgrade_cost[ingredient] = 0
+                        upgrade_cost[ingredient] += promoted_mod_set["tierUpRecipeTable"][recipe_id][ingredient]
+
+
+    if len(list_mods)==0:
+        return 1, "Aucun mod à passer au tier "+target_tier
+
+    err_code=0
+    if not is_simu:
+        # launch the request
+        for mod in list_mods:
+            if mod_rarity == target_rarity:
+                for tier_up_id in range(mod_tier, target_tier):
+                    err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
+                    if err_code != 0:
+                        return err_code, err_txt
+
+            else:
+                # neet to upgrade tiers, then promote then re-upgrade
+                # 1 upgrade to tier 5
+                for tier_up_id in range(mod_tier, 5):
+                    err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
+                    if err_code != 0:
+                        return err_code, err_txt
+
+                # 2 promote
+                err_code, err_txt = await connect_rpc.promote_mod(mod["id"], allyCode)
+                if err_code != 0:
+                    return err_code, err_txt
+
+                # 3 upgrade to tier 5
+                for tier_up_id in range(1, target_tier):
+                    err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
+                    if err_code != 0:
+                        return err_code, err_txt
+
+    if err_code == 0:
+        mod_count = len(list_mods)
+        if is_simu:
+            cost_txt = "[SIMULATION] "+str(mod_count)+" mods à passer au niveau "+str(target_level)+" ("+str(int(upgrade_cost/100000)/10)+"M crédits nécessaires)"
+        else:
+            cost_txt = str(mod_count)+" mods passés au niveau "+str(target_level)+" ("+str(int(upgrade_cost/100000)/10)+"M crédits)"
+
+        return 0, cost_txt
+    else:
+        return err_code, err_txt
 

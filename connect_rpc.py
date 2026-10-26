@@ -4084,115 +4084,29 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
     return 0, ""
 
 async def reveal_stat_mods(list_mods, txt_allyCode):
-    url = "http://localhost:8000/revealMods"
-    params = {"allyCode": txt_allyCode,
-              "list_mods": list_mods}
-    req_data = json_dumps(params)
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=req_data) as resp:
-                golog.log("DBG", "revealMods status="+str(resp.status))
-                if resp.status==200:
-                    resp_json = await(resp.json())
-
-                elif resp.status==201:
-                    return 1, "ERR: il faut au moins un mod à révéler"
-                else:
-                    return 1, "ERR during RPC revealMods - code "+str(resp.status)
-
-    except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
-    except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
-    except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
-
-    if "err_code" in resp_json:
-        return resp_json["err_code"], resp_json["err_txt"]
-
-    return 0, ""
+    return generic_rpc_call(
+            "revealMods", 
+            {"allyCode": txt_allyCode,
+             "list_mods": list_mods})
 
 async def upgrade_level_mods(list_mods, target_level, txt_allyCode):
-    url = "http://localhost:8000/levelMods"
-    params = {"allyCode": txt_allyCode,
-              "list_mods": list_mods,
-              "mod_level": target_level}
-    req_data = json_dumps(params)
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=req_data) as resp:
-                golog.log("DBG", "levelMods status="+str(resp.status))
-                if resp.status==200:
-                    resp_json = await(resp.json())
-
-                elif resp.status==201:
-                    return 1, "ERR: il faut au moins un mod à monter"
-                else:
-                    return 1, "ERR during RPC levelMods - code "+str(resp.status)
-
-    except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
-    except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
-    except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
-
-    if "err_code" in resp_json:
-        return resp_json["err_code"], resp_json["err_txt"]
-
-    return 0, ""
+    return generic_rpc_call(
+            "levelMods", 
+            {"allyCode": txt_allyCode,
+             "list_mods": list_mods,
+             "mod_level": target_level})
 
 async def get_metadata():
-    url = "http://localhost:8000/metadata"
-    params = {}
-    req_data = json_dumps(params)
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=req_data) as resp:
-                golog.log("DBG", "get metadata status="+str(resp.status))
-                if resp.status==200:
-                    resp_json = await(resp.json())
-                else:
-                    return 1, "ERR during RPC metadata - code "+str(resp.status), None
-
-    except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-
-    if "err_code" in resp_json:
-        return resp_json["err_code"], resp_json["err_txt"]
-
-    metadata = resp_json
-    return 0, "", metadata
+    return generic_rpc_call(
+            "metadata", 
+            {}, 
+            return_data=True)
 
 async def get_shard(allyCode_txt, shard_type):
-    url = "http://localhost:8000/shardleaderboard"
-    params = {"allyCode": allyCode_txt, "shard_type": shard_type}
-    req_data = json_dumps(params)
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=req_data) as resp:
-                golog.log("DBG", "get shardleaderboard status="+str(resp.status))
-                if resp.status==200:
-                    resp_json = await(resp.json())
-                else:
-                    return 1, "ERR during RPC metadata - code "+str(resp.status), None
-
-    except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-
-    if "err_code" in resp_json:
-        return resp_json["err_code"], resp_json["err_txt"]
-
-    shardleaderboard = resp_json
-    return 0, "", shardleaderboard
+    return generic_rpc_call(
+            "shardleaderboard", 
+            {"allyCode": txt_allyCode, "shard_type": shard_type}, 
+            return_data=True)
 
 async def set_zoneOrder(
         guild_id, 
@@ -4222,7 +4136,6 @@ async def set_zoneOrder(
 
     golog.log("DBG", "connected account for "+guild_id+" is "+bot_allyCode)
 
-    url = "http://localhost:8000/zoneOrder"
     params = {"allyCode": bot_allyCode,
               "map_id": map_id,
               "zone_id": zone_id,
@@ -4232,72 +4145,63 @@ async def set_zoneOrder(
     if zone_instance is not None:
         params["zone_instance"] = zone_instance
 
-    req_data = json_dumps(params)
-
-    try:
-        async with session.post(url, data=req_data) as resp:
-            golog.log("DBG", "set zoneOrder status="+str(resp.status))
-            if resp.status==200:
-                resp_json = await(resp.json())
-            else:
-                return 1, "ERR during RPC metadata - code "+str(resp.status)
-
-    except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
-    except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
-    except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
-
-    if "err_code" in resp_json:
-        return resp_json["err_code"], resp_json["err_txt"]
-
-    return 0, ""
+    return generic_rpc_call("zoneOrder", params)
 
 async def bronzium_open(txt_allyCode):
-    # prepare actual server request
-    url = "http://localhost:8000/bronzium"
-    params = {"allyCode":txt_allyCode}
-    req_data = json_dumps(params)
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=req_data) as resp:
-                golog.log("DBG", "bronzium status="+str(resp.status))
-                if resp.status==200:
-                    #normale case
-                    rpc_response = await(resp.json())
-                else:
-                    return 1, "Erreur en ouvrant le pack bronzium - "+str(resp.status)
-
-    except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-
-    if rpc_response!=None and "err_code" in rpc_response:
-        err_txt = rpc_response["err_txt"]
-        return 1, "Erreur en ouvrant le pack bronzium - "+err_txt
-
-    return 0, ""
+    return generic_rpc_call("bronzium", {"allyCode": txt_allyCode})
 
 async def sell_mods(list_mods, txt_allyCode):
-    url = "http://localhost:8000/sellMods"
-    params = {"allyCode": txt_allyCode,
-              "list_mods": list_mods}
+    return generic_rpc_call("sellMods", {"allyCode": txt_allyCode, "list_mods": list_mods})
+
+async def promote_mod(mod_id, txt_allyCode, mod_session=None):
+    params = {"allyCode": txt_allyCode, "mod_id": mod_id}
+    if not mod_session is None:
+        params["mod_session"] = mod_session
+    return generic_rpc_call("promoteMod", params)
+
+async def upgrade_tier_mod(mod_id, txt_allyCode, mod_session=None):
+    params = {"allyCode": txt_allyCode, "mod_id": mod_id}
+    if not mod_session is None:
+        params["mod_session"] = mod_session
+    return generic_rpc_call("tierMod", params)
+
+##################################
+# specific error messages in case of error codes 
+# from the RPC server
+rpc_call_errcodes = {
+        "sellMods": {
+            201: "ERR: il faut au moins un mod à vendre"
+            },
+        "levelMods": {
+            201: "ERR: il faut au moins un mod à monter"
+            },
+        "revealMods": {
+            201: "ERR: il faut au moins un mod à révéler"
+            },
+        }
+
+#####################################
+# Generic RPC call, preventing to copy/paste
+# the code every tome there is a new RPC path
+async def generic_rpc_call(
+        rpc_path, 
+        dict_params, 
+        txt_allyCode,
+        return_data=False):
+    url = "http://localhost:8000/"+rpc_path
+    params = {"allyCode": txt_allyCode} | dict_params
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
-                golog.log("DBG", "sellMods status="+str(resp.status))
+                golog.log("DBG", rpc_path+" status="+str(resp.status))
                 if resp.status==200:
                     resp_json = await(resp.json())
 
-                elif resp.status==201:
-                    return 1, "ERR: il faut au moins un mod à vendre"
+                elif rpc_path in rpc_call_errcodes and resp.status in rpc_call_errcodes[rpc_path]:
+                    return 1, rpc_call_errcodes[rpc_path][resp.status]
                 else:
-                    return 1, "ERR during RPC sellMods - code "+str(resp.status)
+                    return 1, "Erreur durant la requête "+rpc_path+" - code "+str(resp.status)
 
     except asyncio.exceptions.TimeoutError as e:
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
@@ -4306,7 +4210,10 @@ async def sell_mods(list_mods, txt_allyCode):
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
 
-    if "err_code" in resp_json:
+    if resp_json!=None and "err_code" in resp_json:
         return resp_json["err_code"], resp_json["err_txt"]
 
-    return 0, ""
+    if return_data:
+        return 0, "", resp_json
+    else:
+        return 0, ""
