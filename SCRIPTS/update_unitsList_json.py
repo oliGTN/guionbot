@@ -28,10 +28,18 @@ game_data = json.load(open(sys.argv[1], 'r'))
 FRE_FR = json.load(open('DATA/FRE_FR.json', 'r'))
 ENG_US = json.load(open('DATA/ENG_US.json', 'r'))
 
-#First transform materialList into dict
+#First transform some lists into dicts
 materialList_dict = {}
 for material in game_data["material"]:
     materialList_dict[material["id"]] = material
+
+dict_recipes = {}
+for recipe in game_data["recipe"]:
+    dict_recipes[recipe["id"]] = recipe
+
+dict_tables = {}
+for table in game_data["table"]:
+    dict_tables[table["id"]] = table
 
 #"""
 ####################
@@ -263,6 +271,23 @@ for mod in game_data["statMod"]:
     modList_dict[mod['id']] = {"slot": mod["slot"],
                                "setId": mod["setId"],
                                "rarity": mod["rarity"]}
+    print(modList_dict[mod['id']])
+
+    if "promotionRecipeId" in mod and mod["promotionRecipeId"]!='':
+        promotionRecipe = {}
+        for ingredient in dict_recipes[mod["promotionRecipeId"]]["ingredients"]:
+            promotionRecipe[ingredient["id"]] = ingredient["minQuantity"]
+        modList_dict[mod['id']]["promotionRecipe"] = promotionRecipe
+
+    if "tierUpRecipeTableId" in mod and mod["tierUpRecipeTableId"]!='':
+        tierUpRecipeTable = []
+        for tierUpRecipe in dict_tables[mod["tierUpRecipeTableId"]]["row"]:
+            promotionRecipe = {}
+            for ingredient in dict_recipes[tierUpRecipe["value"]]["ingredients"]:
+                promotionRecipe[ingredient["id"]] = ingredient["minQuantity"]
+            tierUpRecipeTable.append(promotionRecipe)
+        modList_dict[mod['id']]["tierUpRecipeTable"] = tierUpRecipeTable
+
 
 fnew = open('DATA'+os.path.sep+'modList_dict.json', 'w')
 fnew.write(json.dumps(modList_dict, sort_keys=True, indent=4))
