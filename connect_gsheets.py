@@ -544,8 +544,12 @@ async def get_tb_triggers(guild_id: str, force_load):
             file = client.open(gfile_name)
             feuille=file.worksheet("BT")
         except gspread.exceptions.SpreadsheetNotFound as e:
-            golog.log("WAR", "File not found: "+gfile_name)
-            return 1, [None, 0]
+                golog.log(
+                    "WAR",
+                    "Spreadsheet not found: " + repr(gfile_name)
+                    + "\\n" + traceback.format_exc()
+                )
+                return 1, [None, 0]
         except:
             golog.log("WAR", "Unexpected error: "+str(sys.exc_info()[0]))
             return 1, [None, 0]
