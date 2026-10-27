@@ -3510,17 +3510,6 @@ class TbCog(commands.GroupCog, name="bt"):
                 remove_command_from_queue(interaction)
                 return
 
-            # Check if not is locked
-            is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
-            if islocked_bot() and not is_owner:
-                golog.log("WAR", "bot is locked")
-                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
-                remove_command_from_queue(interaction)
-                return
-
-            # acknowledge command reception
-            await interaction.response.defer(thinking=True)
-
             #get bot config from DB
             ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
