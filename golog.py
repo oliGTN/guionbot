@@ -108,10 +108,10 @@ def log(level, txt, identifier=None):
     # Other multiline log messages (for example message diffs) remain unchanged.
     if isinstance(txt, str) and (
         "Traceback (most recent call last):" in txt
-        or "\\n  File " in txt
+        or "\n  File " in txt
     ):
-        txt = txt.rstrip().replace("\\r\\n", "\\n").replace("\\r", "\\n")
-        txt = txt.replace("\\n", r"\\n")
+        txt = txt.rstrip().replace("\r\n", "\n").replace("\r", "\n")
+        txt = txt.replace("\n", r"\n")
 
     context = get_log_context()
     context_parts = []
