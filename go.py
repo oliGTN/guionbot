@@ -6755,6 +6755,16 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                 ready_players = None
 
             output_txt += "\nMission "+c[-1]
+
+            #Add mission name if defined
+            zone_id = c[:-9] #remove "_covertXX"
+            if zone_id in dict_tb:
+                c_shortname = c[-8:]
+                if "coverts" in dict_tb[zone_id]:
+                    if c_shortname in dict_tb[zone_id]["coverts"]:
+                        if "name" in dict_tb[zone_id]["coverts"][c_shortname]:
+                            output_txt += " - "+dict_tb[zone_id]["coverts"][c_shortname]["name"]
+
             line_colors.append("black")
             success = 0
             if not c in dict_coverts:

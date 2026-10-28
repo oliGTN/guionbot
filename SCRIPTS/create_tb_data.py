@@ -67,17 +67,27 @@ tb_spe_requirements = {
 }
 
 tb_mission_names = {
-        "tb3_mixed_phase02_conflict01_covert01": "Cere Cal",
         "tb3_mixed_phase02_conflict01_strike01": "Jedi",
-        "tb3_mixed_phase02_conflict01_strike02": "droite",
-        "tb3_mixed_phase02_conflict01_strike03": "gauche",
-        "tb3_mixed_phase02_conflict03_strike01": "Lando jeune",
-        "tb3_mixed_phase02_conflict03_strike03": "Hondo",
-        "tb3_mixed_phase02_conflict03_strike05": "Jabba",
+        "tb3_mixed_phase02_conflict01_covert01": "Cere Cal > Zeffo",
         "tb3_mixed_phase02_conflict02_strike01": "Geonosiens",
         "tb3_mixed_phase02_conflict02_strike02": "Nexu",
         "tb3_mixed_phase02_conflict02_strike03": "Acklay",
         "tb3_mixed_phase02_conflict02_strike04": "Reek",
+        "tb3_mixed_phase02_conflict03_strike01": "Lando jeune",
+        "tb3_mixed_phase02_conflict03_strike03": "Hondo",
+        "tb3_mixed_phase02_conflict03_strike05": "Jabba",
+        "tb3_mixed_phase03_conflict01_strike03": "Wookies",
+        "tb3_mixed_phase03_conflict01_covert01": "Saw Guerrera",
+        "tb3_mixed_phase03_conflict01_bonus_strike02": "UFU",
+        "tb3_mixed_phase03_conflict01_bonus_strike03": "JKCK",
+        "tb3_mixed_phase03_conflict01_bonus_covert01": "Clones",
+        "tb3_mixed_phase03_conflict02_strike02": "Aphra",
+        "tb3_mixed_phase03_conflict02_strike04": "Empire",
+        "tb3_mixed_phase03_conflict02_covert01": "Merrin",
+        "tb3_mixed_phase03_conflict03_strike01": "Fennec",
+        "tb3_mixed_phase03_conflict03_strike04": "Jabba",
+        "tb3_mixed_phase03_conflict03_covert01": "Inquisiteurs > Reva",
+        "tb3_mixed_phase03_conflict03_covert02": "BKM > Mandalore",
         }
 
 

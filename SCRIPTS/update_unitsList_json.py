@@ -41,7 +41,7 @@ dict_tables = {}
 for table in game_data["table"]:
     dict_tables[table["id"]] = table
 
-#"""
+"""
 ####################
 #add custom data
 my_units = [
@@ -65,7 +65,7 @@ with open('DATA/FRE_FR.json', 'w') as f_loc:
 with open('DATA/ENG_US.json', 'w') as f_loc:
     f_loc.write(json.dumps(ENG_US, indent=4))
 ####################
-#"""
+"""
 
 unitsList_dict = {}
 for unit in game_data["units"]:
@@ -234,7 +234,7 @@ dict_categories_by_name = {}
 for x in game_data["units"]:
     if not "any_obtainable" in x["categoryId"]:
         continue
-    if x["rarity"] != 1:
+    if x["rarity"] != 7:
         continue
     if x["obtainableTime"] != "0":
         continue
@@ -271,7 +271,6 @@ for mod in game_data["statMod"]:
     modList_dict[mod['id']] = {"slot": mod["slot"],
                                "setId": mod["setId"],
                                "rarity": mod["rarity"]}
-    print(modList_dict[mod['id']])
 
     if "promotionRecipeId" in mod and mod["promotionRecipeId"]!='':
         promotionRecipe = {}
