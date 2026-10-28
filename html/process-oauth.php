@@ -2,7 +2,7 @@
 require_once 'security.php';
 require 'websitedb.php';
 require 'guionbotdb.php';
-include '/home/pi/GuionBot/SERVER_SECRET/oauth_secret.php';
+include '/home/pi/GuionBot/SERVER_SECRETS/oauth_secret.php';
 
 session_set_cookie_params([
     'lifetime' => 3600 * 24 * 7,

@@ -32,7 +32,7 @@ if (isset($_COOKIE['discord_access_token'])) {
 }
 
 $_SESSION['oauth_state'] = bin2hex(random_bytes(32));
-include 'oauth_secret.php';
+include '/home/pi/GuionBot/SERVER_SECRETS/oauth_secret.php';
 
 $discord_url = 'https://discord.com/oauth2/authorize?client_id='
     . rawurlencode($client_id)
