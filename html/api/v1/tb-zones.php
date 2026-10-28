@@ -176,7 +176,7 @@ try {
                    CASE
                        WHEN z.score >= z.score_step3 THEN 3
                        WHEN z.score >= z.score_step2 THEN 2
-                       WHEN z.score >= z.score_step1 THEN 2
+                       WHEN z.score >= z.score_step1 THEN 1
                        ELSE 0
                    END AS stars
             FROM tb_zones AS z
