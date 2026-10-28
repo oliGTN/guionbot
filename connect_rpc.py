@@ -2242,7 +2242,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         done_strikes = zone["playersParticipated"]
         score = int(zone["zoneStatus"]["score"])
         not_done_strikes = total_players_guild - done_strikes
-        remaining_fight = not_done_strikes * dict_tb[zone_name]["strikes"][strike_shortname][1]
+        remaining_fight = not_done_strikes * dict_tb[zone_name]["strikes"][strike_shortname]["max_score"]
         if not strike_name in dict_strike_zones:
             dict_strike_zones[strike_name] = {}
 
@@ -2785,8 +2785,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             dict_zone_estimates[zone_name] = [0, 0] #score, count
             guild_players = len(dict_tb_players)
             for strike_id in dict_tb[zone_name]["strikes"]:
-                strike = dict_tb[zone_name]["strikes"][strike_id] #[wave count, max score]
-                dict_zone_estimates[zone_name][0] += int(target_zone_percent_value/100*strike[1]*guild_players)
+                strike = dict_tb[zone_name]["strikes"][strike_id]
+                dict_zone_estimates[zone_name][0] += int(target_zone_percent_value/100*strike["max_score"]*guild_players)
                 dict_zone_estimates[zone_name][1] += int(target_zone_percent_value/100*1*guild_players)
 
         #print(dict_zone_estimates)

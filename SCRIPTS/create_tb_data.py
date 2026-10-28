@@ -66,6 +66,20 @@ tb_spe_requirements = {
     }
 }
 
+tb_mission_names = {
+        "tb3_mixed_phase02_conflict01_covert01": "Cere Cal",
+        "tb3_mixed_phase02_conflict01_strike01": "Jedi",
+        "tb3_mixed_phase02_conflict01_strike02": "droite",
+        "tb3_mixed_phase02_conflict01_strike03": "gauche",
+        "tb3_mixed_phase02_conflict03_strike01": "Lando jeune",
+        "tb3_mixed_phase02_conflict03_strike03": "Hondo",
+        "tb3_mixed_phase02_conflict03_strike05": "Jabba",
+        "tb3_mixed_phase02_conflict02_strike01": "Geonosiens",
+        "tb3_mixed_phase02_conflict02_strike02": "Nexu",
+        "tb3_mixed_phase02_conflict02_strike03": "Acklay",
+        "tb3_mixed_phase02_conflict02_strike04": "Reek",
+        }
+
 
 dict_tables = {}
 for t in game_data["table"]:
@@ -155,9 +169,13 @@ for tb in game_data["territoryBattleDefinition"]:
         strike_id = zone_id.split("_")[-1]
 
         score_table = dict_tables[s["encounterRewardTable"]]
-        dict_tb[conflict_id]["strikes"][strike_id] = [int(score_table["row"][-1]["key"]),
-                                                      int(score_table["row"][-1]["value"].split(":")[1]),
-                                                      s["combatType"]]
+        dict_tb[conflict_id]["strikes"][strike_id] = {
+                    "waves": int(score_table["row"][-1]["key"]),
+                    "max_score": int(score_table["row"][-1]["value"].split(":")[1]),
+                    "combat_type": s["combatType"]
+                }
+        if zone_id in tb_mission_names:
+            dict_tb[conflict_id]["strikes"][strike_id]["name"] = tb_mission_names[zone_id]
                                                      
     for c in tb["covertZoneDefinition"]:
         #print(c)
@@ -167,6 +185,8 @@ for tb in game_data["territoryBattleDefinition"]:
         dict_tb[conflict_id]["coverts"][covert_id] = {}
         if zone_id in tb_spe_requirements:
             dict_tb[conflict_id]["coverts"][covert_id]["requirements"] = tb_spe_requirements[zone_id]
+        if zone_id in tb_mission_names:
+            dict_tb[conflict_id]["coverts"][covert_id]["name"] = tb_mission_names[zone_id]
 
 
     for r in tb["reconZoneDefinition"]:
