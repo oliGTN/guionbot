@@ -197,6 +197,7 @@
     const afterQ = row.after && row.after.points != null ? row.after.points : (tier && tier.pts != null ? tier.pts : (row.advice && row.advice.pts_ideal));
     const gainRaw = Number(afterQ) - Number(beforeQ);
     const gain = beforeQ != null && afterQ != null && Number.isFinite(gainRaw) ? gainRaw : Number(row.advice && row.advice.gain);
+    const maxQ = (row.advice && row.advice.max) || (row.after && row.after.max) || (row.before && row.before.max) || '—';
     const statQMax = row.before && Array.isArray(row.before.stats) ? row.before.stats.length * 4 : (row.before && row.before.max != null ? row.before.max : maxQ);
     const name = row.hero || row.name || row.base || ('Character ' + (index + 1));
     const base = row.base || row.id || '';
@@ -226,7 +227,6 @@
     }).join('');
     const alternatives = row.advice && Array.isArray(row.advice.tiers) ? row.advice.tiers : [];
     const tierRows = alternatives.map(t => '<tr><td>' + esc(t.pts == null ? '—' : t.pts) + '</td><td>' + esc(t.gain == null ? '—' : t.gain) + '</td><td>' + esc(t.n_replace == null ? '—' : t.n_replace) + '</td><td>' + esc(Array.isArray(t.sets_after) ? t.sets_after.map(s => Array.isArray(s) ? s[1] + ' ' + s[0] : '').filter(Boolean).join(' + ') : '—') + '</td></tr>').join('');
-    const maxQ = (row.advice && row.advice.max) || (row.after && row.after.max) || (row.before && row.before.max) || '—';
     const search = (name + ' ' + base + ' ' + statSummary + ' ' + setText).toLowerCase();
     return '<details class="remod-plan-card" data-unit-id="' + esc(base) + '" data-name="' + esc(String(name).toLowerCase()) + '" data-replacements="' + replacements + '" data-gain="' + (Number.isFinite(gain) ? gain : -999) + '" data-search="' + esc(search) + '">' +
       '<summary class="remod-plan-summary"><span class="remod-rank">' + (index + 1) + '</span>' +

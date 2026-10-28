@@ -342,6 +342,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 </div>
                 <div id="remodActions" hidden>
                     <button class="remod-button" id="remodShowResults" type="button">Show results</button>
+                    <button class="remod-button secondary" id="remodDownloadZipEarly" type="button" hidden>Download results.zip</button>
                     <button class="remod-button secondary" id="remodForget" type="button">Clear this result</button>
                 </div>
             </section>
@@ -445,6 +446,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
     const cancelJobButton = document.getElementById('remodCancelJob');
     const actions = document.getElementById('remodActions');
     const showResultsButton = document.getElementById('remodShowResults');
+    const downloadZipEarlyButton = document.getElementById('remodDownloadZipEarly');
     const downloadButtons = document.getElementById('remodResultDownloads');
     const downloadZipButton = document.getElementById('remodDownloadZip');
     const downloadPlanButton = document.getElementById('remodDownloadPlan');
@@ -620,6 +622,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         submitButton.disabled = value || selectedInputTab === 'statq';
         statqSubmit.disabled = value || selectedInputTab !== 'statq';
         showResultsButton.disabled = value;
+        downloadZipEarlyButton.disabled = value;
         downloadZipButton.disabled = value;
         downloadPlanButton.disabled = value;
         forgetButton.disabled = value;
@@ -672,6 +675,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 progressWrap.hidden = true;
                 actions.hidden = false;
                 showResultsButton.hidden = true;
+                downloadZipEarlyButton.hidden = true;
                 showMessage('Calculation cancelled by request.');
             } else if (name === 'done') {
                 cancelJobButton.hidden = true;
@@ -681,6 +685,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
                 progressText.textContent = '100% — calculation complete';
                 actions.hidden = false;
                 showResultsButton.hidden = false;
+                downloadZipEarlyButton.hidden = false;
                 showResultsButton.textContent = activeJobMode === 'statq' ? 'Show StatQ results' : 'Show results';
                 showMessage(activeJobMode === 'statq' ? 'StatQ complete. Click Show StatQ results to view the score table.' : 'Remod complete. Click Show results to display the character cards.');
             } else if (name === 'error') {
@@ -796,6 +801,7 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
         actions.hidden = true;
         resultsSection.hidden = true;
         downloadButtons.hidden = true;
+        downloadZipEarlyButton.hidden = true;
         resultsZipBlob = null;
         planJsonText = null;
         progressWrap.hidden = true;
@@ -861,20 +867,45 @@ if (is_readable($codex_units_file) && is_readable($codex_categories_file)) {
             selectResultTab(index === 0 ? 'delete' : 'plan');
         }
     }));
+    async function ensureResultsZip() {
+        if (resultsZipBlob) return resultsZipBlob;
+        const data = new FormData();
+        data.append('action', 'download');
+        data.append('csrf', csrf);
+        const response = await fetch('codexcon.php', { method: 'POST', body: data, credentials: 'same-origin' });
+        if (!response.ok) {
+            const body = await response.json().catch(function () { return {}; });
+            throw new Error(body.error || 'Unable to retrieve results.');
+        }
+        const blob = await response.blob();
+        const signature = new Uint8Array(await blob.slice(0, 2).arrayBuffer());
+        if (signature[0] !== 0x50 || signature[1] !== 0x4B) {
+            throw new Error('The server response is not a valid ZIP archive.');
+        }
+        resultsZipBlob = blob;
+        return resultsZipBlob;
+    }
+
+    downloadZipEarlyButton.addEventListener('click', async function () {
+        if (busy) return;
+        setBusy(true);
+        try {
+            const blob = await ensureResultsZip();
+            downloadBlob(blob, 'codex-remod-results.zip');
+            showMessage('Results ZIP downloaded.');
+        } catch (error) {
+            showMessage(error.message || 'Unable to download results ZIP.', true);
+        } finally {
+            setBusy(false);
+        }
+    });
+
     showResultsButton.addEventListener('click', async function () {
         if (busy) return;
         setBusy(true);
         showMessage(activeJobMode === 'statq' ? 'Loading StatQ results from the service…' : 'Loading the completed plan from the remod service…');
         try {
-            const data = new FormData();
-            data.append('action', 'download');
-            data.append('csrf', csrf);
-            const response = await fetch('codexcon.php', { method: 'POST', body: data, credentials: 'same-origin' });
-            if (!response.ok) {
-                const body = await response.json().catch(function () { return {}; });
-                throw new Error(body.error || 'Unable to retrieve results.');
-            }
-            resultsZipBlob = await response.blob();
+            resultsZipBlob = await ensureResultsZip();
             if (activeJobMode === 'statq') {
                 statqCsvBlob = await window.codexRemodExtractArchiveFile(resultsZipBlob, 'statq.csv');
                 const statqCsvText = await statqCsvBlob.text();
