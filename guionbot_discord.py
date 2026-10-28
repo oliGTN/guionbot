@@ -3077,11 +3077,19 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         query = "select name, discord_id from players join player_discord on players.allyCode=player_discord.allyCode where guildName = (select guildName from players where allyCode="+allyCode+")"
         golog.log("DBG", query)
         db_data = await connect_mysql.get_table_async(query)
+
+        ret_txt = ""
         for line in db_data:
             if line[1]==None:
-                golog.log("INFO", "No discord ID for "+line[0])
+                line_txt = "No discord ID for "+line[0]
             elif not line[1] in list_reactive_user_id:
-                golog.log("INFO", line[0]+" has not reacted to the message")
+                line_txt = line[0]+" has not reacted to the message"
+            golog.log("INFO", line_txt)
+            ret_txt += line_txt + '\n'
+
+        #display the result in discord
+        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+            await ctx.send(txt)
 
         await ctx.message.add_reaction(emojis.check)
 
