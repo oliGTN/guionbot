@@ -1308,6 +1308,10 @@ async def store_tb_events(guild_id, tb_id, list_events):
         event_type = activity_log["key"]
         zone_id = zone_data["zoneId"]
         params = activity_log.get("param", [])
+        if "sourceZoneId" in zone_data:
+            sourceZoneId = zone_data["sourceZoneId"]
+        else:
+            sourceZoneId = None
 
         if "CONFLICT_CONTRIBUTION" in event_type:
             param0 = params[0]["paramValue"][0]
@@ -1322,7 +1326,8 @@ async def store_tb_events(guild_id, tb_id, list_events):
                 author_id,
                 param0,
                 param2,
-                param3
+                param3,
+                sourceZoneId
             ))
 
         elif "COVERT_COMPLETE" in event_type:
@@ -1335,7 +1340,8 @@ async def store_tb_events(guild_id, tb_id, list_events):
                 author_id,
                 None,
                 None,
-                None
+                None,
+                sourceZoneId
             ))
 
         elif "CONFLICT_DEPLOY" in event_type:
@@ -1349,7 +1355,8 @@ async def store_tb_events(guild_id, tb_id, list_events):
                 author_id,
                 param0,
                 None,
-                None
+                None,
+                sourceZoneId
             ))
 
         elif "RECON_CONTRIBUTION" in event_type:
@@ -1365,7 +1372,8 @@ async def store_tb_events(guild_id, tb_id, list_events):
                 author_id,
                 param0,
                 param2,
-                param3
+                param3,
+                sourceZoneId
             ))
 
         # Give other asyncio tasks a chance to run
@@ -1384,11 +1392,13 @@ async def store_tb_events(guild_id, tb_id, list_events):
             author_id,
             param0,
             param2,
-            param3
+            param3,
+            source_zone_id
         )
         VALUES (
             %s,
             FROM_UNIXTIME(%s * 0.001),
+            %s,
             %s,
             %s,
             %s,
