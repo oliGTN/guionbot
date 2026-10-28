@@ -657,18 +657,6 @@ async def apply_config_allocations(config_name, txt_allyCode, is_simu, interacti
 
 ########################################
 async def get_modopti_export(txt_allyCode, prev_modopti_content=None):
-    mod_list = godata.get("modList_dict.json")
-    dict_unitsList = godata.get("unitsList_dict.json")
-
-    # get swgoh.gg character list for images
-    #swgohgg_characters_url = 'https://swgoh.gg/api/characters'
-    #golog.log("DBG", "Get data from " + swgohgg_characters_url)
-    #r = requests.get(swgohgg_characters_url, allow_redirects=True)
-    #list_characters = json.loads(r.content.decode('utf-8'))
-    #dict_images = {}
-    #for c in list_characters:
-    #    dict_images[c["base_id"]] = c["image"]
-    swgohgg_img_path = "https://game-assets.swgoh.gg/textures/"
 
     #Get player API data
     ec, et, dict_player = await go.load_player(txt_allyCode, 1, True)
@@ -680,12 +668,27 @@ async def get_modopti_export(txt_allyCode, prev_modopti_content=None):
     #Get player API initialdata
     ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
     if ec!=0:
-        return ec, et, None
+        golog.log("WAR", "cannot get initialdata for "+txt_allyCode+" > assume empty")
+        initialdata = None
 
     #Add stats
     ec, et, dict_player = connect_crinolo.add_base_stats(dict_player)
     if ec!=0:
         return ec, et, None
+
+    return await get_modopti_export_from_playerdata(
+            dict_player,
+            initialdata=initialdata,
+            prev_modopti_content=prev_modopti_content)
+
+async def get_modopti_export_from_playerdata(
+        dict_player, 
+        initialdata=None,
+        prev_modopti_content=None):
+
+    dict_unitsList = godata.get("unitsList_dict.json")
+    swgohgg_img_path = "https://game-assets.swgoh.gg/textures/"
+    txt_allyCode = str(dict_player["allyCode"])
 
     modopti_export = {}
     modopti_export["profiles"] = []
@@ -929,7 +932,7 @@ async def get_modopti_export(txt_allyCode, prev_modopti_content=None):
         modopti_export["gameSettings"].append(my_unit_setting)
 
     #Loop on unequipped mods
-    if "unequippedMod" in initialdata["inventory"]:
+    if not initialdata is None and "unequippedMod" in initialdata["inventory"]:
         for mod in initialdata["inventory"]["unequippedMod"]:
             modopti_mod = mod_to_modopti(mod, None)
             my_profile["mods"].append(modopti_mod)
