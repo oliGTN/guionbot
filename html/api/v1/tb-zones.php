@@ -178,12 +178,12 @@ try {
                        WHEN z.score >= z.score_step2 THEN 2
                        WHEN z.score >= z.score_step1 THEN 1
                        ELSE 0
-                   END AS stars
+                   END AS stars,
+                   z.round = h.current_round AS open
             FROM tb_zones AS z
             INNER JOIN tb_history AS h ON h.id = z.tb_id
             WHERE h.guild_id = :guild_id
               AND h.stars_final IS NULL
-              AND z.round = h.current_round
             LIMIT 5001';
     $statement = $conn_guionbot->prepare($sql);
     $statement->execute([':guild_id' => $config['guild_id']]);
