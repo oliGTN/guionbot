@@ -302,7 +302,7 @@ if ($action === 'sell_mods') {
             codex_json_response(400, ['error' => 'Invalid mod ID in selection.']);
         }
     }
-    $tokenFile = '/home/pi/GuionBot/web_commands.token';
+    $tokenFile = '/home/pi/GuionBot/SERVER_SECRETS/web_commands.token';
     if (!is_readable($tokenFile)) {
         error_log('Codex Remod sell mods: web commands token file is unreadable.');
         codex_json_response(503, ['error' => 'Web commands service is not configured.']);

@@ -20,7 +20,7 @@ if (isset($entityBody['guild_id'])) {
     list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
     if (($isMyGuildConfirmed & $isOfficer) | $isAdmin) {
-        $token_file = '/home/pi/GuionBot/web_commands.token';
+        $token_file = '/home/pi/GuionBot/SERVER_SECRETS/web_commands.token';
 
         if (!is_readable($token_file)) {
             $err_code = 500;

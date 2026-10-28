@@ -108,7 +108,7 @@ if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METH
         }
         $validatedTeams[] = ['zone' => $zone, 'units' => array_values($units), 'datacronId' => $datacronId];
     }
-    $tokenFile = '/home/pi/GuionBot/web_commands.token';
+    $tokenFile = '/home/pi/GuionBot/SERVER_SECRETS/web_commands.token';
     if (!is_readable($tokenFile)) {
         error_log('PTW push teams: web commands token file is unreadable.');
         $respond(503, ['err_code' => 503, 'err_txt' => 'Web commands service is not configured.']);

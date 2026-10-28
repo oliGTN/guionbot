@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * Read-only API: current unfinished TB platoons for one configured guild.
  *
- * The API key and fixed guild ID are loaded from /etc/guionbot/tb_platoons_api.php,
+ * The API key and fixed guild ID are loaded from /home/pi/GuionBot/SERVER_SECRETS/web_api.php,
  * outside the web document root. Database settings and the PDO connection are
  * reused from html/guionbotdb.php. See docs/tb-platoons-api.md.
  */
@@ -53,7 +53,7 @@ if (trim($body) !== '') {
     }
 }
 
-$configPath = '/etc/guionbot/tb_platoons_api.php';
+$configPath = '/home/pi/GuionBot/SERVER_SECRETS/web_api.php';
 if (!is_file($configPath) || !is_readable($configPath)) {
     error_log('TB platoons API configuration is missing or unreadable');
     apiRespond(503, ['success' => false, 'error' => 'Service unavailable']);

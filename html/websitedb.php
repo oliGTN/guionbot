@@ -1,7 +1,7 @@
 <?php
 $host = 'localhost';
 $dbname = 'websitedb';
-include 'websitedb_secret.php'; // defines $username and $password
+include '/home/pi/GuionBot/SERVER_SECRETS/websitedb_secret.php';
 
 try {
     $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);

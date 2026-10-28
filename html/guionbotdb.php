@@ -1,7 +1,7 @@
 <?php
 $host = 'localhost';
 $dbname = 'guionbotdb';
-include 'websitedb_secret.php';
+include '/home/pi/GuionBot/SERVER_SECRETS/websitedb_secret.php';
 
 try {
     $conn_guionbot = new PDO(
