@@ -16,24 +16,13 @@ Requires HTTPS. Limits: 5 requests per rolling minute and 1,000 per rolling 24 h
 
 Deploy `html/api/v1/tb-platoons.php` from the `chatgpt` branch into the corresponding directory under your website document root.
 
-## 2. Create a restricted MariaDB account
+## 2. Database connection
 
-Run as a MariaDB administrator; replace the example password with a unique random value. Do not commit it to Git.
+The endpoint uses `require_once dirname(__DIR__, 2) . '/guionbotdb.php';` to reuse the website's existing connection. That file already loads `websitedb_secret.php`, defines `$host` and `$dbname`, and creates `$conn_guionbot` using `$username` and `$password`. No duplicate database credentials are needed in the API configuration.
 
-```sql
-CREATE USER 'tb_platoons_api'@'localhost'
-  IDENTIFIED BY 'REPLACE_WITH_A_LONG_RANDOM_PASSWORD';
+**Privilege note:** this means the endpoint uses the existing `website` database account and inherits its grants. The endpoint itself only executes the fixed SELECT query, but if `website` has write permissions, this is not database-enforced read-only isolation. We can review the account's grants separately if you want to tighten them without changing other website features.
 
-GRANT SELECT (platoon_name, unit_name, player_name)
-  ON guionbotdb.tb_platoons TO 'tb_platoons_api'@'localhost';
-
-GRANT SELECT (id, guild_id, stars_final)
-  ON guionbotdb.tb_history TO 'tb_platoons_api'@'localhost';
-```
-
-This grants only column-level SELECT access needed by the endpoint, and no write privileges. If the account already exists, inspect its grants before changing anything.
-
-## 3. Configure secrets outside the website root
+## 3. Configure API secrets outside the website root
 
 Generate an API key on the Raspberry Pi:
 
@@ -50,17 +39,13 @@ sudo chown root:www-data /etc/guionbot/tb_platoons_api.php
 sudo chmod 0640 /etc/guionbot/tb_platoons_api.php
 ```
 
-File contents (replace both placeholders):
+File contents (replace the API key placeholder; the guild ID is already set):
 
 ```php
 <?php
 return [
     'api_key' => 'PASTE_THE_RANDOM_KEY_HERE',
     'guild_id' => 'oroRFpT_QdqL-BqbAs0UZA',
-    'db_host' => 'localhost',
-    'db_name' => 'guionbotdb',
-    'db_user' => 'tb_platoons_api',
-    'db_password' => 'REPLACE_WITH_THE_DATABASE_PASSWORD',
 ];
 ```
 
@@ -94,6 +79,6 @@ The returned values depend on the database. If there is no unfinished TB for the
 
 - Verify a valid HTTPS certificate is installed.
 - Check the configuration file is outside the web root and has restrictive permissions.
-- Check grants with `SHOW GRANTS FOR 'tb_platoons_api'@'localhost';`.
+- Confirm the existing website DB connection works and inspect the `website` account's grants if you need database-enforced read-only isolation.
 - Test invalid key (401), GET request (405), non-empty body (400), and repeated requests (429).
 - If the remote server later has a stable public IP, consider an IP allowlist at the firewall or reverse proxy.

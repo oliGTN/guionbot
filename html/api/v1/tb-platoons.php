@@ -4,8 +4,9 @@ declare(strict_types=1);
 /**
  * Read-only API: current unfinished TB platoons for one configured guild.
  *
- * Secrets and database credentials are loaded from /etc/guionbot/tb_platoons_api.php,
- * outside the web document root. See docs/tb-platoons-api.md.
+ * The API key and fixed guild ID are loaded from /etc/guionbot/tb_platoons_api.php,
+ * outside the web document root. Database settings and the PDO connection are
+ * reused from html/guionbotdb.php. See docs/tb-platoons-api.md.
  */
 
 function apiRespond(int $status, array $payload, array $extraHeaders = []): void
@@ -64,7 +65,7 @@ if (!is_array($config)) {
     apiRespond(503, ['success' => false, 'error' => 'Service unavailable']);
 }
 
-$requiredConfig = ['api_key', 'guild_id', 'db_host', 'db_name', 'db_user', 'db_password'];
+$requiredConfig = ['api_key', 'guild_id'];
 foreach ($requiredConfig as $key) {
     if (!isset($config[$key]) || !is_string($config[$key]) || $config[$key] === '') {
         error_log('TB platoons API configuration is missing a required value');
@@ -162,17 +163,13 @@ if ($rateError !== null) {
 }
 
 try {
-    $dsn = sprintf(
-        'mysql:host=%s;dbname=%s;charset=utf8mb4',
-        $config['db_host'],
-        $config['db_name']
-    );
-    $pdo = new PDO($dsn, $config['db_user'], $config['db_password'], [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_EMULATE_PREPARES => false,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_TIMEOUT => 5,
-    ]);
+    // Reuse the existing website DB configuration and PDO connection.
+    // This file defines $host, $dbname, $username, $password and $conn_guionbot.
+    require_once dirname(__DIR__, 2) . '/guionbotdb.php';
+
+    if (!isset($conn_guionbot) || !($conn_guionbot instanceof PDO)) {
+        throw new RuntimeException('Website database connection is unavailable');
+    }
 
     // The guild ID is server configuration, never client input.
     $sql = 'SELECT p.platoon_name, p.unit_name, p.player_name
@@ -181,13 +178,15 @@ try {
             WHERE h.guild_id = :guild_id
               AND h.stars_final IS NULL
             LIMIT 5001';
-    $statement = $pdo->prepare($sql);
+    $statement = $conn_guionbot->prepare($sql);
     $statement->execute([':guild_id' => $config['guild_id']]);
     $rows = $statement->fetchAll();
-    $pdo = null;
 } catch (PDOException $exception) {
     // Do not send SQL details, credentials, or internal database errors to the client.
     error_log('TB platoons API database query failed; SQLSTATE=' . (string) $exception->getCode());
+    apiRespond(500, ['success' => false, 'error' => 'Unable to retrieve platoon data']);
+} catch (Throwable $exception) {
+    error_log('TB platoons API database setup failed; exception=' . get_class($exception));
     apiRespond(500, ['success' => false, 'error' => 'Unable to retrieve platoon data']);
 }
 
