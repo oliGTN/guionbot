@@ -31,7 +31,7 @@ Example (valid JSON):
   "ally_code": "111222333",
   "discord_id": "111111111111111111",
   "planets": {
-    "Haven-class Medical Station (DS4)": {
+    "Zeffo": {
       "zone_id": "P4-C2-B",
       "planet_strategy": "FULL",
       "platoons": {
@@ -81,7 +81,7 @@ A fully successful deployment returns HTTP 200:
   "results": [
     {
       "planet": "Haven-class Medical Station (DS4)",
-      "zone_id": "tb3_mixed_phase04_conflict02_recon01",
+      "zone_id": "tb3_mixed_phase04_conflict02_bonus",
       "squad_id": "tb3-platoon-6",
       "requested_defIds": ["BASTILASHANDARK", "VADER"],
       "err_code": 0,
