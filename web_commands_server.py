@@ -223,7 +223,13 @@ async def handle_deploy_tb_platoons(request):
             if not isinstance(platoons, dict):
                 return web.json_response({"err_code": 400, "err_txt": "Missing platoons object for " + planet_name}, status=400)
 
-            for platoon_number, assignments in platoons.items():
+            for platoon_number, platoon_data in platoons.items():
+                if not isinstance(platoon_data, dict):
+                    return web.json_response({"err_code": 400, "err_txt": "Invalid platoon object"}, status=400)
+                platoon_strategy = platoon_data.get("platoon_strategy")
+                if platoon_strategy not in ("FULL", "PRELOAD"):
+                    return web.json_response({"err_code": 400, "err_txt": "Invalid or missing platoon_strategy; expected FULL or PRELOAD"}, status=400)
+                assignments = platoon_data.get("assignments")
                 if not isinstance(assignments, list):
                     return web.json_response({"err_code": 400, "err_txt": "Invalid platoon assignment list"}, status=400)
                 for assignment in assignments:
@@ -242,8 +248,11 @@ async def handle_deploy_tb_platoons(request):
                             "zone_id": zone_id,
                             "squad_id": squad_id,
                             "planet": planet_name,
+                            "platoon_strategy": platoon_strategy,
                             "requested_defIds": [],
                         }
+                    elif groups[key]["platoon_strategy"] != platoon_strategy:
+                        return web.json_response({"err_code": 400, "err_txt": "Conflicting platoon_strategy for the same platoon"}, status=400)
                     if unit_id in groups[key]["requested_defIds"]:
                         return web.json_response({"err_code": 400, "err_txt": "Duplicate unit_id in the same platoon"}, status=400)
                     groups[key]["requested_defIds"].append(unit_id)
@@ -265,6 +274,7 @@ async def handle_deploy_tb_platoons(request):
                 group["zone_id"],
                 group["squad_id"],
                 group["requested_defIds"],
+                preload=(group["platoon_strategy"] == "PRELOAD"),
             )
             """
 
@@ -289,6 +299,7 @@ async def handle_deploy_tb_platoons(request):
                 "planet": group["planet"],
                 "zone_id": group["zone_id"],
                 "squad_id": group["squad_id"],
+                "platoon_strategy": group["platoon_strategy"],
                 "requested_defIds": group["requested_defIds"],
                 "err_code": int(err_code),
                 "err_txt": str(err_txt or ""),
