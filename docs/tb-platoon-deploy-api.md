@@ -56,27 +56,6 @@ Example (valid JSON):
 ```
 
 The zone code must match `P<phase>-C<conflict>`, for example `P4-C2`.
-It is converted to the game zone identifier by zero-padding both numbers and
-appending the recon suffix:
-
-- `P4-C2` -> `tb3_mixed_phase04_conflict02_recon01`
-
-For each distinct `(zone_id, squad_id)` pair, the service makes one call:
-
-```python
-await connect_rpc.platoon_tb(
-    txt_allyCode,
-    zone_id,
-    platoon_id,
-    requested_defIds
-)
-```
-
-- `txt_allyCode`: top-level `ally_code`.
-- `zone_id`: converted game zone identifier.
-- `platoon_id`: assignment `squad_id`.
-- `requested_defIds`: the `unit_id` values for that pair, in their original
-  JSON order. The first listed unit remains first in the RPC request.
 
 The service groups entries in first-seen order. It continues to later platoons
 if an earlier RPC call fails, and returns an individual result for every group.
