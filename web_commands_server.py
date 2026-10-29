@@ -258,12 +258,32 @@ async def handle_deploy_tb_platoons(request):
         results = []
         succeeded = 0
         for group in groups.values():
+            """
             err_code, err_txt, result = await connect_rpc.platoon_tb(
                 ally_code,
                 group["zone_id"],
                 group["squad_id"],
                 group["requested_defIds"],
             )
+            """
+
+            #####################
+            # TEST PHASE
+            golog.log(
+                    "INFO", 
+                    "CALL connect_rpc.platoon_tb(" \
+                   +"ally_code="+ally_code \
+                   +"zone_id="+group["zone_id"],
+                   +"platoon_id="+group["squad_id"],
+                   +"requested_defIds="+str(group["requested_defIds"])
+                   )
+            err_code = 0
+            err_txt = ""
+            result = {"noneedToDeploy_defIds": [],
+                      "playerUsed_defIds": [],
+                      "deployed_defIds": group["requested_defIds"]}
+            #####################
+
             item = {
                 "planet": group["planet"],
                 "zone_id": group["zone_id"],
