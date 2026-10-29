@@ -3768,6 +3768,9 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds, preloa
     if preload:
         available_slots = max(0, 14 - platoon_deployed_count)
         deployable_defIds = set(toDeploy_defIds)
+
+        #Next line ensures the uits are selected by order of the input list
+        # as it is the priority order (rare units first)
         toDeploy_defIds = [
             unit_defId for unit_defId in requested_defIds
             if unit_defId in deployable_defIds
