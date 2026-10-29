@@ -3689,7 +3689,7 @@ async def deploy_tw(guild_id, txt_allyCode, teams):
 # OUT: err_code = 0 > no/partial/all units deployed
 # OUT: err_code = 1 > error
 ################################################
-async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
+async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds, preload=False):
     # get player roster
     # use CACHE data as unit IDs do not change often
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
@@ -3729,9 +3729,10 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     # look for the required unitDefId, in the right zone
     # then take first occurrence not taken,
     # and remember the squad id
-    toDeploy_defIds = [] # this list is used to check if the unit 
+    toDeploy_defIds = [] # this list is used to check if the unit
                          # is already deployed by the player
     dict_defId_squad = {} #key=defId / value = squad_id
+    platoon_deployed_count = 0
     for reconZone in tb["reconZoneStatus"]:
         if reconZone["zoneStatus"]["zoneId"] != zone_id:
             continue
@@ -3742,7 +3743,8 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                 squad_id = squad["id"]
                 for unit in squad["unit"]:
                     if unit["memberId"] != "":
-                        # unit already taken by a player
+                        # Count every occupied slot in the platoon, regardless of squad/player.
+                        platoon_deployed_count += 1
                         continue
                     unit_defId = unit["unitIdentifier"].split(':')[0]
                     if unit_defId in requested_defIds and not unit_defId in toDeploy_defIds:
@@ -3760,6 +3762,16 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                     if unit_defId in toDeploy_defIds:
                         playerUsed_defIds.append(unit_defId)
                         toDeploy_defIds.remove(unit_defId)
+
+    # Preload mode reserves a maximum of 14 occupied unit slots for this
+    # entire platoon, across all squads. Prioritize units in caller-provided order.
+    if preload:
+        available_slots = max(0, 14 - platoon_deployed_count)
+        deployable_defIds = set(toDeploy_defIds)
+        toDeploy_defIds = [
+            unit_defId for unit_defId in requested_defIds
+            if unit_defId in deployable_defIds
+        ][:available_slots]
 
     if len(toDeploy_defIds) == 0:
         return 0, "", {"noneedToDeploy_defIds": [],
