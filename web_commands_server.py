@@ -210,13 +210,14 @@ async def handle_deploy_tb_platoons(request):
                 return web.json_response({"err_code": 400, "err_txt": "Invalid planet entry"}, status=400)
 
             zone_id_input = planet.get("zone_id")
-            zone_match = re.fullmatch(r"P([0-9]{1,2})-C([0-9]{1,2})", zone_id_input) if isinstance(zone_id_input, str) else None
+            zone_match = re.fullmatch(r"P([0-9]{1,2})-C([0-9]{1,2})(-B)?", zone_id_input) if isinstance(zone_id_input, str) else None
             if not zone_match:
                 return web.json_response({"err_code": 400, "err_txt": "Invalid zone_id for " + planet_name}, status=400)
-            phase_number, conflict_number = map(int, zone_match.groups())
+            phase_number, conflict_number = map(int, zone_match.groups()[:2])
             if phase_number < 1 or phase_number > 99 or conflict_number < 1 or conflict_number > 99:
                 return web.json_response({"err_code": 400, "err_txt": "zone_id is out of range for " + planet_name}, status=400)
-            zone_id = "tb3_mixed_phase{:02d}_conflict{:02d}_recon01".format(phase_number, conflict_number)
+            zone_suffix = "bonus_recon01" if zone_match.group(3) == "-B" else "recon01"
+            zone_id = "tb3_mixed_phase{:02d}_conflict{:02d}_{}".format(phase_number, conflict_number, zone_suffix)
 
             platoons = planet.get("platoons")
             if not isinstance(platoons, dict):
