@@ -105,7 +105,7 @@ if (count($timestamps) >= 100) {
     sort($timestamps, SORT_NUMERIC);
     $rateError = 'Daily deployment request limit exceeded';
     $retryAfter = max(1, $timestamps[count($timestamps) - 100] + 86400 - $now + 1);
-} elseif (count($recent) >= 2) {
+} elseif (count($recent) >= 20) {
     sort($recent, SORT_NUMERIC);
     $rateError = 'Deployment rate limit exceeded';
     $retryAfter = max(1, $recent[0] + 60 - $now + 1);
