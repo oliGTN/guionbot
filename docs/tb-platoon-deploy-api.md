@@ -21,50 +21,48 @@ The request must contain a 9-digit `ally_code` and a non-empty `planets` object.
 Other plan metadata (such as `plan_id`, `phase`, `player`, and `discord_id`)
 is accepted but not used for deployment.
 
-Example (valid JSON):
+Example (valid JSON), retaining the plan format produced by the planner:
 
 ```json
 {
-  "plan_id": "a1b2c3d4",
-  "phase": 4,
-  "player": "ExamplePlayer",
-  "ally_code": "111222333",
-  "discord_id": "111111111111111111",
+  "plan_id": "5397005f",
+  "phase": 5,
+  "player": "Gui On Ensai",
+  "ally_code": "189341793",
+  "discord_id": "566552780647563285",
   "planets": {
-    "Zeffo": {
-      "zone_id": "P4-C2-B",
+    "Haven-class Medical Station (DS4)": {
+      "zone_id": "P4-C2",
+      "planet_strategy": "FULL",
+      "platoon_strategies": {
+        "6": "FULL"
+      },
       "platoons": {
-        "1": {
-          "platoon_strategy": "FULL",
-          "assignments": [
-            {
-              "slot": "P4-C2-B|tb3-platoon-6|8",
-              "squad_id": "tb3-platoon-6",
-              "unit_id": "BASTILASHANDARK",
-              "unit": "Bastila Shan (Fallen)"
-            },
-            {
-              "slot": "P4-C2-B|tb3-platoon-6|9",
-              "squad_id": "tb3-platoon-6",
-              "unit_id": "VADER",
-              "unit": "Darth Vader"
-            }
-          ]
-        }
+        "6": [
+          {
+            "priority": 1,
+            "rare": true,
+            "slot": "P4-C2|tb3-platoon-1|13",
+            "squad_id": "tb3-platoon-1",
+            "unit_id": "DATHCHA",
+            "unit": "Dathcha"
+          }
+        ]
       }
     }
   }
 }
 ```
 
-Each entry in `platoons` is an object containing:
-- `platoon_strategy`: required; either `FULL` or `PRELOAD`.
-- `assignments`: the list of unit assignments for that platoon.
+`planet_strategy`, `priority`, and `rare` are accepted as part of the plan
+format but are not used by the deployment endpoint. The `platoon_strategies`
+object maps each key in `platoons` to its required strategy (`FULL` or
+`PRELOAD`). The assignment arrays under `platoons` retain their original
+format and fields. For `PRELOAD`, the RPC call receives `preload=True`;
+for `FULL`, it receives `preload=False`.
 
-`FULL` requests the normal platoon deployment behavior. `PRELOAD` requests
-preload behavior (the RPC receives `preload=True`). The strategy is specified
-per platoon, not per planet. If assignments from multiple entries resolve to
-the same zone and squad, they must specify the same strategy.
+A strategy entry is required for every platoon key. If multiple entries resolve
+to the same zone and squad, they must specify the same strategy.
 
 The zone code must match `P<phase>-C<conflict>` for a regular zone, or `P<phase>-C<conflict>-B` for a bonus planet. Phase and conflict numbers are zero-padded to two digits in the Comlink zone identifier. The `-B` suffix selects the bonus zone identifier rather than the regular recon zone:
 
