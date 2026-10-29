@@ -58,8 +58,8 @@ Example (valid JSON):
 The zone code must match `P<phase>-C<conflict>` for a regular zone, or `P<phase>-C<conflict>-B` for a bonus planet. Phase and conflict numbers are zero-padded to two digits in the Comlink zone identifier. The `-B` suffix selects the bonus zone identifier rather than the regular recon zone:
 
 - `P4-C2` -> `tb3_mixed_phase04_conflict02_recon01`
-- `P3-C1-B` (Zeffo) -> `tb3_mixed_phase03_conflict01_bonus`
-- `P4-C3-B` (Mandalore) -> `tb3_mixed_phase04_conflict03_bonus`
+- `P3-C1-B` (Zeffo) -> `tb3_mixed_phase03_conflict01_bonus_recon01`
+- `P4-C3-B` (Mandalore) -> `tb3_mixed_phase04_conflict03_bonus_recon01`
 
 The service groups entries in first-seen order. It continues to later platoons
 if an earlier RPC call fails, and returns an individual result for every group.
@@ -81,7 +81,7 @@ A fully successful deployment returns HTTP 200:
   "results": [
     {
       "planet": "Haven-class Medical Station (DS4)",
-      "zone_id": "tb3_mixed_phase04_conflict02_bonus",
+      "zone_id": "tb3_mixed_phase04_conflict02_bonus_recon01",
       "squad_id": "tb3-platoon-6",
       "requested_defIds": ["BASTILASHANDARK", "VADER"],
       "err_code": 0,
