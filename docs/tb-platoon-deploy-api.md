@@ -25,11 +25,11 @@ Example (valid JSON):
 
 ```json
 {
-  "plan_id": "9d049ea9",
+  "plan_id": "a1b2c3d4",
   "phase": 4,
-  "player": "Lisandro1996",
-  "ally_code": "368553333",
-  "discord_id": "608986987512201226",
+  "player": "ExamplePlayer",
+  "ally_code": "111222333",
+  "discord_id": "111111111111111111",
   "planets": {
     "Haven-class Medical Station (DS4)": {
       "zone_id": "P4-C2",
@@ -47,9 +47,6 @@ Example (valid JSON):
             "squad_id": "tb3-platoon-6",
             "unit_id": "VADER",
             "unit": "Darth Vader",
-            "player": "SirPatternBZH",
-            "ally_code": "129578536",
-            "discord_id": "406930750345183243"
           }
         ]
       }
