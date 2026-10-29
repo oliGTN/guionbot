@@ -3505,7 +3505,7 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
             return 1, "Erreur en déployant en TB - code="+str(process.returncode)
     """
 
-    # RPC REQUEST for platoonsTB
+    # RPC REQUEST for deployTB
     url = "http://localhost:8000/deployTB"
     params = {"allyCode": txt_allyCode,
               "tb_id": tb_id,
