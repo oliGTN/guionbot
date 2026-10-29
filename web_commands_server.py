@@ -191,6 +191,8 @@ async def handle_deploy_tb_platoons(request):
 
     try:
         payload = await request.json()
+        if not isinstance(payload, dict):
+            return web.json_response({"err_code": 400, "err_txt": "JSON body must be an object"}, status=400)
         ally_code = payload.get("ally_code")
         planets = payload.get("planets")
 
