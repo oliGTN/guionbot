@@ -181,6 +181,124 @@ async def handle_deploy_tw_teams(request):
         golog.log("ERR", "Deploy TW teams command error: " + str(error))
         return web.json_response({"err_code": 500, "err_txt": "Internal server error"}, status=500)
 
+
+async def handle_deploy_tb_platoons(request):
+    expected_token = request.app["token"]
+    authorization = request.headers.get("Authorization", "")
+    if not expected_token or authorization != "Bearer " + expected_token:
+        return web.json_response({"err_code": 401, "err_txt": "Unauthorized"}, status=401)
+
+    try:
+        payload = await request.json()
+        ally_code = payload.get("ally_code")
+        planets = payload.get("planets")
+
+        if not isinstance(ally_code, str) or not ally_code.isdigit() or len(ally_code) != 9:
+            return web.json_response({"err_code": 400, "err_txt": "Invalid ally_code"}, status=400)
+        if not isinstance(planets, dict) or not planets or len(planets) > 50:
+            return web.json_response({"err_code": 400, "err_txt": "Invalid or empty planets object"}, status=400)
+
+        # Build groups in input order. Ordered dict semantics preserve the first
+        # occurrence of each (zone_id, squad_id), as well as each unit's order.
+        groups = {}
+        total_units = 0
+        for planet_name, planet in planets.items():
+            if not isinstance(planet_name, str) or not isinstance(planet, dict):
+                return web.json_response({"err_code": 400, "err_txt": "Invalid planet entry"}, status=400)
+
+            zone_id_input = planet.get("zone_id")
+            zone_match = re.fullmatch(r"P([0-9]{1,2})-C([0-9]{1,2})", zone_id_input) if isinstance(zone_id_input, str) else None
+            if not zone_match:
+                return web.json_response({"err_code": 400, "err_txt": "Invalid zone_id for " + planet_name}, status=400)
+            phase_number, conflict_number = map(int, zone_match.groups())
+            if phase_number < 1 or phase_number > 99 or conflict_number < 1 or conflict_number > 99:
+                return web.json_response({"err_code": 400, "err_txt": "zone_id is out of range for " + planet_name}, status=400)
+            zone_id = "tb3_mixed_phase{:02d}_conflict{:02d}_recon01".format(phase_number, conflict_number)
+
+            platoons = planet.get("platoons")
+            if not isinstance(platoons, dict):
+                return web.json_response({"err_code": 400, "err_txt": "Missing platoons object for " + planet_name}, status=400)
+
+            for platoon_number, assignments in platoons.items():
+                if not isinstance(assignments, list):
+                    return web.json_response({"err_code": 400, "err_txt": "Invalid platoon assignment list"}, status=400)
+                for assignment in assignments:
+                    if not isinstance(assignment, dict):
+                        return web.json_response({"err_code": 400, "err_txt": "Invalid platoon assignment"}, status=400)
+                    squad_id = assignment.get("squad_id")
+                    unit_id = assignment.get("unit_id")
+                    if not isinstance(squad_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", squad_id):
+                        return web.json_response({"err_code": 400, "err_txt": "Invalid squad_id"}, status=400)
+                    if not isinstance(unit_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", unit_id):
+                        return web.json_response({"err_code": 400, "err_txt": "Invalid unit_id"}, status=400)
+
+                    key = (zone_id, squad_id)
+                    if key not in groups:
+                        groups[key] = {
+                            "zone_id": zone_id,
+                            "squad_id": squad_id,
+                            "planet": planet_name,
+                            "requested_defIds": [],
+                        }
+                    if unit_id in groups[key]["requested_defIds"]:
+                        return web.json_response({"err_code": 400, "err_txt": "Duplicate unit_id in the same platoon"}, status=400)
+                    groups[key]["requested_defIds"].append(unit_id)
+                    total_units += 1
+                    if total_units > 1000:
+                        return web.json_response({"err_code": 413, "err_txt": "Too many unit assignments"}, status=413)
+
+        if not groups:
+            return web.json_response({"err_code": 400, "err_txt": "No platoon assignments found"}, status=400)
+        if len(groups) > 200:
+            return web.json_response({"err_code": 413, "err_txt": "Too many platoon groups"}, status=413)
+
+        results = []
+        succeeded = 0
+        for group in groups.values():
+            err_code, err_txt, result = await connect_rpc.platoon_tb(
+                ally_code,
+                group["zone_id"],
+                group["squad_id"],
+                group["requested_defIds"],
+            )
+            item = {
+                "planet": group["planet"],
+                "zone_id": group["zone_id"],
+                "squad_id": group["squad_id"],
+                "requested_defIds": group["requested_defIds"],
+                "err_code": int(err_code),
+                "err_txt": str(err_txt or ""),
+                "result": result,
+            }
+            results.append(item)
+            if int(err_code) == 0:
+                succeeded += 1
+            else:
+                golog.log(
+                    "WAR",
+                    "TB platoon deploy failed for allyCode " + ally_code
+                    + ", zone " + group["zone_id"]
+                    + ", platoon " + group["squad_id"]
+                    + ": " + str(err_txt)
+                )
+
+        all_succeeded = succeeded == len(results)
+        response = {
+            "success": all_succeeded,
+            "err_code": 0 if all_succeeded else 1,
+            "err_txt": "Successfully processed " + str(succeeded) + "/" + str(len(results)) + " platoon(s).",
+            "ally_code": ally_code,
+            "completed": succeeded,
+            "total": len(results),
+            "results": results,
+        }
+        return web.json_response(response, status=200 if all_succeeded else 207)
+
+    except Exception as error:
+        golog.log("ERR", "Deploy TB platoons command error: " + str(error))
+        return web.json_response({"err_code": 500, "err_txt": "Internal server error"}, status=500)
+
+
 async def on_startup(app):
     if not app["token"]:
         raise RuntimeError("GUIONBOT_WEB_COMMANDS_TOKEN is not configured")
@@ -195,6 +313,7 @@ def create_app():
     app.router.add_post("/TBzoneOrder", handle_tbzone_order)
     app.router.add_post("/SellMods", handle_sell_mods)
     app.router.add_post("/DeployTWTeams", handle_deploy_tw_teams)
+    app.router.add_post("/DeployTBPlatoons", handle_deploy_tb_platoons)
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
     return app
