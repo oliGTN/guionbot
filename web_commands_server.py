@@ -216,7 +216,7 @@ async def handle_deploy_tb_platoons(request):
             phase_number, conflict_number = map(int, zone_match.groups()[:2])
             if phase_number < 1 or phase_number > 99 or conflict_number < 1 or conflict_number > 99:
                 return web.json_response({"err_code": 400, "err_txt": "zone_id is out of range for " + planet_name}, status=400)
-            zone_suffix = "bonus" if zone_match.group(3) == "-B" else "recon01"
+            zone_suffix = "bonus_recon01" if zone_match.group(3) == "-B" else "recon01"
             zone_id = "tb3_mixed_phase{:02d}_conflict{:02d}_{}".format(phase_number, conflict_number, zone_suffix)
 
             platoons = planet.get("platoons")
