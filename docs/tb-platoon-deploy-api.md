@@ -33,27 +33,38 @@ Example (valid JSON):
   "planets": {
     "Zeffo": {
       "zone_id": "P4-C2-B",
-      "planet_strategy": "FULL",
       "platoons": {
-        "1": [
-          {
-            "slot": "P4-C2-B|tb3-platoon-6|8",
-            "squad_id": "tb3-platoon-6",
-            "unit_id": "BASTILASHANDARK",
-            "unit": "Bastila Shan (Fallen)"
-          },
-          {
-            "slot": "P4-C2-B|tb3-platoon-6|9",
-            "squad_id": "tb3-platoon-6",
-            "unit_id": "VADER",
-            "unit": "Darth Vader"
-          }
-        ]
+        "1": {
+          "platoon_strategy": "FULL",
+          "assignments": [
+            {
+              "slot": "P4-C2-B|tb3-platoon-6|8",
+              "squad_id": "tb3-platoon-6",
+              "unit_id": "BASTILASHANDARK",
+              "unit": "Bastila Shan (Fallen)"
+            },
+            {
+              "slot": "P4-C2-B|tb3-platoon-6|9",
+              "squad_id": "tb3-platoon-6",
+              "unit_id": "VADER",
+              "unit": "Darth Vader"
+            }
+          ]
+        }
       }
     }
   }
 }
 ```
+
+Each entry in `platoons` is an object containing:
+- `platoon_strategy`: required; either `FULL` or `PRELOAD`.
+- `assignments`: the list of unit assignments for that platoon.
+
+`FULL` requests the normal platoon deployment behavior. `PRELOAD` requests
+preload behavior (the RPC receives `preload=True`). The strategy is specified
+per platoon, not per planet. If assignments from multiple entries resolve to
+the same zone and squad, they must specify the same strategy.
 
 The zone code must match `P<phase>-C<conflict>` for a regular zone, or `P<phase>-C<conflict>-B` for a bonus planet. Phase and conflict numbers are zero-padded to two digits in the Comlink zone identifier. The `-B` suffix selects the bonus zone identifier rather than the regular recon zone:
 
@@ -83,6 +94,7 @@ A fully successful deployment returns HTTP 200:
       "planet": "Haven-class Medical Station (DS4)",
       "zone_id": "tb3_mixed_phase04_conflict02_bonus_recon01",
       "squad_id": "tb3-platoon-6",
+      "platoon_strategy": "FULL",
       "requested_defIds": ["BASTILASHANDARK", "VADER"],
       "err_code": 0,
       "err_txt": "",
