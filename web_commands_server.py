@@ -282,14 +282,15 @@ async def handle_deploy_tb_platoons(request):
             #####################
             # TEST PHASE
             golog.log(
-                    "INFO", 
-                    "CALL connect_rpc.platoon_tb(" \
-                   +"ally_code="+ally_code \
-                   +"zone_id="+group["zone_id"] \
-                   +"platoon_id="+group["squad_id"] \
-                   +"requested_defIds="+str(group["requested_defIds"]) \
-                   +"preload="+str(group["platoon_strategy"] == "PRELOAD") \
-                   )
+                "INFO",
+                "CALL connect_rpc.platoon_tb("
+                + "ally_code=" + ally_code
+                + ", zone_id=" + group["zone_id"]
+                + ", platoon_id=" + group["squad_id"]
+                + ", requested_defIds=" + str(group["requested_defIds"])
+                + ", preload=" + str(group["platoon_strategy"] == "PRELOAD")
+                + ")"
+            )
             err_code = 0
             err_txt = ""
             result = {"noneedToDeploy_defIds": [],
