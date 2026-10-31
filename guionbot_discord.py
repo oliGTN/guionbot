@@ -672,11 +672,13 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
     try:
         async for message in tb_channel.history(limit=500):
             if message.author.name == "EchoStation" or message.author.id == echostation_id:
-                if message.content.startswith('```prolog'):
+                if message.content.startswith('```fix'):
                     #EB message by territory
+                    golog.log("DBG", "EB message by territory: "+message.content)
+
                     sort_by_location = True
 
-                    ret_re = re.search('```prolog\n(.*) \((.*)\):.*', message.content)
+                    ret_re = re.search('```fix\n(.*) \((.*)\):.*', message.content)
                     territory_name = ret_re.group(1) #Kashyyk, Zeffo, Hangar...
                     territory_position = ret_re.group(2) #top, mid, bonus...
 
@@ -730,6 +732,8 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                     
                 elif message.content.startswith('Common units:'):
                     #EB message by unit / Common units
+                    golog.log("DBG", "EB message by unit: "+message.content)
+
                     for embed in message.embeds:
                         dict_embed = embed.to_dict()
                         if 'fields' in dict_embed:
@@ -771,6 +775,8 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
 
                 elif message.content.startswith('Rare Units:'):
                     #EB message by unit / Rare units
+                    golog.log("DBG", "EB message by unit: "+message.content)
+
                     for embed in message.embeds:
                         dict_embed = embed.to_dict()
                         if 'fields' in dict_embed:
@@ -851,14 +857,21 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                 #error in platoon parsing
                                 return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+"), territoire '"+territory_name+"' inconnu", None
 
-
                     # Assumption of a single Echostation allocation per phase
                     # no need to detect platoons from previous phases
                     break
 
+                elif message.content.startswith("**:information_source: No assignments:**"):
+                    #not relevant for allocations, ignore
+                    continue
+                elif message.content == ".":
+                    #placeholder, ignore
+                    continue
                 #elif message.content.startswith("<@") or message.content.startswith("Filled in another phase"):
                 else: #try to manage any message as EchoBot allocation may be sent without the "include @mentions" option
                     #EB message by player
+                    golog.log("DBG", "EB message by player: "+message.content)
+
                     for embed in message.embeds:
                         dict_embed = embed.to_dict()
                         if 'description' in dict_embed:
