@@ -3689,7 +3689,25 @@ async def deploy_tw(guild_id, txt_allyCode, teams):
 # OUT: err_code = 0 > no/partial/all units deployed
 # OUT: err_code = 1 > error
 ################################################
-async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds, preload=False):
+async def platoon_tb(
+        txt_allyCode, 
+        zone_id, 
+        platoon_id, 
+        requested_defIds, 
+        preload=False,
+        disable_rpc_call=False):
+
+    calling_func = inspect.stack()[1][3]
+    golog.log(
+            "INFO", 
+            "START ("+txt_allyCode \
+            +", "+zone_id \
+            +", "+platoon_id \
+            +", "+str(requested_defIds) \
+            +", preload="+str(preload) \
+            +", disable_rpc_call="+str(disable_rpc_call)+")" \
+            +" from "+str(calling_func))
+
     # get player roster
     # use CACHE data as unit IDs do not change often
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
@@ -3698,7 +3716,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds, preloa
         return 1, "Erreur en se connectant au compte "+txt_allyCode+": "+err_txt, None
     
     player_name = dict_player["name"]
-    dict_roster = {} # this dict may be used with defId or uit ID as a key
+    dict_roster = {} # this dict may be used with defId or unit ID as a key
     for unit in dict_player["rosterUnit"]:
         unit_id = unit["id"]
         full_defId = unit["definitionId"]
@@ -3731,6 +3749,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds, preloa
     # and remember the squad id
     toDeploy_defIds = [] # this list is used to check if the unit
                          # is already deployed by the player
+    alreadyDeployed_defIds = [] # units requested for deployment and already correctly deployed
     dict_defId_squad = {} #key=defId / value = squad_id
     platoon_deployed_count = 0
     for reconZone in tb["reconZoneStatus"]:
@@ -3742,26 +3761,39 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds, preloa
             for squad in platoon["squad"]:
                 squad_id = squad["id"]
                 for unit in squad["unit"]:
+                    unit_defId = unit["unitIdentifier"].split(':')[0]
                     if unit["memberId"] != "":
                         # Count every occupied slot in the platoon, regardless of squad/player.
                         platoon_deployed_count += 1
+
+                        # Mark unit as already deployed in this platoon
+                        if unit_defId in requested_defIds:
+                            alreadyDeployed_defIds.append(unit_defId)
+
                         continue
-                    unit_defId = unit["unitIdentifier"].split(':')[0]
                     if unit_defId in requested_defIds and not unit_defId in toDeploy_defIds:
                         toDeploy_defIds.append(unit_defId)
                         dict_defId_squad[unit_defId] = squad_id
 
-    # 2/ then remove units already deployed by the player
-    playerUsed_defIds = []
+    golog.log("DBG", toDeploy_defIds)
+
+    # 2/ then remove units already deployed by the player (platoon or else)
+    playerUsed_defIds = [] # units requested for deployment but already deployed
     if "playerStatus" in tb:
         if "unitStatus" in tb["playerStatus"]:
             for unit in tb["playerStatus"]["unitStatus"]:
                 unit_id = unit["unitId"]
+                golog.log("DBG", unit_id)
+                golog.log("DBG", unit_id in dict_roster)
                 if unit_id in dict_roster:
                     unit_defId = dict_roster[unit_id]["definitionId"].split(':')[0]
+                    golog.log("DBG", unit_defId)
                     if unit_defId in toDeploy_defIds:
                         playerUsed_defIds.append(unit_defId)
                         toDeploy_defIds.remove(unit_defId)
+
+    golog.log("DBG", playerUsed_defIds)
+    golog.log("DBG", toDeploy_defIds)
 
     # Preload mode reserves a maximum of 14 occupied unit slots for this
     # entire platoon, across all squads. Prioritize units in caller-provided order.
@@ -3777,8 +3809,10 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds, preloa
         ][:available_slots]
 
     if len(toDeploy_defIds) == 0:
+        golog.log("DBG", "len(toDeploy_defIds) == 0")
         return 0, "", {"noneedToDeploy_defIds": [],
                        "playerUsed_defIds": playerUsed_defIds,
+                       "alreadyDeployed_defIds": alreadyDeployed_defIds,
                        "deployed_defIds": toDeploy_defIds}
 
     noneedToDeploy_defIds = []
@@ -3787,6 +3821,8 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds, preloa
             and (not unit_defId in playerUsed_defIds):
 
             noneedToDeploy_defIds.append(unit_defId)
+
+    golog.log("DBG", toDeploy_defIds)
 
     list_id_squad = []
     for unit_defId in toDeploy_defIds:
@@ -3802,31 +3838,34 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds, preloa
               "platoon_id": platoon_id,
               "units": list_id_squad}
     req_data = json_dumps(params)
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=req_data) as resp:
-                golog.log("DBG", "POST platoonsTB status="+str(resp.status))
-                if resp.status==200:
-                    #normale case
-                    resp_json = await(resp.json())
-                elif resp.status==201:
-                    # rien à déployer
-                    return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status), None
-                else:
-                    return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status), None
+    golog.log("DBG", "POST "+url+" "+str(params))
+    if not disable_rpc_call:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, data=req_data) as resp:
+                    golog.log("DBG", "POST platoonsTB status="+str(resp.status))
+                    if resp.status==200:
+                        #normale case
+                        resp_json = await(resp.json())
+                    elif resp.status==201:
+                        # rien à déployer
+                        return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status), None
+                    else:
+                        return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status), None
 
-    except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+        except asyncio.exceptions.TimeoutError as e:
+            return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+        except aiohttp.client_exceptions.ServerDisconnectedError as e:
+            return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+        except aiohttp.client_exceptions.ClientConnectorError as e:
+            return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
-    if resp_json!=None and "err_code" in resp_json:
-        return 1, resp_json["err_txt"], None
+        if resp_json!=None and "err_code" in resp_json:
+            return 1, resp_json["err_txt"], None
 
     return 0, "", {"noneedToDeploy_defIds": noneedToDeploy_defIds,
                    "playerUsed_defIds": playerUsed_defIds,
+                   "alreadyDeployed_defIds": alreadyDeployed_defIds,
                    "deployed_defIds": toDeploy_defIds}
 
 async def update_K1_players():
