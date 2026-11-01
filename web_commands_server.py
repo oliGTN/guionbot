@@ -86,7 +86,7 @@ async def handle_tb_mapstats(request):
                 status=502
             )
 
-        if not isinstance(mapstats, dict):
+        if not isinstance(mapstats, (dict, list)):
             golog.log("ERR", "TB mapstats RPC returned an unexpected data type for guild " + guild_id)
             return web.json_response(
                 {"err_code": 502, "err_txt": "Invalid TB mapstats response"},
