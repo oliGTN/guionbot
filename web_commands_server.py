@@ -277,6 +277,7 @@ async def handle_deploy_tb_platoons(request):
                 group["squad_id"],
                 group["requested_defIds"],
                 preload=(group["platoon_strategy"] == "PRELOAD"),
+                disable_rpc_call=True,
             )
 
             # Expose only the final unit outcome. RPC and local validation details
