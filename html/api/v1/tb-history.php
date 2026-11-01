@@ -34,10 +34,10 @@ if (trim($raw) !== '') {
 }
 $allowed = ['tb_id','tb_ids','blocks'];
 if (array_diff(array_keys($request), $allowed)) tbHistoryRespond(400, ['success'=>false, 'error'=>'Unknown request field']);
-if (isset($request['tb_id']) && (!is_int($request['tb_id']) || $request['tb_id'] < 1)) tbHistoryRespond(400, ['success'=>false, 'error'=>'tb_id must be a positive integer']);
+if (isset($request['tb_id']) && (!is_string($request['tb_id']) || trim($request['tb_id']) === '' || strlen($request['tb_id']) > 45)) tbHistoryRespond(400, ['success'=>false, 'error'=>'tb_id must be a non-empty string']);
 if (isset($request['tb_ids']) && (!is_array($request['tb_ids']) || count($request['tb_ids']) < 1 || count($request['tb_ids']) > 100)) tbHistoryRespond(400, ['success'=>false, 'error'=>'tb_ids must contain 1 to 100 IDs']);
 if (isset($request['tb_id'], $request['tb_ids'])) tbHistoryRespond(400, ['success'=>false, 'error'=>'Use tb_id or tb_ids, not both']);
-if (isset($request['tb_ids'])) foreach ($request['tb_ids'] as $id) if (!is_int($id) || $id < 1) tbHistoryRespond(400, ['success'=>false, 'error'=>'Every tb_ids value must be a positive integer']);
+if (isset($request['tb_ids'])) foreach ($request['tb_ids'] as $id) if (!is_string($id) || trim($id) === '' || strlen($id) > 45) tbHistoryRespond(400, ['success'=>false, 'error'=>'Every tb_ids value must be a non-empty string']);
 $validBlocks = ['zones','players','player_zones','strikes','covert'];
 $blocks = $request['blocks'] ?? ['zones','players'];
 if (!is_array($blocks) || count($blocks) > count($validBlocks)) tbHistoryRespond(400, ['success'=>false, 'error'=>'blocks must be an array']);
@@ -72,8 +72,8 @@ try {
     require_once dirname(__DIR__,2).'/guionbotdb.php';
     if(!isset($conn_guionbot) || !($conn_guionbot instanceof PDO)) throw new RuntimeException('PDO unavailable');
     $where='h.guild_id=:guild_id'; $params=[':guild_id'=>$config['guild_id']];
-    if(isset($request['tb_id'])) { $where.=' AND h.id=:tb_id'; $params[':tb_id']=$request['tb_id']; }
-    elseif(isset($request['tb_ids'])) { $marks=[]; foreach($request['tb_ids'] as $i=>$id){$key=':tb'.$i;$marks[]=$key;$params[$key]=$id;} $where.=' AND h.id IN ('.implode(',',$marks).')'; }
+    if(isset($request['tb_id'])) { $where.=' AND h.tb_id=:tb_id'; $params[':tb_id']=$request['tb_id']; }
+    elseif(isset($request['tb_ids'])) { $marks=[]; foreach($request['tb_ids'] as $i=>$id){$key=':tb'.$i;$marks[]=$key;$params[$key]=$id;} $where.=' AND h.tb_id IN ('.implode(',',$marks).')'; }
     $st=$conn_guionbot->prepare('SELECT h.id,h.tb_id,h.tb_name,h.start_date,h.lastUpdated,h.current_round,h.stars_final FROM tb_history h WHERE '.$where.' ORDER BY h.start_date DESC LIMIT 501');
     $st->execute($params); $history=$st->fetchAll(PDO::FETCH_ASSOC);
     if(count($history)>500) tbHistoryRespond(503,['success'=>false,'error'=>'Result exceeds the API TB limit']);
@@ -86,7 +86,7 @@ try {
             $re=$rs ? $rs->modify('+24 hours') : null;
             $rounds[]=['round'=>$r,'start'=>$rs?$rs->format('Y-m-d\TH:i:s\Z'):null,'end'=>$re?$re->format('Y-m-d\TH:i:s\Z'):null];
         }
-        $tb=['tb_id'=>(int)$h['id'],'game_tb_id'=>$h['tb_id'],'name'=>$h['tb_name'],'status'=>$h['stars_final']===null?'current':'finished','started'=>$start?$start->format('Y-m-d\TH:i:s\Z'):null,'ended'=>($h['stars_final']!==null && $start)?$start->modify('+144 hours')->format('Y-m-d\TH:i:s\Z'):null,'rounds'=>$rounds,'members'=>null,'events_complete'=>null];
+        $tb=['tb_id'=>$h['tb_id'],'name'=>$h['tb_name'],'status'=>$h['stars_final']===null?'current':'finished','started'=>$start?$start->format('Y-m-d\TH:i:s\Z'):null,'ended'=>($h['stars_final']!==null && $start)?$start->modify('+144 hours')->format('Y-m-d\TH:i:s\Z'):null,'rounds'=>$rounds,'members'=>null,'events_complete'=>null];
         if(in_array('zones',$blocks,true)){
             $zs=$conn_guionbot->prepare('SELECT zone_id,zone_name,zone_phase,round,score_step1,score_step2,score_step3,score,is_bonus,cmdMsg,cmdCmd,recon1_filled,recon2_filled,recon3_filled,recon4_filled,recon5_filled,recon6_filled FROM tb_zones WHERE tb_id=:id ORDER BY round,zone_id');
             $zs->execute([':id'=>$h['id']]); $zones=[];
