@@ -106,11 +106,26 @@ A fully successful deployment returns HTTP 200:
 }
 ```
 
-If at least one platoon call fails, the service returns HTTP 207 (Multi-Status)
-with `success: false`, and includes both successful and failed group results.
-Check each `results[].err_code`; `completed` counts successful RPC calls,
-not necessarily the number of individual units deployed. A successful RPC can
-also report units in `noneedToDeploy_defIds` or `playerUsed_defIds`.
+Each `results[]` entry includes a `status`:
+
+- `SUCCESS`: RPC succeeded and every requested unit is accounted for as deployed,
+  needing no deployment, or already deployed in this exact platoon.
+- `PARTIAL`: RPC succeeded, but one or more units are in
+  `playerUsed_defIds`, missing from all outcome lists, duplicated across lists,
+  unexpected, or a result list has an invalid format.
+- `ERROR`: the RPC returned a non-zero error. Any unit outcome lists returned
+  by the RPC are preserved in `result`.
+
+The recognized outcome lists are `deployed_defIds`, `playerUsed_defIds`,
+`noneedToDeploy_defIds`, and `alreadyDeployed_defIds`. The last means the unit
+is already deployed in this exact platoon and counts as fulfilled.
+`playerUsed_defIds` does not count as fulfilled.
+
+HTTP 200 is returned only when every platoon is `SUCCESS`. Otherwise the API
+returns HTTP 207 (Multi-Status), with `success: false` and individual results
+for all platoons. `completed` counts fully successful platoons. If a result
+list is inconsistent, the platoon includes a `validation` object identifying
+missing, unexpected, duplicated, or malformed categories.
 
 ## Limits and security
 
