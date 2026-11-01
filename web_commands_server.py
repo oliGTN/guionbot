@@ -275,15 +275,49 @@ async def handle_deploy_tb_platoons(request):
                 group["squad_id"],
                 group["requested_defIds"],
                 preload=(group["platoon_strategy"] == "PRELOAD"),
-                disable_rpc_call=True,
             )
 
-            player_used_def_ids = (
-                result.get("playerUsed_defIds", [])
-                if isinstance(result, dict) else []
+            result = result if isinstance(result, dict) else {}
+            category_keys = (
+                "deployed_defIds",
+                "playerUsed_defIds",
+                "noneedToDeploy_defIds",
+                "alreadyDeployed_defIds",
             )
-            has_player_used_units = bool(player_used_def_ids)
-            group_completed = int(err_code) == 0 and not has_player_used_units
+            categorized = {}
+            invalid_categories = []
+            for category in category_keys:
+                values = result.get(category, [])
+                if not isinstance(values, list) or any(
+                    not isinstance(unit_id, str) for unit_id in values
+                ):
+                    invalid_categories.append(category)
+                    values = []
+                categorized[category] = values
+
+            category_counts = {}
+            for category, values in categorized.items():
+                for unit_id in values:
+                    category_counts[unit_id] = category_counts.get(unit_id, 0) + 1
+
+            requested = set(group["requested_defIds"])
+            returned = set(category_counts)
+            missing_units = sorted(requested - returned)
+            unexpected_units = sorted(returned - requested)
+            duplicate_units = sorted(
+                unit_id for unit_id, count in category_counts.items() if count > 1
+            )
+            player_used_def_ids = categorized["playerUsed_defIds"]
+            rpc_failed = int(err_code) != 0
+            malformed_result = bool(
+                invalid_categories or missing_units or unexpected_units or duplicate_units
+            )
+            group_completed = not rpc_failed and not player_used_def_ids and not malformed_result
+            status_name = (
+                "ERROR" if rpc_failed
+                else "SUCCESS" if group_completed
+                else "PARTIAL"
+            )
 
             item = {
                 "planet": group["planet"],
@@ -291,21 +325,31 @@ async def handle_deploy_tb_platoons(request):
                 "squad_id": group["squad_id"],
                 "platoon_strategy": group["platoon_strategy"],
                 "requested_defIds": group["requested_defIds"],
+                "status": status_name,
                 "err_code": int(err_code),
                 "err_txt": str(err_txt or ""),
-                "partial": int(err_code) == 0 and has_player_used_units,
+                "partial": status_name == "PARTIAL",
                 "result": result,
             }
+            if malformed_result:
+                item["validation"] = {
+                    "missing_defIds": missing_units,
+                    "unexpected_defIds": unexpected_units,
+                    "duplicate_defIds": duplicate_units,
+                    "invalid_categories": invalid_categories,
+                }
             results.append(item)
+
             if group_completed:
                 succeeded += 1
-            elif int(err_code) == 0 and has_player_used_units:
+            elif status_name == "PARTIAL":
                 golog.log(
                     "WAR",
                     "TB platoon partially deployed for allyCode " + ally_code
                     + ", zone " + group["zone_id"]
                     + ", platoon " + group["squad_id"]
                     + "; playerUsed_defIds=" + str(player_used_def_ids)
+                    + "; validation=" + str(item.get("validation", {}))
                 )
             else:
                 golog.log(
