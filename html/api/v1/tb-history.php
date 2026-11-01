@@ -27,7 +27,7 @@ $request = [];
 if ($raw === false) tbHistoryRespond(400, ['success'=>false, 'error'=>'Invalid request body']);
 if (trim($raw) !== '') {
     $decoded = json_decode($raw, true);
-    if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded) || (array_keys($decoded) !== [] && array_is_list($decoded))) {
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded) || (array_keys($decoded) !== [] && array_keys($decoded) === range(0, count($decoded) - 1))) {
         tbHistoryRespond(400, ['success'=>false, 'error'=>'Request body must be a JSON object']);
     }
     $request = $decoded;
