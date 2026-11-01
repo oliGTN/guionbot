@@ -45,6 +45,67 @@ async def handle_tbzone_order(request):
         )
 
 
+async def handle_tb_mapstats(request):
+    expected_token = request.app["token"]
+    authorization = request.headers.get("Authorization", "")
+    if not expected_token or authorization != "Bearer " + expected_token:
+        return web.json_response(
+            {"err_code": 401, "err_txt": "Unauthorized"},
+            status=401
+        )
+
+    try:
+        payload = await request.json()
+        if not isinstance(payload, dict):
+            return web.json_response(
+                {"err_code": 400, "err_txt": "JSON body must be an object"},
+                status=400
+            )
+
+        guild_id = payload.get("guild_id")
+        if not isinstance(guild_id, str) or not guild_id.isdigit() or not 1 <= len(guild_id) <= 24:
+            return web.json_response(
+                {"err_code": 400, "err_txt": "Invalid guild_id"},
+                status=400
+            )
+
+        # Fetch current TB mapstats through the existing RPC layer. Keep the
+        # RPC mechanics and diagnostics behind this internal command endpoint.
+        err_code, err_txt, mapstats = await connect_rpc.get_TBmapstats_data(
+            guild_id, False
+        )
+        if err_code != 0:
+            golog.log(
+                "WAR",
+                "Unable to retrieve TB mapstats for guild " + guild_id
+                + "; internal_err_code=" + str(err_code)
+                + "; internal_err_txt=" + str(err_txt)
+            )
+            return web.json_response(
+                {"err_code": 502, "err_txt": "Unable to retrieve TB mapstats"},
+                status=502
+            )
+
+        if not isinstance(mapstats, dict):
+            golog.log("ERR", "TB mapstats RPC returned an unexpected data type for guild " + guild_id)
+            return web.json_response(
+                {"err_code": 502, "err_txt": "Invalid TB mapstats response"},
+                status=502
+            )
+
+        return web.json_response({
+            "success": True,
+            "mapstats": mapstats
+        })
+
+    except Exception as error:
+        golog.log("ERR", "TB mapstats command error: " + str(error))
+        return web.json_response(
+            {"err_code": 500, "err_txt": "Internal server error"},
+            status=500
+        )
+
+
 async def handle_sell_mods(request):
     expected_token = request.app["token"]
     authorization = request.headers.get("Authorization", "")
@@ -379,6 +440,7 @@ async def on_startup(app):
 def create_app():
     app = web.Application()
     app["token"] = TOKEN
+    app.router.add_post("/TBmapstats", handle_tb_mapstats)
     app.router.add_post("/TBzoneOrder", handle_tbzone_order)
     app.router.add_post("/SellMods", handle_sell_mods)
     app.router.add_post("/DeployTWTeams", handle_deploy_tw_teams)
