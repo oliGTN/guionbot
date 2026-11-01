@@ -21,7 +21,7 @@ function codex_json_response($status, $data) {
 }
 
 function codex_api_secret() {
-    include 'codex_secret.php'; // defines $REMOD_API_SECRET
+    include '/home/pi/GuionBot/SERVER_SECRETS/codex_secret.php'; // defines $REMOD_API_SECRET
     $secret = $REMOD_API_SECRET;
     if ($secret === false || trim($secret) === '') {
         $secretFile = '/etc/remod-secret.txt';
