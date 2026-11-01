@@ -2102,7 +2102,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             )
             previous_mapstats = prev_mapstats.get(guild_id)
             if previous_mapstats != mapstats or not os.path.isfile(mapstats_filename):
-                temporary_filename = mapstats_filename + ".tmp"
+                temporary_filename = (
+                    mapstats_filename + "." + str(os.getpid()) + "."
+                    + str(threading.get_ident()) + ".tmp"
+                )
                 with open(temporary_filename, "w", encoding="utf-8") as mapstats_file:
                     mapstats_file.write(json_dumps(mapstats, indent=4))
                 os.replace(temporary_filename, mapstats_filename)
