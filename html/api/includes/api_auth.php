@@ -58,9 +58,11 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
                 break;
             }
         }
-    } elseif (isset($config['api_key']) && is_string($config['api_key']) &&
+    }
+    // Keep the original single-key configuration working during migration.
+    // This lets the existing client retain its exact key and unrestricted access.
+    if ($clientId === null && isset($config['api_key']) && is_string($config['api_key']) &&
         $config['api_key'] !== '' && hash_equals($config['api_key'], $presentedKey)) {
-        // Temporary compatibility while the server-side secret file is migrated.
         $clientId = 'legacy';
         $client = ['enabled' => true, 'endpoints' => ['*']];
     }
