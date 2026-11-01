@@ -94,35 +94,43 @@ the single assignment in the request example above:
       "requested_defIds": ["DATHCHA"],
       "status": "SUCCESS",
       "deployed_defIds": ["DATHCHA"],
+      "alreadyDeployed_defIds": [],
       "notDeployed_defIds": []
     }
   ]
 }
 ```
 
-Each platoon result exposes only the deployment outcome:
+Each platoon result returns these unit lists:
 
-- `SUCCESS`: every requested unit is deployed or was already deployed in this
-  exact platoon.
-- `PARTIAL`: at least one requested unit is deployed, but at least one is not.
-- `FAILED`: none of the requested units is confirmed deployed.
-- `ERROR`: the deployment backend could not provide a reliable outcome. This is
-  distinct from a unit simply not being deployed.
+- `requested_defIds`: the original list of units requested for this platoon.
+- `deployed_defIds`: units successfully deployed by this API call.
+- `alreadyDeployed_defIds`: units that were already deployed in this exact
+  platoon before this API call.
+- `notDeployed_defIds`: units that could not be deployed because they were
+  already used elsewhere in the Territory Battle.
 
-`deployed_defIds` contains units confirmed deployed in the target platoon.
-`notDeployed_defIds` contains the remaining requested units. Both lists
-partition `requested_defIds`; internal checks, RPC status codes, error messages,
-and intermediate result categories are not exposed.
+The three outcome lists are distinct. The original request is echoed unchanged.
+The API does not expose internal RPC response categories, status codes, or
+diagnostic messages.
+
+Each platoon also has a `status`:
+
+- `SUCCESS`: every requested unit is either in `deployed_defIds` or
+  `alreadyDeployed_defIds`.
+- `PARTIAL`: at least one requested unit was deployed or already present, but
+  the whole request was not fulfilled.
+- `FAILED`: no requested unit is confirmed deployed in the target platoon.
+- `ERROR`: the deployment backend could not provide a reliable outcome.
 
 HTTP 200 is returned only when every platoon is `SUCCESS`. HTTP 207
 (Multi-Status) is returned for unit-level `PARTIAL` or `FAILED` outcomes.
 Backend communication failures use gateway status codes instead: HTTP 502
 (`Bad Gateway`) when the deployment backend is unavailable or returns an
 invalid/error response, and HTTP 504 (`Gateway Timeout`) when it does not
-respond in time. These errors are represented by a per-platoon `ERROR` status;
-the response does not expose internal RPC codes or messages. The top-level
-`completed`, `partial`, and `failed` fields count platoons in each outcome
-category; backend errors are included in `failed`.
+respond in time. The response does not expose internal RPC codes or messages.
+The top-level `completed`, `partial`, and `failed` fields count platoons in
+each outcome category; backend errors are included in `failed`.
 
 ## Limits and security
 
