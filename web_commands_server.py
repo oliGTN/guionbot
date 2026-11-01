@@ -270,6 +270,7 @@ async def handle_deploy_tb_platoons(request):
         succeeded = 0
         partial_count = 0
         failed_count = 0
+        rpc_http_statuses = []
         for group in groups.values():
             err_code, err_txt, result = await connect_rpc.platoon_tb(
                 ally_code,
@@ -280,36 +281,44 @@ async def handle_deploy_tb_platoons(request):
                 disable_rpc_call=True,
             )
 
-            # Expose only the final unit outcome. RPC and local validation details
-            # stay in server logs and are never returned to the remote client.
-            result_data = result if isinstance(result, dict) else {}
-            confirmed_deployed = set()
-            for category in ("deployed_defIds", "alreadyDeployed_defIds"):
-                values = result_data.get(category, [])
-                if isinstance(values, list):
-                    confirmed_deployed.update(
-                        unit_id for unit_id in values
-                        if isinstance(unit_id, str)
-                    )
-
-            requested_def_ids = group["requested_defIds"]
-            deployed_def_ids = [
-                unit_id for unit_id in requested_def_ids
-                if unit_id in confirmed_deployed
-            ]
-            not_deployed_def_ids = [
-                unit_id for unit_id in requested_def_ids
-                if unit_id not in confirmed_deployed
-            ]
-
-            if not not_deployed_def_ids:
-                status_name = "SUCCESS"
-                succeeded += 1
-            elif deployed_def_ids:
-                status_name = "PARTIAL"
-                partial_count += 1
+            # Expose only deployment outcomes. Backend diagnostics remain internal.
+            if err_code in (502, 504):
+                status_name = "ERROR"
+                rpc_http_statuses.append(int(err_code))
+                deployed_def_ids = []
+                not_deployed_def_ids = list(group["requested_defIds"])
             else:
-                status_name = "FAILED"
+                result_data = result if isinstance(result, dict) else {}
+                confirmed_deployed = set()
+                for category in ("deployed_defIds", "alreadyDeployed_defIds"):
+                    values = result_data.get(category, [])
+                    if isinstance(values, list):
+                        confirmed_deployed.update(
+                            unit_id for unit_id in values
+                            if isinstance(unit_id, str)
+                        )
+
+                requested_def_ids = group["requested_defIds"]
+                deployed_def_ids = [
+                    unit_id for unit_id in requested_def_ids
+                    if unit_id in confirmed_deployed
+                ]
+                not_deployed_def_ids = [
+                    unit_id for unit_id in requested_def_ids
+                    if unit_id not in confirmed_deployed
+                ]
+
+                if not not_deployed_def_ids:
+                    status_name = "SUCCESS"
+                    succeeded += 1
+                elif deployed_def_ids:
+                    status_name = "PARTIAL"
+                    partial_count += 1
+                else:
+                    status_name = "FAILED"
+                    failed_count += 1
+
+            if status_name == "ERROR":
                 failed_count += 1
 
             item = {
@@ -317,7 +326,7 @@ async def handle_deploy_tb_platoons(request):
                 "zone_id": group["zone_id"],
                 "squad_id": group["squad_id"],
                 "platoon_strategy": group["platoon_strategy"],
-                "requested_defIds": requested_def_ids,
+                "requested_defIds": group["requested_defIds"],
                 "status": status_name,
                 "deployed_defIds": deployed_def_ids,
                 "notDeployed_defIds": not_deployed_def_ids,
@@ -347,7 +356,12 @@ async def handle_deploy_tb_platoons(request):
             "total": len(results),
             "results": results,
         }
-        return web.json_response(response, status=200 if all_succeeded else 207)
+        if rpc_http_statuses:
+            # Prefer the gateway timeout status if any backend call timed out.
+            http_status = 504 if 504 in rpc_http_statuses else 502
+        else:
+            http_status = 200 if all_succeeded else 207
+        return web.json_response(response, status=http_status)
 
     except Exception as error:
         golog.log("ERR", "Deploy TB platoons command error: " + str(error))
