@@ -53,114 +53,9 @@ if (trim($body) !== '') {
     }
 }
 
-$configPath = '/home/pi/GuionBot/SERVER_SECRETS/web_api.php';
-if (!is_file($configPath) || !is_readable($configPath)) {
-    error_log('TB platoons API configuration is missing or unreadable');
-    apiRespond(503, ['success' => false, 'error' => 'Service unavailable']);
-}
-
-$config = require $configPath;
-if (!is_array($config)) {
-    error_log('TB platoons API configuration has an invalid format');
-    apiRespond(503, ['success' => false, 'error' => 'Service unavailable']);
-}
-
-$requiredConfig = ['api_key', 'guild_id'];
-foreach ($requiredConfig as $key) {
-    if (!isset($config[$key]) || !is_string($config[$key]) || $config[$key] === '') {
-        error_log('TB platoons API configuration is missing a required value');
-        apiRespond(503, ['success' => false, 'error' => 'Service unavailable']);
-    }
-}
-
-$headers = function_exists('getallheaders') ? getallheaders() : [];
-$authorization = '';
-foreach ($headers as $name => $value) {
-    if (strcasecmp((string) $name, 'Authorization') === 0) {
-        $authorization = is_string($value) ? trim($value) : '';
-        break;
-    }
-}
-if ($authorization === '' && isset($_SERVER['HTTP_AUTHORIZATION'])) {
-    $authorization = trim((string) $_SERVER['HTTP_AUTHORIZATION']);
-}
-if ($authorization === '' && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-    $authorization = trim((string) $_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
-}
-
-if (!preg_match('/^Bearer\s+([^\s]+)$/i', $authorization, $matches) ||
-    !hash_equals($config['api_key'], $matches[1])) {
-    apiRespond(401, ['success' => false, 'error' => 'Unauthorized'], ['WWW-Authenticate' => 'Bearer']);
-}
-
-// Rate limit this API key: 5 requests per rolling minute and 1,000 per rolling day.
-// File locking makes the counter safe when Apache handles concurrent requests.
-$rateFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) .
-    DIRECTORY_SEPARATOR . 'guionbot_tb_platoons_rate_' . hash('sha256', $config['api_key']) . '.json';
-$rateHandle = @fopen($rateFile, 'c+');
-if ($rateHandle === false || !flock($rateHandle, LOCK_EX)) {
-    if (is_resource($rateHandle)) {
-        fclose($rateHandle);
-    }
-    error_log('TB platoons API rate-limit storage is unavailable');
-    apiRespond(503, ['success' => false, 'error' => 'Service unavailable']);
-}
-
-$now = time();
-$rateState = [];
-$rawRateState = stream_get_contents($rateHandle);
-if (is_string($rawRateState) && $rawRateState !== '') {
-    $decodedRateState = json_decode($rawRateState, true);
-    if (is_array($decodedRateState)) {
-        $rateState = $decodedRateState;
-    }
-}
-$timestamps = [];
-foreach (($rateState['timestamps'] ?? []) as $timestamp) {
-    if (is_int($timestamp) && $timestamp > $now - 86400 && $timestamp <= $now) {
-        $timestamps[] = $timestamp;
-    }
-}
-$minuteCount = 0;
-foreach ($timestamps as $timestamp) {
-    if ($timestamp > $now - 60) {
-        $minuteCount++;
-    }
-}
-
-$rateError = null;
-$retryAfter = 1;
-if (count($timestamps) >= 1000) {
-    $rateError = 'Daily request limit exceeded';
-    sort($timestamps, SORT_NUMERIC);
-    $retryAfter = max(1, $timestamps[count($timestamps) - 1000] + 86400 - $now + 1);
-} elseif ($minuteCount >= 5) {
-    $rateError = 'Rate limit exceeded';
-    $recent = array_values(array_filter($timestamps, static function ($timestamp) use ($now) {
-        return $timestamp > $now - 60;
-    }));
-    sort($recent, SORT_NUMERIC);
-    $retryAfter = max(1, $recent[0] + 60 - $now + 1);
-} else {
-    $timestamps[] = $now;
-}
-
-rewind($rateHandle);
-if ($rateError === null) {
-    ftruncate($rateHandle, 0);
-    fwrite($rateHandle, json_encode(['timestamps' => $timestamps]));
-    fflush($rateHandle);
-}
-flock($rateHandle, LOCK_UN);
-fclose($rateHandle);
-
-if ($rateError !== null) {
-    apiRespond(429, ['success' => false, 'error' => $rateError], [
-        'Retry-After' => (string) $retryAfter,
-        'RateLimit-Limit' => '5',
-        'RateLimit-Remaining' => '0'
-    ]);
-}
+$auth = require_once dirname(__DIR__) . '/includes/api_auth.php';
+$authContext = apiAuthenticate('tb-platoons', 'apiRespond');
+$config = $authContext['config'];
 
 try {
     // Reuse the existing website DB configuration and PDO connection.
@@ -199,6 +94,6 @@ apiRespond(200, [
     'count' => count($rows),
     'data' => $rows,
 ], [
-    'RateLimit-Limit' => '5',
-    'RateLimit-Remaining' => (string) max(0, 4 - $minuteCount),
+    'RateLimit-Limit' => (string)$authContext['limit'],
+    'RateLimit-Remaining' => (string)$authContext['remaining'],
 ]);
