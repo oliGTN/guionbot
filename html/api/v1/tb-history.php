@@ -381,6 +381,9 @@ try {
     if (!isset($conn_guionbot) || !($conn_guionbot instanceof PDO)) {
         throw new RuntimeException('PDO unavailable');
     }
+    // MySQL TIMESTAMP values are returned in the session timezone. Force UTC
+    // so the API can serialize start_date and event dates as ISO-8601 UTC.
+    $conn_guionbot->exec("SET time_zone = '+00:00'");
 
     // The client-supplied public tb_id is matched only against tb_history.tb_id.
     // The internal h.id is selected solely for child-table joins and is never serialized.
