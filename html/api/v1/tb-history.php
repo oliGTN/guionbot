@@ -87,9 +87,8 @@ function tbHistoryLoadMapstats(string $guildId, string $tbId): ?array
     return $indexed;
 }
 
-function tbHistoryBuildPlayers(PDO $db, string $guildId, string $tbId, int $internalTbId): array
+function tbHistoryBuildPlayers(PDO $db, int $internalTbId, ?array $stats): array
 {
-    $stats = tbHistoryLoadMapstats($guildId, $tbId);
 
     // tb_player_score stores the per-player GP snapshot for every phase. Its tb_id
     // is the internal FK and is never exposed in the API response.
@@ -240,6 +239,79 @@ function tbHistoryBuildPlayers(PDO $db, string $guildId, string $tbId, int $inte
         return strcmp((string)$a['name'], (string)$b['name']);
     });
     return [$players, $stats !== null];
+}
+
+
+function tbHistoryBuildCoverage(PDO $db, int $internalTbId, ?array $stats): array
+{
+    if ($stats === null) {
+        return [[], false];
+    }
+
+    $zoneStatement = $db->prepare(
+        'SELECT zone_id, MAX(round) AS round
+         FROM tb_zones
+         WHERE tb_id = :id AND zone_id LIKE "tb3_mixed_%"
+         GROUP BY zone_id
+         ORDER BY zone_id'
+    );
+    $zoneStatement->execute([':id' => $internalTbId]);
+    $zoneRows = $zoneStatement->fetchAll(PDO::FETCH_ASSOC);
+
+    $eventStatement = $db->prepare(
+        'SELECT zone_id, COALESCE(SUM(param0), 0) AS events_total
+         FROM tb_events
+         WHERE tb_id = :id
+           AND event_type IN ("CONFLICT_DEPLOY", "CONFLICT_CONTRIBUTION")
+         GROUP BY zone_id'
+    );
+    $eventStatement->execute([':id' => $internalTbId]);
+    $eventTotals = [];
+    foreach ($eventStatement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $eventTotals[(string)$row['zone_id']] = (int)$row['events_total'];
+    }
+
+    $coverage = [];
+    $allComplete = count($zoneRows) > 0;
+    foreach ($zoneRows as $zoneRow) {
+        $zoneId = (string)$zoneRow['zone_id'];
+        $mapStatId = 'summary_zone_' . $zoneId;
+        $mapstatsTotal = null;
+        if (array_key_exists($mapStatId, $stats)) {
+            if (is_array($stats[$mapStatId])) {
+                $mapstatsTotal = array_sum($stats[$mapStatId]);
+            } elseif ($stats[$mapStatId] === null) {
+                $mapstatsTotal = null;
+            }
+        }
+
+        $eventsTotal = $eventTotals[$zoneId] ?? 0;
+        if ($mapstatsTotal === null) {
+            $ratio = null;
+            $allComplete = false;
+        } elseif ($mapstatsTotal === 0) {
+            $ratio = $eventsTotal === 0 ? 1.0 : null;
+            if ($ratio === null) {
+                $allComplete = false;
+            }
+        } else {
+            $ratio = round($eventsTotal / $mapstatsTotal, 4);
+            if ($ratio < 0.95) {
+                $allComplete = false;
+            }
+        }
+
+        $coverage[] = [
+            'zone_id' => $zoneId,
+            // The latest stored zone round is the cumulative snapshot represented here.
+            'round' => (int)$zoneRow['round'],
+            'events_total' => $eventsTotal,
+            'mapstats_total' => $mapstatsTotal,
+            'coverage' => $ratio
+        ];
+    }
+
+    return [$coverage, $allComplete];
 }
 
 // HTTPS and POST only.
@@ -444,9 +516,19 @@ try {
             'ended' => ($finished && $start) ? tbHistoryIso($start->modify('+144 hours')) : null,
             'rounds' => $rounds,
             'members' => null,
-            // Conservative until event/mapstats coverage is calculated by the V2 block.
             'events_complete' => false
         ];
+
+        $mapstats = tbHistoryLoadMapstats($config['guild_id'], (string)$historyRow['tb_id']);
+        list($coverage, $eventsComplete) = tbHistoryBuildCoverage(
+            $conn_guionbot,
+            (int)$historyRow['id'],
+            $mapstats
+        );
+        $tb['events_complete'] = $eventsComplete;
+        if (count($coverage) > 0) {
+            $tb['coverage'] = $coverage;
+        }
 
         $phaseStatement = $conn_guionbot->prepare(
             'SELECT totalPlayers FROM tb_phases WHERE tb_id = :id AND round = 1 LIMIT 1'
@@ -537,9 +619,8 @@ try {
         if (in_array('players', $blocks, true)) {
             list($players, $mapstatsAvailable) = tbHistoryBuildPlayers(
                 $conn_guionbot,
-                $config['guild_id'],
-                (string)$historyRow['tb_id'],
-                (int)$historyRow['id']
+                (int)$historyRow['id'],
+                $mapstats
             );
             $tb['players'] = $players;
             if (!$mapstatsAvailable) {
