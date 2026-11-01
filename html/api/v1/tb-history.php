@@ -87,6 +87,77 @@ function tbHistoryLoadMapstats(string $guildId, string $tbId): ?array
     return $indexed;
 }
 
+
+function tbHistoryLoadLiveMapstats(string $guildId): ?array
+{
+    $tokenPath = '/home/pi/GuionBot/SERVER_SECRETS/web_commands.token';
+    if (!is_file($tokenPath) || !is_readable($tokenPath)) {
+        error_log('TB history API: web commands token is unavailable');
+        return null;
+    }
+    $token = trim((string)file_get_contents($tokenPath));
+    if ($token === '') {
+        error_log('TB history API: web commands token is empty');
+        return null;
+    }
+
+    $ch = curl_init('http://127.0.0.1:9000/TBmapstats');
+    if ($ch === false) {
+        error_log('TB history API: unable to initialize web commands request');
+        return null;
+    }
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $token
+        ],
+        CURLOPT_POSTFIELDS => json_encode(['guild_id' => $guildId]),
+        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_TIMEOUT => 45
+    ]);
+    $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($response === false) {
+        error_log('TB history API: web commands connection failed: ' . $curlError);
+        return null;
+    }
+    $decoded = json_decode($response, true);
+    if ($httpCode !== 200 || !is_array($decoded) ||
+        empty($decoded['success']) || !isset($decoded['mapstats']) ||
+        !is_array($decoded['mapstats'])) {
+        error_log('TB history API: web commands returned an invalid mapstats response; HTTP ' . $httpCode);
+        return null;
+    }
+
+    // Normalize the same currentStat structure used by archived mapstats files.
+    $indexed = [];
+    foreach ($decoded['mapstats'] as $entry) {
+        if (!is_array($entry) || !isset($entry['mapStatId']) || !is_string($entry['mapStatId'])) {
+            continue;
+        }
+        if (!isset($entry['playerStat']) || !is_array($entry['playerStat'])) {
+            $indexed[$entry['mapStatId']] = null;
+            continue;
+        }
+        $indexed[$entry['mapStatId']] = [];
+        foreach ($entry['playerStat'] as $playerStat) {
+            if (!is_array($playerStat) || !isset($playerStat['memberId']) ||
+                !is_string($playerStat['memberId'])) {
+                continue;
+            }
+            if (isset($playerStat['score']) && is_numeric($playerStat['score'])) {
+                $indexed[$entry['mapStatId']][$playerStat['memberId']] = (int)$playerStat['score'];
+            }
+        }
+    }
+    return $indexed;
+}
+
 function tbHistoryBuildPlayers(PDO $db, int $internalTbId, ?array $stats): array
 {
 
@@ -516,7 +587,12 @@ try {
             'events_complete' => false
         ];
 
-        $mapstats = tbHistoryLoadMapstats($config['guild_id'], (string)$historyRow['tb_id']);
+        // Current TB data is fetched on demand through web_commands_server ->
+        // connect_rpc.get_TBmapstats_data(guild_id, False). Finished TBs use
+        // their archived mapstats JSON file.
+        $mapstats = $finished
+            ? tbHistoryLoadMapstats($config['guild_id'], (string)$historyRow['tb_id'])
+            : tbHistoryLoadLiveMapstats($config['guild_id']);
         list($coverage, $eventsComplete) = tbHistoryBuildCoverage(
             $conn_guionbot,
             (int)$historyRow['id'],
