@@ -342,37 +342,46 @@ async def handle_deploy_tb_platoons(request):
                 disable_rpc_call=False,
             )
 
-            # Expose only deployment outcomes. Backend diagnostics remain internal.
+            # Expose only the requested public outcome lists. Internal RPC
+            # categories and diagnostics remain hidden from the remote client.
             if err_code in (502, 504):
                 status_name = "ERROR"
                 rpc_http_statuses.append(int(err_code))
                 deployed_def_ids = []
-                not_deployed_def_ids = list(group["requested_defIds"])
+                already_deployed_def_ids = []
+                not_deployed_def_ids = []
             else:
                 result_data = result if isinstance(result, dict) else {}
-                confirmed_deployed = set()
-                for category in ("deployed_defIds", "alreadyDeployed_defIds"):
-                    values = result_data.get(category, [])
-                    if isinstance(values, list):
-                        confirmed_deployed.update(
-                            unit_id for unit_id in values
-                            if isinstance(unit_id, str)
-                        )
+                deployed_set = {
+                    unit_id for unit_id in result_data.get("deployed_defIds", [])
+                    if isinstance(unit_id, str)
+                } if isinstance(result_data.get("deployed_defIds", []), list) else set()
+                already_deployed_set = {
+                    unit_id for unit_id in result_data.get("alreadyDeployed_defIds", [])
+                    if isinstance(unit_id, str)
+                } if isinstance(result_data.get("alreadyDeployed_defIds", []), list) else set()
+                not_deployed_set = {
+                    unit_id for unit_id in result_data.get("playerUsed_defIds", [])
+                    if isinstance(unit_id, str)
+                } if isinstance(result_data.get("playerUsed_defIds", []), list) else set()
 
-                requested_def_ids = group["requested_defIds"]
+                requested_def_ids = list(group["requested_defIds"])
                 deployed_def_ids = [
+                    unit_id for unit_id in requested_def_ids if unit_id in deployed_set
+                ]
+                already_deployed_def_ids = [
                     unit_id for unit_id in requested_def_ids
-                    if unit_id in confirmed_deployed
+                    if unit_id in already_deployed_set
                 ]
                 not_deployed_def_ids = [
-                    unit_id for unit_id in requested_def_ids
-                    if unit_id not in confirmed_deployed
+                    unit_id for unit_id in requested_def_ids if unit_id in not_deployed_set
                 ]
 
-                if not not_deployed_def_ids:
+                confirmed_set = deployed_set | already_deployed_set
+                if all(unit_id in confirmed_set for unit_id in requested_def_ids):
                     status_name = "SUCCESS"
                     succeeded += 1
-                elif deployed_def_ids:
+                elif deployed_def_ids or already_deployed_def_ids:
                     status_name = "PARTIAL"
                     partial_count += 1
                 else:
@@ -387,9 +396,10 @@ async def handle_deploy_tb_platoons(request):
                 "zone_id": group["zone_id"],
                 "squad_id": group["squad_id"],
                 "platoon_strategy": group["platoon_strategy"],
-                "requested_defIds": group["requested_defIds"],
+                "requested_defIds": list(group["requested_defIds"]),
                 "status": status_name,
                 "deployed_defIds": deployed_def_ids,
+                "alreadyDeployed_defIds": already_deployed_def_ids,
                 "notDeployed_defIds": not_deployed_def_ids,
             }
             results.append(item)
