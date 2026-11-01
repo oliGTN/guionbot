@@ -635,8 +635,22 @@ try {
         $tbs[] = $tb;
     }
 } catch (PDOException $exception) {
-    error_log('TB history API query failed; SQLSTATE=' . (string)$exception->getCode());
-    tbHistoryRespond(500, ['success' => false, 'error' => 'Unable to retrieve TB history']);
+    error_log(
+        'TB history API query failed: ' .
+        $exception->getMessage()
+    );
+
+    if (isset($exception->errorInfo)) {
+        error_log(
+            'TB history API driver error: ' .
+            json_encode($exception->errorInfo)
+        );
+    }
+
+    tbHistoryRespond(500, [
+        'success' => false,
+        'error' => 'Unable to retrieve TB history'
+    ]);
 } catch (Throwable $exception) {
     error_log('TB history API setup failed; exception=' . get_class($exception));
     tbHistoryRespond(500, ['success' => false, 'error' => 'Unable to retrieve TB history']);
