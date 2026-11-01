@@ -3844,24 +3844,25 @@ async def platoon_tb(
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, data=req_data) as resp:
                     golog.log("DBG", "POST platoonsTB status="+str(resp.status))
-                    if resp.status==200:
-                        #normale case
-                        resp_json = await(resp.json())
-                    elif resp.status==201:
-                        # rien à déployer
-                        return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status), None
-                    else:
-                        return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status), None
+                    if resp.status != 200:
+                        golog.log("ERR", "TB platoon RPC returned HTTP "+str(resp.status))
+                        return 502, "Deployment backend error", None
+                    try:
+                        resp_json = await resp.json()
+                    except (ValueError, aiohttp.ContentTypeError):
+                        golog.log("ERR", "TB platoon RPC returned an invalid response")
+                        return 502, "Deployment backend error", None
 
-        except asyncio.exceptions.TimeoutError as e:
-            return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-        except aiohttp.client_exceptions.ServerDisconnectedError as e:
-            return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-        except aiohttp.client_exceptions.ClientConnectorError as e:
-            return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+        except asyncio.TimeoutError:
+            golog.log("ERR", "TB platoon RPC request timed out")
+            return 504, "Deployment backend timeout", None
+        except aiohttp.ClientError as error:
+            golog.log("ERR", "TB platoon RPC connection failed: "+str(error))
+            return 502, "Deployment backend error", None
 
-        if resp_json!=None and "err_code" in resp_json:
-            return 1, resp_json["err_txt"], None
+        if resp_json is not None and "err_code" in resp_json:
+            golog.log("ERR", "TB platoon RPC reported a deployment error")
+            return 502, "Deployment backend error", None
 
     return 0, "", {"noneedToDeploy_defIds": noneedToDeploy_defIds,
                    "playerUsed_defIds": playerUsed_defIds,
