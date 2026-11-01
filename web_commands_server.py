@@ -298,6 +298,13 @@ async def handle_deploy_tb_platoons(request):
                       "deployed_defIds": group["requested_defIds"]}
             #####################
 
+            player_used_def_ids = (
+                result.get("playerUsed_defIds", [])
+                if isinstance(result, dict) else []
+            )
+            has_player_used_units = bool(player_used_def_ids)
+            group_completed = int(err_code) == 0 and not has_player_used_units
+
             item = {
                 "planet": group["planet"],
                 "zone_id": group["zone_id"],
@@ -306,11 +313,20 @@ async def handle_deploy_tb_platoons(request):
                 "requested_defIds": group["requested_defIds"],
                 "err_code": int(err_code),
                 "err_txt": str(err_txt or ""),
+                "partial": int(err_code) == 0 and has_player_used_units,
                 "result": result,
             }
             results.append(item)
-            if int(err_code) == 0:
+            if group_completed:
                 succeeded += 1
+            elif int(err_code) == 0 and has_player_used_units:
+                golog.log(
+                    "WAR",
+                    "TB platoon partially deployed for allyCode " + ally_code
+                    + ", zone " + group["zone_id"]
+                    + ", platoon " + group["squad_id"]
+                    + "; playerUsed_defIds=" + str(player_used_def_ids)
+                )
             else:
                 golog.log(
                     "WAR",
@@ -324,7 +340,7 @@ async def handle_deploy_tb_platoons(request):
         response = {
             "success": all_succeeded,
             "err_code": 0 if all_succeeded else 1,
-            "err_txt": "Successfully processed " + str(succeeded) + "/" + str(len(results)) + " platoon(s).",
+            "err_txt": "Successfully completed " + str(succeeded) + "/" + str(len(results)) + " platoon(s).",
             "ally_code": ally_code,
             "completed": succeeded,
             "total": len(results),
