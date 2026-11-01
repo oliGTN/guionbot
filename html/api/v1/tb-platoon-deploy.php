@@ -34,36 +34,9 @@ if ($contentLength > 1048576) {
     tbPlatoonApiRespond(413, ['success' => false, 'err_code' => 413, 'err_txt' => 'Request body too large']);
 }
 
-$configPath = '/home/pi/GuionBot/SERVER_SECRETS/web_api.php';
-if (!is_file($configPath) || !is_readable($configPath)) {
-    error_log('TB platoon deploy API configuration is missing or unreadable');
-    tbPlatoonApiRespond(503, ['success' => false, 'err_code' => 503, 'err_txt' => 'Service unavailable']);
-}
-$config = require $configPath;
-if (!is_array($config) || !isset($config['api_key']) ||
-    !is_string($config['api_key']) || $config['api_key'] === '') {
-    error_log('TB platoon deploy API configuration has an invalid format');
-    tbPlatoonApiRespond(503, ['success' => false, 'err_code' => 503, 'err_txt' => 'Service unavailable']);
-}
-
-$headers = function_exists('getallheaders') ? getallheaders() : [];
-$authorization = '';
-foreach ($headers as $name => $value) {
-    if (strcasecmp((string) $name, 'Authorization') === 0) {
-        $authorization = is_string($value) ? trim($value) : '';
-        break;
-    }
-}
-if ($authorization === '' && isset($_SERVER['HTTP_AUTHORIZATION'])) {
-    $authorization = trim((string) $_SERVER['HTTP_AUTHORIZATION']);
-}
-if ($authorization === '' && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-    $authorization = trim((string) $_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
-}
-if (!preg_match('/^Bearer\s+([^\s]+)$/i', $authorization, $matches) ||
-    !hash_equals($config['api_key'], $matches[1])) {
-    tbPlatoonApiRespond(401, ['success' => false, 'err_code' => 401, 'err_txt' => 'Unauthorized'], ['WWW-Authenticate' => 'Bearer']);
-}
+require_once dirname(__DIR__) . '/includes/api_auth.php';
+$authContext = apiAuthenticate('tb-platoon-deploy', 'tbPlatoonApiRespond', 'deploy');
+$config = $authContext['config'];
 
 $body = file_get_contents('php://input');
 if ($body === false || trim($body) === '') {
@@ -75,53 +48,6 @@ if (json_last_error() !== JSON_ERROR_NONE || !is_array($payload) ||
     !is_string($payload['ally_code']) || !preg_match('/^[0-9]{9}$/', $payload['ally_code']) ||
     !is_array($payload['planets']) || count($payload['planets']) === 0) {
     tbPlatoonApiRespond(400, ['success' => false, 'err_code' => 400, 'err_txt' => 'Invalid JSON payload: ally_code and a non-empty planets object are required']);
-}
-
-// Limit deployment requests independently of the read-only endpoints.
-$rateFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) .
-    DIRECTORY_SEPARATOR . 'guionbot_tb_platoon_deploy_rate_' . hash('sha256', $config['api_key']) . '.json';
-$rateHandle = @fopen($rateFile, 'c+');
-if ($rateHandle === false || !flock($rateHandle, LOCK_EX)) {
-    if (is_resource($rateHandle)) fclose($rateHandle);
-    error_log('TB platoon deploy API rate-limit storage is unavailable');
-    tbPlatoonApiRespond(503, ['success' => false, 'err_code' => 503, 'err_txt' => 'Service unavailable']);
-}
-$now = time();
-$rateState = json_decode((string) stream_get_contents($rateHandle), true);
-$timestamps = [];
-if (is_array($rateState) && isset($rateState['timestamps']) && is_array($rateState['timestamps'])) {
-    foreach ($rateState['timestamps'] as $timestamp) {
-        if (is_int($timestamp) && $timestamp > $now - 86400 && $timestamp <= $now) {
-            $timestamps[] = $timestamp;
-        }
-    }
-}
-$recent = array_values(array_filter($timestamps, static function ($timestamp) use ($now) {
-    return $timestamp > $now - 60;
-}));
-$rateError = null;
-$retryAfter = 1;
-if (count($timestamps) >= 100) {
-    sort($timestamps, SORT_NUMERIC);
-    $rateError = 'Daily deployment request limit exceeded';
-    $retryAfter = max(1, $timestamps[count($timestamps) - 100] + 86400 - $now + 1);
-} elseif (count($recent) >= 20) {
-    sort($recent, SORT_NUMERIC);
-    $rateError = 'Deployment rate limit exceeded';
-    $retryAfter = max(1, $recent[0] + 60 - $now + 1);
-} else {
-    $timestamps[] = $now;
-}
-rewind($rateHandle);
-if ($rateError === null) {
-    ftruncate($rateHandle, 0);
-    fwrite($rateHandle, json_encode(['timestamps' => $timestamps]));
-    fflush($rateHandle);
-}
-flock($rateHandle, LOCK_UN);
-fclose($rateHandle);
-if ($rateError !== null) {
-    tbPlatoonApiRespond(429, ['success' => false, 'err_code' => 429, 'err_txt' => $rateError], ['Retry-After' => (string) $retryAfter]);
 }
 
 $tokenPath = '/home/pi/GuionBot/SERVER_SECRETS/web_commands.token';
