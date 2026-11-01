@@ -31,7 +31,7 @@ function tbHistoryNullableInt($value): ?int
 
 function tbHistoryStatValue(array $stats, string $statId, string $playerId): ?int
 {
-    if (!array_key_exists($statId, $stats)) {
+    if (!array_key_exists($statId, $stats) || $stats[$statId] === null) {
         return null;
     }
     return array_key_exists($playerId, $stats[$statId]) ? $stats[$statId][$playerId] : 0;
@@ -39,7 +39,6 @@ function tbHistoryStatValue(array $stats, string $statId, string $playerId): ?in
 
 function tbHistoryLoadMapstats(string $guildId, string $tbId): ?array
 {
-    // Game instance IDs are stored with their original colon in tb_history and filenames.
     if (!preg_match('/^TB_EVENT_TB3_MIXED:O[0-9]+$/', $tbId)) {
         return null;
     }
@@ -71,8 +70,12 @@ function tbHistoryLoadMapstats(string $guildId, string $tbId): ?array
         if (!is_array($entry) || !isset($entry['mapStatId']) || !is_string($entry['mapStatId'])) {
             continue;
         }
+        if (!isset($entry['playerStat']) || !is_array($entry['playerStat'])) {
+            $indexed[$entry['mapStatId']] = null;
+            continue;
+        }
         $indexed[$entry['mapStatId']] = [];
-        foreach (($entry['playerStat'] ?? []) as $playerStat) {
+        foreach ($entry['playerStat'] as $playerStat) {
             if (!is_array($playerStat) || !isset($playerStat['memberId']) || !is_string($playerStat['memberId'])) {
                 continue;
             }
@@ -84,44 +87,71 @@ function tbHistoryLoadMapstats(string $guildId, string $tbId): ?array
     return $indexed;
 }
 
-function tbHistoryBuildPlayers(PDO $db, string $guildId, string $tbId): array
+function tbHistoryBuildPlayers(PDO $db, string $guildId, string $tbId, int $internalTbId): array
 {
     $stats = tbHistoryLoadMapstats($guildId, $tbId);
-    if ($stats === null) {
-        return [[], false];
+
+    // tb_player_score stores the per-player GP snapshot for every phase. Its tb_id
+    // is the internal FK and is never exposed in the API response.
+    $phaseStatement = $db->prepare(
+        'SELECT player_id, round, gp, char_gp, ship_gp
+         FROM tb_player_score
+         WHERE tb_id = :id
+         ORDER BY round, player_id'
+    );
+    $phaseStatement->execute([':id' => $internalTbId]);
+    $phaseRows = [];
+    $playerIds = [];
+    foreach ($phaseStatement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $playerId = (string)$row['player_id'];
+        $round = (int)$row['round'];
+        if ($playerId === '' || $round < 1 || $round > 6) {
+            continue;
+        }
+        $phaseRows[$playerId][$round] = [
+            'gp' => tbHistoryNullableInt($row['gp']),
+            'gp_chars' => tbHistoryNullableInt($row['char_gp']),
+            'gp_ships' => tbHistoryNullableInt($row['ship_gp'])
+        ];
+        $playerIds[$playerId] = true;
     }
 
-    $playerIds = [];
-    for ($round = 1; $round <= 6; $round++) {
-        foreach ([
-            'summary_round_' . $round,
-            'power_round_' . $round,
-            'strike_attempt_round_' . $round,
-            'strike_encounter_round_' . $round,
-            'covert_attempt_round_' . $round,
-            'unit_donated_round_' . $round,
-            'disobey_round_' . $round
-        ] as $statId) {
-            foreach (array_keys($stats[$statId] ?? []) as $playerId) {
-                $playerIds[$playerId] = true;
+    if ($stats !== null) {
+        for ($round = 1; $round <= 6; $round++) {
+            foreach ([
+                'summary_round_' . $round,
+                'power_round_' . $round,
+                'strike_attempt_round_' . $round,
+                'strike_encounter_round_' . $round,
+                'covert_attempt_round_' . $round,
+                'unit_donated_round_' . $round,
+                'disobey_round_' . $round
+            ] as $statId) {
+                foreach (array_keys($stats[$statId] ?? []) as $playerId) {
+                    $playerIds[$playerId] = true;
+                }
             }
         }
     }
+
     if (!$playerIds) {
-        return [[], true];
+        return [[], $stats !== null];
     }
 
-    // Covert completion mapstats are mission-specific, not round-specific. The phase
-    // embedded in the mission ID is the best available round attribution.
+    // Mapstats covert completions are mission-specific; the phase is encoded
+    // in the mission identifier.
     $covertDone = [];
-    foreach ($stats as $statId => $playerScores) {
-        if (preg_match('/^covert_complete_mission_tb3_mixed_phase0([1-6])_/', $statId, $match)) {
-            $round = (int)$match[1];
-            foreach ($playerScores as $playerId => $score) {
-                if (!isset($covertDone[$round][$playerId])) {
-                    $covertDone[$round][$playerId] = 0;
+    if ($stats !== null) {
+        foreach ($stats as $statId => $playerScores) {
+            if (preg_match('/^covert_complete_mission_tb3_mixed_phase0([1-6])_/', $statId, $match) &&
+                is_array($playerScores)) {
+                $round = (int)$match[1];
+                foreach ($playerScores as $playerId => $score) {
+                    if (!isset($covertDone[$round][$playerId])) {
+                        $covertDone[$round][$playerId] = 0;
+                    }
+                    $covertDone[$round][$playerId] += $score;
                 }
-                $covertDone[$round][$playerId] += $score;
             }
         }
     }
@@ -134,17 +164,21 @@ function tbHistoryBuildPlayers(PDO $db, string $guildId, string $tbId): array
         $placeholders[] = $key;
         $params[$key] = $playerId;
     }
-    $sql = 'SELECT playerId, CAST(allyCode AS CHAR) AS ally_code, name
+    $sql = 'SELECT playerId, CAST(allyCode AS CHAR) AS ally_code, name, lastUpdated
             FROM players
-            WHERE playerId IN (' . implode(',', $placeholders) . ')';
+            WHERE playerId IN (' . implode(',', $placeholders) . ')
+            ORDER BY lastUpdated DESC';
     $statement = $db->prepare($sql);
     $statement->execute($params);
     $playerInfo = [];
     foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $playerInfo[$row['playerId']] = [
-            'ally_code' => isset($row['ally_code']) ? (string)$row['ally_code'] : null,
-            'name' => $row['name']
-        ];
+        // If an ID has multiple historical rows, use its most recently updated profile.
+        if (!isset($playerInfo[$row['playerId']])) {
+            $playerInfo[$row['playerId']] = [
+                'ally_code' => isset($row['ally_code']) ? (string)$row['ally_code'] : null,
+                'name' => $row['name']
+            ];
+        }
     }
 
     $players = [];
@@ -152,7 +186,7 @@ function tbHistoryBuildPlayers(PDO $db, string $guildId, string $tbId): array
         $info = $playerInfo[$playerId] ?? ['ally_code' => null, 'name' => null];
         $roundRows = [];
         for ($round = 1; $round <= 6; $round++) {
-            $phaseStatIds = [
+            $roundStatIds = [
                 'summary_round_' . $round,
                 'power_round_' . $round,
                 'strike_attempt_round_' . $round,
@@ -161,34 +195,37 @@ function tbHistoryBuildPlayers(PDO $db, string $guildId, string $tbId): array
                 'unit_donated_round_' . $round,
                 'disobey_round_' . $round
             ];
-            $present = false;
-            foreach ($phaseStatIds as $statId) {
-                if (isset($stats[$statId]) && array_key_exists($playerId, $stats[$statId])) {
-                    $present = true;
-                    break;
+            $present = isset($phaseRows[$playerId][$round]);
+            if (!$present && $stats !== null) {
+                foreach ($roundStatIds as $statId) {
+                    if (isset($stats[$statId]) && is_array($stats[$statId]) &&
+                        array_key_exists($playerId, $stats[$statId])) {
+                        $present = true;
+                        break;
+                    }
                 }
             }
 
-            $summary = tbHistoryStatValue($stats, 'summary_round_' . $round, $playerId);
-            $deploy = tbHistoryStatValue($stats, 'power_round_' . $round, $playerId);
+            $summary = $stats === null ? null : tbHistoryStatValue($stats, 'summary_round_' . $round, $playerId);
+            $deploy = $stats === null ? null : tbHistoryStatValue($stats, 'power_round_' . $round, $playerId);
             $combat = ($summary !== null && $deploy !== null) ? $summary - $deploy : null;
+            $gp = $phaseRows[$playerId][$round] ?? ['gp' => null, 'gp_chars' => null, 'gp_ships' => null];
 
             $roundRows[] = [
                 'round' => $round,
                 'present' => $present,
-                // No historical per-player GP snapshot is stored by the bot.
-                'gp' => null,
-                'gp_chars' => null,
-                'gp_ships' => null,
+                'gp' => $gp['gp'],
+                'gp_chars' => $gp['gp_chars'],
+                'gp_ships' => $gp['gp_ships'],
                 'deploy_points' => $deploy,
                 'combat_points' => $combat,
                 'summary' => $summary,
-                'strike_attempts' => tbHistoryStatValue($stats, 'strike_attempt_round_' . $round, $playerId),
-                'waves_won' => tbHistoryStatValue($stats, 'strike_encounter_round_' . $round, $playerId),
-                'covert_attempts' => tbHistoryStatValue($stats, 'covert_attempt_round_' . $round, $playerId),
-                'covert_done' => $covertDone[$round][$playerId] ?? null,
-                'units_donated' => tbHistoryStatValue($stats, 'unit_donated_round_' . $round, $playerId),
-                'disobey' => tbHistoryStatValue($stats, 'disobey_round_' . $round, $playerId)
+                'strike_attempts' => $stats === null ? null : tbHistoryStatValue($stats, 'strike_attempt_round_' . $round, $playerId),
+                'waves_won' => $stats === null ? null : tbHistoryStatValue($stats, 'strike_encounter_round_' . $round, $playerId),
+                'covert_attempts' => $stats === null ? null : tbHistoryStatValue($stats, 'covert_attempt_round_' . $round, $playerId),
+                'covert_done' => $stats === null ? null : ($covertDone[$round][$playerId] ?? null),
+                'units_donated' => $stats === null ? null : tbHistoryStatValue($stats, 'unit_donated_round_' . $round, $playerId),
+                'disobey' => $stats === null ? null : tbHistoryStatValue($stats, 'disobey_round_' . $round, $playerId)
             ];
         }
         $players[] = [
@@ -202,7 +239,7 @@ function tbHistoryBuildPlayers(PDO $db, string $guildId, string $tbId): array
     usort($players, static function ($a, $b) {
         return strcmp((string)$a['name'], (string)$b['name']);
     });
-    return [$players, true];
+    return [$players, $stats !== null];
 }
 
 // HTTPS and POST only.
@@ -467,9 +504,9 @@ try {
                 $strategy = null;
                 if (strcasecmp($rawStrategy, 'Full') === 0) {
                     $strategy = 'Full';
-                } elseif (in_array(mb_strtolower($rawStrategy, 'UTF-8'), ['pré remplir', 'pre remplir', 'pré-remplir', 'pre-remplir'], true)) {
+                } elseif (in_array($rawStrategy, ['Pré remplir', 'pré remplir', 'Pré-remplir', 'pré-remplir'], true)) {
                     $strategy = 'Pré remplir';
-                } elseif (in_array(mb_strtolower($rawStrategy, 'UTF-8'), ["pas d'étoile", "pas d'etoile"], true)) {
+                } elseif (in_array($rawStrategy, ["Pas d'étoile", "pas d'étoile"], true)) {
                     $strategy = "Pas d'étoile";
                 }
 
@@ -498,10 +535,13 @@ try {
             list($players, $mapstatsAvailable) = tbHistoryBuildPlayers(
                 $conn_guionbot,
                 $config['guild_id'],
-                (string)$historyRow['tb_id']
+                (string)$historyRow['tb_id'],
+                (int)$historyRow['id']
             );
             $tb['players'] = $players;
-            $tb['mapstats_available'] = $mapstatsAvailable;
+            if (!$mapstatsAvailable) {
+                $tb['events_complete'] = false;
+            }
         }
 
         foreach (['player_zones', 'strikes', 'covert'] as $optionalBlock) {
