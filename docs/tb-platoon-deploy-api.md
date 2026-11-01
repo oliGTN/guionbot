@@ -5,7 +5,7 @@ This endpoint accepts a plan JSON document and deploys the requested platoon uni
 ## Endpoint
 
 - Method: `POST`
-- URL: `https://guionbot.fr/api/v1/tb-platoon-deploy.php`
+- URL: `/api/v1/tb-platoon-deploy.php`
 - Header: `Authorization: Bearer YOUR_API_KEY`
 - Content-Type: `application/json`
 
@@ -25,13 +25,13 @@ Example (valid JSON), retaining the plan format produced by the planner:
 
 ```json
 {
-  "plan_id": "5397005f",
+  "plan_id": "example-plan",
   "phase": 5,
-  "player": "Gui On Ensai",
-  "ally_code": "189341793",
-  "discord_id": "566552780647563285",
+  "player": "Example Player",
+  "ally_code": "123456789",
+  "discord_id": "000000000000000000",
   "planets": {
-    "Haven-class Medical Station (DS4)": {
+    "Example Planet": {
       "zone_id": "P4-C2",
       "planet_strategy": "FULL",
       "platoon_strategies": {
@@ -133,7 +133,7 @@ missing, unexpected, duplicated, or malformed categories.
 - Maximum request body: 1 MiB.
 - Maximum 50 planets, 200 distinct platoon groups, and 1,000 unit assignments.
 - Deployment endpoint rate limit: 20 requests per rolling minute and 100 per rolling 24 hours.
-- The local web command endpoint is protected by the separate web commands token and is bound to localhost.
+- The internal deployment service is protected by a separate service token and is not exposed publicly.
 - The endpoint never accepts a guild ID from the request; the RPC acts using the submitted top-level ally code.
 
 HTTP status codes include 200 (all groups succeeded), 207 (partial/total group failure),
