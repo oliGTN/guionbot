@@ -443,78 +443,9 @@ foreach ($blocks as $block) {
 }
 $blocks = array_values(array_unique($blocks));
 
-$configPath = '/home/pi/GuionBot/SERVER_SECRETS/web_api.php';
-if (!is_file($configPath) || !is_readable($configPath)) {
-    tbHistoryRespond(503, ['success' => false, 'error' => 'Service unavailable']);
-}
-$config = require $configPath;
-if (!is_array($config) || empty($config['api_key']) || empty($config['guild_id']) ||
-    !is_string($config['api_key']) || !is_string($config['guild_id'])) {
-    tbHistoryRespond(503, ['success' => false, 'error' => 'Service unavailable']);
-}
-
-$headersIn = function_exists('getallheaders') ? getallheaders() : [];
-$authorization = '';
-foreach ($headersIn as $name => $value) {
-    if (strcasecmp((string)$name, 'Authorization') === 0) {
-        $authorization = is_string($value) ? trim($value) : '';
-        break;
-    }
-}
-if ($authorization === '') {
-    $authorization = trim((string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
-}
-if (!preg_match('/^Bearer\s+([^\s]+)$/i', $authorization, $matches) ||
-    !hash_equals($config['api_key'], $matches[1])) {
-    tbHistoryRespond(401, ['success' => false, 'error' => 'Unauthorized'], ['WWW-Authenticate' => 'Bearer']);
-}
-
-// 5 requests/minute and 1,000/day per API key.
-$rateFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR .
-    'guionbot_tb_history_rate_' . hash('sha256', $config['api_key']) . '.json';
-$rateHandle = @fopen($rateFile, 'c+');
-if ($rateHandle === false || !flock($rateHandle, LOCK_EX)) {
-    if (is_resource($rateHandle)) {
-        fclose($rateHandle);
-    }
-    tbHistoryRespond(503, ['success' => false, 'error' => 'Service unavailable']);
-}
-$now = time();
-$rateState = json_decode((string)stream_get_contents($rateHandle), true);
-$timestamps = [];
-foreach (($rateState['timestamps'] ?? []) as $timestamp) {
-    if (is_int($timestamp) && $timestamp > $now - 86400 && $timestamp <= $now) {
-        $timestamps[] = $timestamp;
-    }
-}
-$recent = array_values(array_filter($timestamps, static function ($timestamp) use ($now) {
-    return $timestamp > $now - 60;
-}));
-$rateError = count($timestamps) >= 1000 ? 'Daily request limit exceeded' :
-    (count($recent) >= 5 ? 'Rate limit exceeded' : null);
-$retryAfter = 1;
-if ($rateError !== null) {
-    $list = $rateError === 'Daily request limit exceeded' ? $timestamps : $recent;
-    sort($list, SORT_NUMERIC);
-    $retryAfter = max(1, $list[0] + ($rateError === 'Daily request limit exceeded' ? 86400 : 60) - $now + 1);
-} else {
-    $timestamps[] = $now;
-}
-rewind($rateHandle);
-if ($rateError === null) {
-    ftruncate($rateHandle, 0);
-    fwrite($rateHandle, json_encode(['timestamps' => $timestamps]));
-    fflush($rateHandle);
-}
-flock($rateHandle, LOCK_UN);
-fclose($rateHandle);
-if ($rateError !== null) {
-    tbHistoryRespond(429, ['success' => false, 'error' => $rateError], [
-        'Retry-After' => (string)$retryAfter,
-        'RateLimit-Limit' => '5',
-        'RateLimit-Remaining' => '0'
-    ]);
-}
+require_once dirname(__DIR__) . '/includes/api_auth.php';
+$authContext = apiAuthenticate('tb-history', 'tbHistoryRespond');
+$config = $authContext['config'];
 
 try {
     require_once dirname(__DIR__, 2) . '/guionbotdb.php';
@@ -716,6 +647,6 @@ tbHistoryRespond(200, [
     'generated' => gmdate('Y-m-d\TH:i:s\Z'),
     'tbs' => $tbs
 ], [
-    'RateLimit-Limit' => '5',
-    'RateLimit-Remaining' => (string)max(0, 4 - count($recent))
+    'RateLimit-Limit' => (string)$authContext['limit'],
+    'RateLimit-Remaining' => (string)$authContext['remaining']
 ]);
