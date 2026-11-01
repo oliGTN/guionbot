@@ -53,7 +53,7 @@ if (trim($body) !== '') {
     }
 }
 
-$auth = require_once dirname(__DIR__) . '/includes/api_auth.php';
+require_once dirname(__DIR__) . '/includes/api_auth.php';
 $authContext = apiAuthenticate('tb-platoons', 'apiRespond');
 $config = $authContext['config'];
 
