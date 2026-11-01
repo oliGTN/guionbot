@@ -106,15 +106,23 @@ Each platoon result exposes only the deployment outcome:
   exact platoon.
 - `PARTIAL`: at least one requested unit is deployed, but at least one is not.
 - `FAILED`: none of the requested units is confirmed deployed.
+- `ERROR`: the deployment backend could not provide a reliable outcome. This is
+  distinct from a unit simply not being deployed.
 
 `deployed_defIds` contains units confirmed deployed in the target platoon.
 `notDeployed_defIds` contains the remaining requested units. Both lists
 partition `requested_defIds`; internal checks, RPC status codes, error messages,
 and intermediate result categories are not exposed.
 
-HTTP 200 is returned only when every platoon is `SUCCESS`. Otherwise the API
-returns HTTP 207 (Multi-Status). The top-level `completed`, `partial`, and
-`failed` fields count platoons in each outcome category.
+HTTP 200 is returned only when every platoon is `SUCCESS`. HTTP 207
+(Multi-Status) is returned for unit-level `PARTIAL` or `FAILED` outcomes.
+Backend communication failures use gateway status codes instead: HTTP 502
+(`Bad Gateway`) when the deployment backend is unavailable or returns an
+invalid/error response, and HTTP 504 (`Gateway Timeout`) when it does not
+respond in time. These errors are represented by a per-platoon `ERROR` status;
+the response does not expose internal RPC codes or messages. The top-level
+`completed`, `partial`, and `failed` fields count platoons in each outcome
+category; backend errors are included in `failed`.
 
 ## Limits and security
 
@@ -127,5 +135,5 @@ returns HTTP 207 (Multi-Status). The top-level `completed`, `partial`, and
 
 HTTP status codes include 200 (all groups succeeded), 207 (partial/total group failure),
 400 (invalid payload), 401 (invalid API key), 403 (HTTPS required), 405 (wrong method),
-413 (request too large), 429 (rate limit), 502 (local deployment service unavailable),
-and 503 (server-side configuration unavailable).
+413 (request too large), 429 (rate limit), 502 (deployment backend communication failure), 503 (server-side configuration
+unavailable), and 504 (deployment backend timeout).
