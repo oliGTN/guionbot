@@ -9,9 +9,8 @@ This endpoint accepts a plan JSON document and deploys the requested platoon uni
 - Header: `Authorization: Bearer YOUR_API_KEY`
 - Content-Type: `application/json`
 
-The endpoint uses a configured API key and forwards requests to the internal
-deployment service. Server-side secret locations and internal service addresses
-are intentionally omitted from this documentation.
+The endpoint uses a configured API key and forwards requests to an internal
+deployment service. Server-side configuration details are intentionally omitted.
 
 ## Request body
 
@@ -75,16 +74,16 @@ assignments are deployed using the top-level `ally_code`.
 
 ## Response
 
-A fully successful deployment returns HTTP 200. The response below corresponds
-to the single assignment in the request example above:
+A fully successful deployment returns HTTP 200. This response corresponds to
+the single assignment in the request example above:
 
 ```json
 {
   "success": true,
-  "err_code": 0,
-  "err_txt": "Successfully completed 1/1 platoon(s).",
   "ally_code": "123456789",
   "completed": 1,
+  "partial": 0,
+  "failed": 0,
   "total": 1,
   "results": [
     {
@@ -94,40 +93,28 @@ to the single assignment in the request example above:
       "platoon_strategy": "FULL",
       "requested_defIds": ["DATHCHA"],
       "status": "SUCCESS",
-      "err_code": 0,
-      "err_txt": "",
-      "partial": false,
-      "result": {
-        "deployed_defIds": ["DATHCHA"],
-        "playerUsed_defIds": [],
-        "noneedToDeploy_defIds": [],
-        "alreadyDeployed_defIds": []
-      }
+      "deployed_defIds": ["DATHCHA"],
+      "notDeployed_defIds": []
     }
   ]
 }
 ```
 
-Each `results[]` entry includes a `status`:
+Each platoon result exposes only the deployment outcome:
 
-- `SUCCESS`: RPC succeeded and every requested unit is accounted for as deployed,
-  needing no deployment, or already deployed in this exact platoon.
-- `PARTIAL`: RPC succeeded, but one or more units are in
-  `playerUsed_defIds`, missing from all outcome lists, duplicated across lists,
-  unexpected, or a result list has an invalid format.
-- `ERROR`: the RPC returned a non-zero error. Any unit outcome lists returned
-  by the RPC are preserved in `result`.
+- `SUCCESS`: every requested unit is deployed or was already deployed in this
+  exact platoon.
+- `PARTIAL`: at least one requested unit is deployed, but at least one is not.
+- `FAILED`: none of the requested units is confirmed deployed.
 
-The recognized outcome lists are `deployed_defIds`, `playerUsed_defIds`,
-`noneedToDeploy_defIds`, and `alreadyDeployed_defIds`. The last means the unit
-is already deployed in this exact platoon and counts as fulfilled.
-`playerUsed_defIds` does not count as fulfilled.
+`deployed_defIds` contains units confirmed deployed in the target platoon.
+`notDeployed_defIds` contains the remaining requested units. Both lists
+partition `requested_defIds`; internal checks, RPC status codes, error messages,
+and intermediate result categories are not exposed.
 
 HTTP 200 is returned only when every platoon is `SUCCESS`. Otherwise the API
-returns HTTP 207 (Multi-Status), with `success: false` and individual results
-for all platoons. `completed` counts fully successful platoons. If a result
-list is inconsistent, the platoon includes a `validation` object identifying
-missing, unexpected, duplicated, or malformed categories.
+returns HTTP 207 (Multi-Status). The top-level `completed`, `partial`, and
+`failed` fields count platoons in each outcome category.
 
 ## Limits and security
 
@@ -135,7 +122,7 @@ missing, unexpected, duplicated, or malformed categories.
 - Maximum request body: 1 MiB.
 - Maximum 50 planets, 200 distinct platoon groups, and 1,000 unit assignments.
 - Deployment endpoint rate limit: 20 requests per rolling minute and 100 per rolling 24 hours.
-- The internal deployment service is protected by a separate service token and is not exposed publicly.
+- The internal deployment service is not exposed publicly.
 - The endpoint never accepts a guild ID from the request; the RPC acts using the submitted top-level ally code.
 
 HTTP status codes include 200 (all groups succeeded), 207 (partial/total group failure),
