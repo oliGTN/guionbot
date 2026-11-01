@@ -272,19 +272,16 @@ function tbHistoryBuildCoverage(PDO $db, int $internalTbId, ?array $stats): arra
     }
 
     $coverage = [];
-    $allComplete = count($zoneRows) > 0;
+    $allComplete = true;
     foreach ($zoneRows as $zoneRow) {
         $zoneId = (string)$zoneRow['zone_id'];
         $mapStatId = 'summary_zone_' . $zoneId;
-        $mapstatsTotal = null;
-        if (array_key_exists($mapStatId, $stats)) {
-            if (is_array($stats[$mapStatId])) {
-                $mapstatsTotal = array_sum($stats[$mapStatId]);
-            } elseif ($stats[$mapStatId] === null) {
-                $mapstatsTotal = null;
-            }
+        // A missing playerStat collection means this zone has no mapstats snapshot
+        // yet (commonly because it is still locked); it cannot be compared reliably.
+        if (!array_key_exists($mapStatId, $stats) || !is_array($stats[$mapStatId])) {
+            continue;
         }
-
+        $mapstatsTotal = array_sum($stats[$mapStatId]);
         $eventsTotal = $eventTotals[$zoneId] ?? 0;
         if ($mapstatsTotal === null) {
             $ratio = null;
@@ -311,7 +308,7 @@ function tbHistoryBuildCoverage(PDO $db, int $internalTbId, ?array $stats): arra
         ];
     }
 
-    return [$coverage, $allComplete];
+    return [$coverage, count($coverage) > 0 && $allComplete];
 }
 
 // HTTPS and POST only.
@@ -496,7 +493,7 @@ try {
         $start = $historyRow['start_date'] !== null
             ? new DateTimeImmutable($historyRow['start_date'], new DateTimeZone('UTC'))
             : null;
-        $finished = $historyRow['stars_final'] !== null;
+        $finished = $historyRow['stars_final'] !== null || (int)$historyRow['current_round'] > 6;
         $currentRound = $finished ? 6 : max(1, min(6, (int)$historyRow['current_round']));
         $rounds = [];
         for ($round = 1; $round <= ($finished ? 6 : $currentRound); $round++) {
