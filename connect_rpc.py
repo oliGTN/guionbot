@@ -2090,6 +2090,25 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     #
     ###########################################
 
+    # Persist the latest ROTE mapstats snapshot while the TB is still running.
+    # The PHP history API reads this file; previously it was written only at TB closure,
+    # which made the current TB's player block unavailable during the six phases.
+    if simulated_tb is None and tb_type == "TB_EVENT_TB3_MIXED":
+        try:
+            os.makedirs("EVENTS", exist_ok=True)
+            mapstats_filename = os.path.join(
+                "EVENTS",
+                guild_id + "_" + battle_id + "_mapstats.json"
+            )
+            previous_mapstats = prev_mapstats.get(guild_id)
+            if previous_mapstats != mapstats or not os.path.isfile(mapstats_filename):
+                temporary_filename = mapstats_filename + ".tmp"
+                with open(temporary_filename, "w", encoding="utf-8") as mapstats_file:
+                    mapstats_file.write(json_dumps(mapstats, indent=4))
+                os.replace(temporary_filename, mapstats_filename)
+        except (OSError, TypeError, ValueError) as exc:
+            golog.log("ERR", "Unable to persist ROTE mapstats snapshot: " + str(exc))
+
     prev_dict_guild[guild_id] = dict_guild
     prev_mapstats[guild_id] = mapstats
 
