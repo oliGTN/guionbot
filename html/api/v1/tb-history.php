@@ -63,7 +63,7 @@ foreach (($state['timestamps'] ?? []) as $t) if(is_int($t) && $t>$now-86400 && $
 $recent=array_values(array_filter($times,static function($t)use($now){return $t>$now-60;}));
 $rateError=count($times)>=1000 ? 'Daily request limit exceeded' : (count($recent)>=5 ? 'Rate limit exceeded' : null);
 $retry=1;
-if($rateError!==null){ sort($rateError==='Daily request limit exceeded'?$times:$recent,SORT_NUMERIC); $list=$rateError==='Daily request limit exceeded'?$times:$recent; $retry=max(1,$list[0]+($rateError==='Daily request limit exceeded'?86400:60)-$now+1); }
+if($rateError!==null){ $list=$rateError==='Daily request limit exceeded'?$times:$recent; sort($list,SORT_NUMERIC); $retry=max(1,$list[0]+($rateError==='Daily request limit exceeded'?86400:60)-$now+1); }
 else $times[]=$now;
 rewind($fh); if($rateError===null){ftruncate($fh,0);fwrite($fh,json_encode(['timestamps'=>$times]));fflush($fh);} flock($fh,LOCK_UN);fclose($fh);
 if($rateError!==null) tbHistoryRespond(429,['success'=>false,'error'=>$rateError],['Retry-After'=>(string)$retry,'RateLimit-Limit'=>'5','RateLimit-Remaining'=>'0']);
