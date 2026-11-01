@@ -275,6 +275,7 @@ async def handle_deploy_tb_platoons(request):
                 group["squad_id"],
                 group["requested_defIds"],
                 preload=(group["platoon_strategy"] == "PRELOAD"),
+                disable_rpc_call=True,
             )
 
             result = result if isinstance(result, dict) else {}
