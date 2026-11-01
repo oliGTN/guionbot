@@ -268,6 +268,8 @@ async def handle_deploy_tb_platoons(request):
 
         results = []
         succeeded = 0
+        partial_count = 0
+        failed_count = 0
         for group in groups.values():
             err_code, err_txt, result = await connect_rpc.platoon_tb(
                 ally_code,
@@ -275,99 +277,72 @@ async def handle_deploy_tb_platoons(request):
                 group["squad_id"],
                 group["requested_defIds"],
                 preload=(group["platoon_strategy"] == "PRELOAD"),
-                disable_rpc_call=True,
             )
 
-            result = result if isinstance(result, dict) else {}
-            category_keys = (
-                "deployed_defIds",
-                "playerUsed_defIds",
-                "noneedToDeploy_defIds",
-                "alreadyDeployed_defIds",
-            )
-            categorized = {}
-            invalid_categories = []
-            for category in category_keys:
-                values = result.get(category, [])
-                if not isinstance(values, list) or any(
-                    not isinstance(unit_id, str) for unit_id in values
-                ):
-                    invalid_categories.append(category)
-                    values = []
-                categorized[category] = values
+            # Expose only the final unit outcome. RPC and local validation details
+            # stay in server logs and are never returned to the remote client.
+            result_data = result if isinstance(result, dict) else {}
+            confirmed_deployed = set()
+            for category in ("deployed_defIds", "alreadyDeployed_defIds"):
+                values = result_data.get(category, [])
+                if isinstance(values, list):
+                    confirmed_deployed.update(
+                        unit_id for unit_id in values
+                        if isinstance(unit_id, str)
+                    )
 
-            category_counts = {}
-            for category, values in categorized.items():
-                for unit_id in values:
-                    category_counts[unit_id] = category_counts.get(unit_id, 0) + 1
+            requested_def_ids = group["requested_defIds"]
+            deployed_def_ids = [
+                unit_id for unit_id in requested_def_ids
+                if unit_id in confirmed_deployed
+            ]
+            not_deployed_def_ids = [
+                unit_id for unit_id in requested_def_ids
+                if unit_id not in confirmed_deployed
+            ]
 
-            requested = set(group["requested_defIds"])
-            returned = set(category_counts)
-            missing_units = sorted(requested - returned)
-            unexpected_units = sorted(returned - requested)
-            duplicate_units = sorted(
-                unit_id for unit_id, count in category_counts.items() if count > 1
-            )
-            player_used_def_ids = categorized["playerUsed_defIds"]
-            rpc_failed = int(err_code) != 0
-            malformed_result = bool(
-                invalid_categories or missing_units or unexpected_units or duplicate_units
-            )
-            group_completed = not rpc_failed and not player_used_def_ids and not malformed_result
-            status_name = (
-                "ERROR" if rpc_failed
-                else "SUCCESS" if group_completed
-                else "PARTIAL"
-            )
+            if not not_deployed_def_ids:
+                status_name = "SUCCESS"
+                succeeded += 1
+            elif deployed_def_ids:
+                status_name = "PARTIAL"
+                partial_count += 1
+            else:
+                status_name = "FAILED"
+                failed_count += 1
 
             item = {
                 "planet": group["planet"],
                 "zone_id": group["zone_id"],
                 "squad_id": group["squad_id"],
                 "platoon_strategy": group["platoon_strategy"],
-                "requested_defIds": group["requested_defIds"],
+                "requested_defIds": requested_def_ids,
                 "status": status_name,
-                "err_code": int(err_code),
-                "err_txt": str(err_txt or ""),
-                "partial": status_name == "PARTIAL",
-                "result": result,
+                "deployed_defIds": deployed_def_ids,
+                "notDeployed_defIds": not_deployed_def_ids,
             }
-            if malformed_result:
-                item["validation"] = {
-                    "missing_defIds": missing_units,
-                    "unexpected_defIds": unexpected_units,
-                    "duplicate_defIds": duplicate_units,
-                    "invalid_categories": invalid_categories,
-                }
             results.append(item)
 
-            if group_completed:
-                succeeded += 1
-            elif status_name == "PARTIAL":
+            if status_name != "SUCCESS":
                 golog.log(
                     "WAR",
-                    "TB platoon partially deployed for allyCode " + ally_code
+                    "TB platoon deployment outcome for allyCode " + ally_code
                     + ", zone " + group["zone_id"]
                     + ", platoon " + group["squad_id"]
-                    + "; playerUsed_defIds=" + str(player_used_def_ids)
-                    + "; validation=" + str(item.get("validation", {}))
-                )
-            else:
-                golog.log(
-                    "WAR",
-                    "TB platoon deploy failed for allyCode " + ally_code
-                    + ", zone " + group["zone_id"]
-                    + ", platoon " + group["squad_id"]
-                    + ": " + str(err_txt)
+                    + ": status=" + status_name
+                    + ", deployed=" + str(deployed_def_ids)
+                    + ", notDeployed=" + str(not_deployed_def_ids)
+                    + ", internal_err_code=" + str(err_code)
+                    + ", internal_err_txt=" + str(err_txt or "")
                 )
 
         all_succeeded = succeeded == len(results)
         response = {
             "success": all_succeeded,
-            "err_code": 0 if all_succeeded else 1,
-            "err_txt": "Successfully completed " + str(succeeded) + "/" + str(len(results)) + " platoon(s).",
             "ally_code": ally_code,
             "completed": succeeded,
+            "partial": partial_count,
+            "failed": failed_count,
             "total": len(results),
             "results": results,
         }
