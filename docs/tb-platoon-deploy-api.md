@@ -9,11 +9,9 @@ This endpoint accepts a plan JSON document and deploys the requested platoon uni
 - Header: `Authorization: Bearer YOUR_API_KEY`
 - Content-Type: `application/json`
 
-It uses the same API key configuration as the TB read-only endpoints:
-`/home/pi/GuionBot/SERVER_SECRETS/web_api.php`.
-The PHP endpoint forwards the request to the local web command service using
-`/home/pi/GuionBot/SERVER_SECRETS/web_commands.token`. The local service listens
-only on `127.0.0.1:9000`.
+The endpoint uses a configured API key and forwards requests to the internal
+deployment service. Server-side secret locations and internal service addresses
+are intentionally omitted from this documentation.
 
 ## Request body
 
@@ -77,29 +75,33 @@ assignments are deployed using the top-level `ally_code`.
 
 ## Response
 
-A fully successful deployment returns HTTP 200:
+A fully successful deployment returns HTTP 200. The response below corresponds
+to the single assignment in the request example above:
 
 ```json
 {
   "success": true,
   "err_code": 0,
-  "err_txt": "Successfully processed 1/1 platoon(s).",
-  "ally_code": "111222333",
+  "err_txt": "Successfully completed 1/1 platoon(s).",
+  "ally_code": "123456789",
   "completed": 1,
   "total": 1,
   "results": [
     {
-      "planet": "Haven-class Medical Station (DS4)",
-      "zone_id": "tb3_mixed_phase04_conflict02_bonus_recon01",
-      "squad_id": "tb3-platoon-6",
+      "planet": "Example Planet",
+      "zone_id": "tb3_mixed_phase04_conflict02_recon01",
+      "squad_id": "tb3-platoon-1",
       "platoon_strategy": "FULL",
-      "requested_defIds": ["BASTILASHANDARK", "VADER"],
+      "requested_defIds": ["DATHCHA"],
+      "status": "SUCCESS",
       "err_code": 0,
       "err_txt": "",
+      "partial": false,
       "result": {
-        "noneedToDeploy_defIds": [],
+        "deployed_defIds": ["DATHCHA"],
         "playerUsed_defIds": [],
-        "deployed_defIds": ["BASTILASHANDARK", "VADER"]
+        "noneedToDeploy_defIds": [],
+        "alreadyDeployed_defIds": []
       }
     }
   ]
