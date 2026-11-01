@@ -160,4 +160,9 @@ if (!is_array($result)) {
     error_log('TB platoon deploy API received an invalid web command response; HTTP ' . $httpCode);
     tbPlatoonApiRespond(502, ['success' => false, 'err_code' => 502, 'err_txt' => 'Invalid deployment service response']);
 }
-tbPlatoonApiRespond($httpCode >= 200 && $httpCode < 300 ? $httpCode : 502, $result);
+// Preserve deployment outcomes and backend gateway errors from the internal service.
+if (in_array($httpCode, [200, 207, 502, 504], true)) {
+    tbPlatoonApiRespond($httpCode, $result);
+}
+error_log('TB platoon deploy API received an unexpected internal service HTTP status: ' . $httpCode);
+tbPlatoonApiRespond(502, ['success' => false, 'err_code' => 502, 'err_txt' => 'Deployment service unavailable']);
