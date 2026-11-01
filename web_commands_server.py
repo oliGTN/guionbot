@@ -278,7 +278,7 @@ async def handle_deploy_tb_platoons(request):
                 group["squad_id"],
                 group["requested_defIds"],
                 preload=(group["platoon_strategy"] == "PRELOAD"),
-                disable_rpc_call=True,
+                disable_rpc_call=False,
             )
 
             # Expose only deployment outcomes. Backend diagnostics remain internal.
