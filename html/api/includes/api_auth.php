@@ -41,18 +41,17 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
         $respond(401, ['success' => false, 'error' => 'Unauthorized'], ['WWW-Authenticate' => 'Bearer']);
     }
     $presentedKey = $matches[1];
-    $presentedHash = hash('sha256', $presentedKey);
     $clientId = null;
     $client = null;
 
     if (isset($config['api_clients']) && is_array($config['api_clients'])) {
         foreach ($config['api_clients'] as $id => $candidate) {
             if (!is_string($id) || !is_array($candidate) ||
-                !isset($candidate['key_hash']) || !is_string($candidate['key_hash']) ||
-                !preg_match('/^[a-f0-9]{64}$/i', $candidate['key_hash'])) {
+                !isset($candidate['api_key']) || !is_string($candidate['api_key']) ||
+                $candidate['api_key'] === '') {
                 continue;
             }
-            if (hash_equals(strtolower($candidate['key_hash']), $presentedHash)) {
+            if (hash_equals($candidate['api_key'], $presentedKey)) {
                 $clientId = $id;
                 $client = $candidate;
                 break;

@@ -12,8 +12,8 @@ Example addition to the existing returned PHP array:
 
 ```php
 'api_clients' => [
-    'tb_history_client' => [
-        'key_hash' => '99a0cd77577d66e4369dd9fe44b98c5a3fa54649dc059bd3493b1af3ec69ed9c',
+    'client_name' => [
+        'api_key' => 'aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899',
         'enabled' => true,
         'endpoints' => ['tb-history'],
         // Optional. Defaults are 5 requests/minute and 1,000/day.
