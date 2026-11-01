@@ -360,7 +360,7 @@ if (isset($request['tb_id'], $request['tb_ids'])) {
     tbHistoryRespond(400, ['success' => false, 'error' => 'Use tb_id or tb_ids, not both']);
 }
 
-$validBlocks = ['zones', 'players', 'player_zones', 'strikes', 'covert'];
+$validBlocks = ['zones', 'players'];
 $blocks = $request['blocks'] ?? ['zones', 'players'];
 if (!is_array($blocks) || count($blocks) > count($validBlocks)) {
     tbHistoryRespond(400, ['success' => false, 'error' => 'blocks must be an array']);
@@ -622,12 +622,6 @@ try {
             $tb['players'] = $players;
             if (!$mapstatsAvailable) {
                 $tb['events_complete'] = false;
-            }
-        }
-
-        foreach (['player_zones', 'strikes', 'covert'] as $optionalBlock) {
-            if (in_array($optionalBlock, $blocks, true)) {
-                $tb[$optionalBlock] = [];
             }
         }
 
