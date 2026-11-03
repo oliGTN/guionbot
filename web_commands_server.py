@@ -5,6 +5,7 @@ import aiohttp
 from aiohttp import web
 
 from connect_mysql import init_async_pool, close_async_pool
+import update_mysql
 from web_commands import process_tbzone_order
 import manage_mods
 import go
@@ -276,9 +277,12 @@ async def handle_deploy_tb_platoons(request):
         payload = await request.json()
         if not isinstance(payload, dict):
             return web.json_response({"err_code": 400, "err_txt": "JSON body must be an object"}, status=400)
+        phase = payload.get("phase")
         ally_code = payload.get("ally_code")
         planets = payload.get("planets")
 
+        if not isinstance(phase, int) or not phase in [1, 2, 3, 4, 5, 6]:
+            return web.json_response({"err_code": 400, "err_txt": "Invalid phase"}, status=400)
         if not isinstance(ally_code, str) or not ally_code.isdigit() or len(ally_code) != 9:
             return web.json_response({"err_code": 400, "err_txt": "Invalid ally_code"}, status=400)
         if not isinstance(planets, dict) or not planets or len(planets) > 50:
@@ -361,6 +365,7 @@ async def handle_deploy_tb_platoons(request):
                 group["squad_id"],
                 group["requested_defIds"],
                 preload=(group["platoon_strategy"] == "PRELOAD"),
+                round=phase,
                 disable_rpc_call=False,
             )
 
@@ -372,6 +377,15 @@ async def handle_deploy_tb_platoons(request):
                 deployed_def_ids = []
                 already_deployed_def_ids = []
                 not_deployed_def_ids = []
+            elif err_code == 2:
+                golog.log("ERR", "Deploy TB platoons phase mismatch")
+                return web.json_response({
+                        "err_code": 409, 
+                        "err_txt": "Phase mismatch"
+                        "requested_phase": phase,
+                        "current_phase": result["currentRound"],
+                    }, 
+                    status=409)
             else:
                 result_data = result if isinstance(result, dict) else {}
                 deployed_set = {

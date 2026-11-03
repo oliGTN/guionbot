@@ -3684,6 +3684,7 @@ async def deploy_tw(guild_id, txt_allyCode, teams):
 # IN: requested_defIds = ['HERASYNDULLA', 'MACEWINDU']
 # OUT: err_code = 0 > no/partial/all units deployed
 # OUT: err_code = 1 > error
+# OUT: err_code = 2 > not the correct round
 ################################################
 async def platoon_tb(
         txt_allyCode, 
@@ -3691,6 +3692,7 @@ async def platoon_tb(
         platoon_id, 
         requested_defIds, 
         preload=False,
+        round=None,
         disable_rpc_call=False):
 
     calling_func = inspect.stack()[1][3]
@@ -3729,7 +3731,7 @@ async def platoon_tb(
         return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode, None
 
     if not "territoryBattleStatus" in dict_guild:
-        return 1, "Pas de BT en cours", None
+        return 2, "Pas de BT en cours", None
 
     for tb in dict_guild["territoryBattleStatus"]:
         if tb["selected"]:
@@ -3737,7 +3739,9 @@ async def platoon_tb(
     tb_id = tb["instanceId"]
 
     if tb["currentRound"] == 0:
-        return 1, "La BT n'est pas commencée", None
+        return 2, "La BT n'est pas commencée", {"currentRound": 0}
+    elif not round is None and round != tb["currentRound"]:
+        return 2, "La BT n'est pas dans la bonne phase", {"currentRound": tb["currentRound"]}
 
     # 1/ identify all units that may be deployed in this platoon
     # look for the required unitDefId, in the right zone
@@ -4135,29 +4139,29 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
     return 0, ""
 
 async def reveal_stat_mods(list_mods, txt_allyCode):
-    return generic_rpc_call(
-            "revealMods", 
-            {"allyCode": txt_allyCode,
-             "list_mods": list_mods})
+    return await generic_rpc_call(
+                    "revealMods", 
+                    {"allyCode": txt_allyCode,
+                    "list_mods": list_mods})
 
 async def upgrade_level_mods(list_mods, target_level, txt_allyCode):
-    return generic_rpc_call(
-            "levelMods", 
-            {"allyCode": txt_allyCode,
-             "list_mods": list_mods,
-             "mod_level": target_level})
+    return await generic_rpc_call(
+                    "levelMods", 
+                    {"allyCode": txt_allyCode,
+                    "list_mods": list_mods,
+                    "mod_level": target_level})
 
 async def get_metadata():
-    return generic_rpc_call(
-            "metadata", 
-            {}, 
-            return_data=True)
+    return await generic_rpc_call(
+                    "metadata", 
+                    {}, 
+                    return_data=True)
 
 async def get_shard(allyCode_txt, shard_type):
-    return generic_rpc_call(
-            "shardleaderboard", 
-            {"allyCode": txt_allyCode, "shard_type": shard_type}, 
-            return_data=True)
+    return await generic_rpc_call(
+                    "shardleaderboard", 
+                    {"allyCode": txt_allyCode, "shard_type": shard_type}, 
+                    return_data=True)
 
 async def set_zoneOrder(
         guild_id, 
@@ -4196,25 +4200,40 @@ async def set_zoneOrder(
     if zone_instance is not None:
         params["zone_instance"] = zone_instance
 
-    return generic_rpc_call("zoneOrder", params)
+    return await generic_rpc_call("zoneOrder", params)
 
 async def bronzium_open(txt_allyCode):
-    return generic_rpc_call("bronzium", {"allyCode": txt_allyCode})
+    return await generic_rpc_call("bronzium", {"allyCode": txt_allyCode})
 
 async def sell_mods(list_mods, txt_allyCode):
-    return generic_rpc_call("sellMods", {"allyCode": txt_allyCode, "list_mods": list_mods})
+    return await generic_rpc_call("sellMods", {"allyCode": txt_allyCode, "list_mods": list_mods})
 
 async def promote_mod(mod_id, txt_allyCode, mod_session=None):
     params = {"allyCode": txt_allyCode, "mod_id": mod_id}
     if not mod_session is None:
         params["mod_session"] = mod_session
-    return generic_rpc_call("promoteMod", params)
+    return await generic_rpc_call("promoteMod", params)
 
 async def upgrade_tier_mod(mod_id, txt_allyCode, mod_session=None):
     params = {"allyCode": txt_allyCode, "mod_id": mod_id}
     if not mod_session is None:
         params["mod_session"] = mod_session
-    return generic_rpc_call("tierMod", params)
+    return await generic_rpc_call("tierMod", params)
+
+######################################
+# Get guild connected accounts
+async def get_guild_connected_accounts(guild_id):
+    query = "SELECT allyCode FROM players "
+    query+= "WHERE guildId='"+guild_id+"'"
+    golog.log("DBG", query)
+    db_data = await connect_mysql.get_column_async(query)
+    if db_data==None:
+        list_allyCodes = []
+    else:
+        list_allyCodes = [str(ac) for ac in db_data]
+
+    params = {"list_allyCodes": list_allyCodes}
+    return await generic_rpc_call("auth_check", params, return_data=True)
 
 ##################################
 # specific error messages in case of error codes 
@@ -4236,11 +4255,9 @@ rpc_call_errcodes = {
 # the code every tome there is a new RPC path
 async def generic_rpc_call(
         rpc_path, 
-        dict_params, 
-        txt_allyCode,
+        params, 
         return_data=False):
     url = "http://localhost:8000/"+rpc_path
-    params = {"allyCode": txt_allyCode} | dict_params
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -4250,21 +4267,24 @@ async def generic_rpc_call(
                     resp_json = await(resp.json())
 
                 elif rpc_path in rpc_call_errcodes and resp.status in rpc_call_errcodes[rpc_path]:
-                    return 1, rpc_call_errcodes[rpc_path][resp.status]
+                    return (1, rpc_call_errcodes[rpc_path][resp.status]) + ((None,) if return_data else ())
                 else:
-                    return 1, "Erreur durant la requête "+rpc_path+" - code "+str(resp.status)
+                    return (1, "Erreur durant la requête "+rpc_path+" - code "+str(resp.status)) + ((None,) if return_data else ())
 
     except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+        return (1, "Timeout lors de la requete RPC, merci de ré-essayer") + ((None,) if return_data else ())
+
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+        return (1, "Erreur lors de la requete RPC, merci de ré-essayer") + ((None,) if return_data else ())
+
     except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+        return (1, "Erreur lors de la requete RPC, merci de ré-essayer") + ((None,) if return_data else ())
 
     if resp_json!=None and "err_code" in resp_json:
-        return resp_json["err_code"], resp_json["err_txt"]
+        return (resp_json["err_code"], resp_json["err_txt"]) + ((None,) if return_data else ())
 
     if return_data:
         return 0, "", resp_json
     else:
         return 0, ""
+
