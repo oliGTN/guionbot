@@ -13,6 +13,12 @@ session_start();
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 
+$dict_units = [];
+$dict_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
+if (is_readable($dict_units_file)) {
+    $dict_units = json_decode(file_get_contents($dict_units_file), true) ?: [];
+}
+
 function codex_json_response($status, $data) {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
@@ -266,7 +272,7 @@ if ($action === 'portraits') {
         $relicTier = max(0, min(11, (int)($character['relicTier'] ?? 0)));
         $alignment = (int)($units[$id]['forceAlignment'] ?? 0);
         ob_start();
-        display_portrait($id, $alignment, $stars, $gear, $relicTier, 0, 0, false, true);
+        display_portrait($id, $alignment, $stars, $gear, $relicTier, 0, 0, false, $dict_units[$id]['name']??$id, true);
         $portraits[$id] = ob_get_clean();
     }
     codex_json_response(200, ['portraits' => $portraits]);

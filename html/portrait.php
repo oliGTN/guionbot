@@ -1,24 +1,6 @@
 <?php
 
-function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_count, $omicron_count, $is_ship, $small = false) {
-    static $unit_names = null;
-
-    if ($unit_names === null) {
-        $unit_names = [];
-        $dict_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
-        if (is_readable($dict_units_file)) {
-            $dict_units_data = json_decode(file_get_contents($dict_units_file), true);
-            if (is_array($dict_units_data)) {
-                foreach ($dict_units_data as $unit_id => $unit_data) {
-                    if (isset($unit_data['name'])) {
-                        $unit_names[$unit_id] = $unit_data['name'];
-                    }
-                }
-            }
-        }
-    }
-
-    $unit_name = $unit_names[$char_id] ?? $char_id;
+function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_count, $omicron_count, $is_ship, $unit_name, $small = false) {
     $unit_name = htmlspecialchars($unit_name, ENT_QUOTES, 'UTF-8');
 
     // unitRelicTier is stored using the SWGOH tier numbering:
@@ -130,7 +112,21 @@ function load_datacron_icons($conn) {
     return $icons;
 }
 
-function display_datacron($datacron, $icons, $small = false) {
+function load_categories() {
+    $dict_categories_file = __DIR__ . '/../DATA/categoryList_dict.json';
+    if (is_readable($dict_categories_file)) {
+        $dict_categories = json_decode(file_get_contents($dict_categories_file), true);
+    }
+    return $dict_categories;
+}
+function load_loc($loc_name) {
+    $loc_file = __DIR__ . '/../DATA/'.$loc_name.'.json';
+    if (is_readable($loc_file)) {
+        $loc = json_decode(file_get_contents($loc_file), true);
+    }
+    return $loc;
+}
+function display_datacron($datacron, $icons, $categories, $loc, $small = false) {
     $escape = function ($value) {
         return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
     };
@@ -139,13 +135,29 @@ function display_datacron($datacron, $icons, $small = false) {
     }
 
     $target_rule = '';
-    foreach ([15, 12, 9, 6, 3] as $level) {
+    $img_title = '';
+    foreach ([3, 6, 9, 12, 15] as $level) {
         $value = trim((string) ($datacron['level_' . $level] ?? ''));
 
         if ($value !== '') {
+            error_log($value);
             $parts = explode(':', $value, 2);
-            $target_rule = trim($parts[1] ?? '');
-            break;
+            $abilityId = $parts[0];
+            $targetRule = $parts[1];
+
+            $target_rule = trim($targetRule ?? '');
+
+            error_log($abilityId);
+            error_log($targetRule);
+
+            $target_name = $categories[$targetRule]['descKey'];
+            error_log($target_name);
+            $ability_text_empty = $loc[strtoupper($abilityId).'_DESC'];
+            error_log($ability_text_empty);
+            $ability_text = str_replace('{0}', $target_name, $ability_text_empty);
+            error_log($ability_text);
+            $img_title = $img_title.'&#013;&#013;'.$ability_text;
+            error_log($img_title);
         }
     }
 
@@ -189,7 +201,7 @@ function display_datacron($datacron, $icons, $small = false) {
     $size_class = $small ? ' datacron-display-small' : '';
     echo "<div class='datacron-display" . $size_class . "'>";
     echo "<div class='datacron-art'>";
-    echo "<img class='datacron-background' src='" . $escape($background) . "' alt=''>";
+    echo "<img class='datacron-background' src='" . $escape($background) . "' alt='' title=\"".$img_title."\">";
 
     if ($icon !== null) {
         echo "<div class='datacron-level-icon " . $escape($icon_type) . "'>";

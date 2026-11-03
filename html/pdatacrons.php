@@ -18,6 +18,9 @@ try {
     $datacrons = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $icons = load_datacron_icons($conn_guionbot);
+    $dict_categories = load_categories();
+    $FRE_FR = load_loc('FRE_FR');
+
 } catch (PDOException $e) {
     error_log('Error fetching player datacrons: '.$e->getMessage());
     $datacrons = [];
@@ -43,23 +46,29 @@ try {
         }
     </style></head>
 <body>
-<div class="site-container"><div class="site-pusher">
+    <div class="site-container">
+        <div class="site-pusher">
 <?php include 'navbar.php'; ?>
-<div class="site-content"><div class="container">
+            <div class="site-content">
+                <div class="container">
 <?php include 'pheader.php'; ?>
-<h3>Player Datacrons</h3>
+                    <h3>Player Datacrons</h3>
 <?php if (empty($datacrons)): ?>
-<div class="card">No datacrons found.</div>
+                    <div class="card">No datacrons found.</div>
 <?php else: ?>
-<div class="datacrons-grid">
+                    <div class="datacrons-grid">
 
 <?php foreach ($datacrons as $datacron): ?>
-<div class="card datacron-card">
-<?php display_datacron($datacron, $icons); ?>
-</div>
+                        <div class="card datacron-card">
+<?php display_datacron($datacron, $icons, $dict_categories, $FRE_FR); ?>
+                        </div>
 <?php endforeach; ?>
-</div>
+                    </div>
 <?php endif; ?>
-</div></div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
 <?php include 'sitefooter.php'; ?>
-</body></html>
+</body>
+</html>

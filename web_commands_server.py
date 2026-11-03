@@ -11,6 +11,7 @@ import go
 import connect_rpc
 import data as godata
 import golog
+from json import dumps as json_dumps
 
 
 HOST = "127.0.0.1"
@@ -223,7 +224,7 @@ async def handle_deploy_tw_teams(request):
             })
 
         err_code, err_txt, completed, latestTWstatus = await connect_rpc.deploy_tw(
-            guild_id, ally_code, validated_teams, None
+            guild_id, ally_code, validated_teams
         )
         if err_code != 0:
             return web.json_response({
@@ -233,6 +234,10 @@ async def handle_deploy_tw_teams(request):
 
         #Update TW data in DB thanks to returned TW status
         #TO-DO
+        golog.log("INFO", str(latestTWstatus)[:1000])
+        fjson = open("/tmp/latestTWstatus.json", "w")
+        fjson.write(json_dumps(latestTWstatus, indent=4))
+        fjson.close()
 
         return web.json_response({
             "err_code": 0,

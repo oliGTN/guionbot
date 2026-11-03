@@ -293,12 +293,6 @@ if (is_readable($dict_units_file)) {
     $dict_units = json_decode(file_get_contents($dict_units_file), true) ?: [];
 }
 
-$dict_categories = [];
-$dict_categories_file = __DIR__ . '/../DATA/categoryList_dict.json';
-if (is_readable($dict_categories_file)) {
-    $dict_categories = json_decode(file_get_contents($dict_categories_file), true) ?: [];
-}
-
 $dict_capas = [];
 $dict_capas_file = __DIR__ . '/../DATA/unit_capa_list.json';
 if (is_readable($dict_capas_file)) {
@@ -306,6 +300,8 @@ if (is_readable($dict_capas_file)) {
 }
 
 $datacron_icons = load_datacron_icons($conn_guionbot);
+$dict_categories = load_categories();
+$FRE_FR = load_loc('FRE_FR');
 
 $used_unit_ids = [];
 $used_datacron_ids = [];
@@ -397,7 +393,8 @@ try {
             (int) $roster_unit['relic_currentTier'],
             $zeta_count,
             (int) $roster_unit['omicron_count'],
-            (int) $roster_unit['combatType'] === 2
+            (int) $roster_unit['combatType'] === 2,
+            $dict_units[$roster_unit[$def_id] ?? $def_id
         );
         $portrait_html = ob_get_clean();
 
@@ -468,7 +465,7 @@ if ($tw) {
 $player_datacron_html = [];
 foreach ($player_datacrons as $datacron) {
     ob_start();
-    display_datacron($datacron, $datacron_icons, true);
+    display_datacron($datacron, $datacron_icons, $dict_categories, $FRE_FR, true);
     $player_datacron_html[(string) $datacron['id']] = ob_get_clean();
 }
 
@@ -556,14 +553,15 @@ foreach ($import_squad_list as $cell) {
         (int) $cell['zetaCount'],
         (int) $cell['omicronCount'],
         $isShip,
-        $isShip && (int) $cell['cellIndex'] >= 4
+        $isShip && (int) $cell['cellIndex'] >= 4,
+        $dict_units[$shortId]['name'] ?? $shortId
     );
     $portraitHtml = ob_get_clean();
     $teamRef =& $import_teams_by_tw[$twKey][$zone][$sid];
     $teamRef['units'][] = $shortId;
     if (!empty($cell['datacron_id']) && $teamRef['datacronHtml'] === '') {
         ob_start();
-        display_datacron($teamRef['datacron'], $datacron_icons, true);
+        display_datacron($teamRef['datacron'], $datacron_icons, $dict_categories, $FRE_FR, true);
         $teamRef['datacronHtml'] = ob_get_clean();
     }
     $teamRef['unitData'][] = [
@@ -948,6 +946,7 @@ foreach ($squad['cells'] as $unit) {
     $unit_rarity = $rarity_values[$def_parts[1] ?? ''] ?? 7;
     $unit_alignment = $dict_units[$unit_short_id]['forceAlignment'] ?? 0;
     $unit_isShip = (int) ($dict_units[$unit_short_id]['combatType'] ?? 1) === 2;
+    $unit_name = $dict_units[$unit_short_id]['name'] ?? $unit_short_id;
 
     $unit_gear = !empty($dict_units[$unit_short_id])
         && $unit_isShip
@@ -963,12 +962,13 @@ foreach ($squad['cells'] as $unit) {
         $unit['zetaCount'],
         $unit['omicronCount'],
         $unit_isShip,
-        $unit_isShip && (int) $unit['cellIndex'] >= 4
+        $unit_isShip && (int) $unit['cellIndex'] >= 4,
+        $unit_name
     );
 }
 ?>
 <?php if (!empty($squad['datacron'])): ?>
-                                <?php display_datacron($squad['datacron'], $datacron_icons, true); ?>
+                                <?php display_datacron($squad['datacron'], $datacron_icons, $dict_categories, $FRE_FR, true); ?>
 <?php endif; ?>
                             </div>
                         </div>

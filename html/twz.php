@@ -65,6 +65,8 @@ include 'portrait.php';
 $dict_units_string = file_get_contents("../DATA/unitsList_dict.json");
 $dict_units = json_decode($dict_units_string, true);
 $datacron_icons = load_datacron_icons($conn_guionbot);
+$dict_categories = load_categories();
+$FRE_FR = load_loc('FRE_FR');
 
 // --------------- GET ZONE INFO FOR THE SQUADS -----------
 // Prepare the SQL query
@@ -308,7 +310,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
             }
             if (!empty($squad["datacron"])) {
                 echo "<td style='font-size:12" . ($squad['is_beaten'] ? ";opacity:0.5" : "") . "'>";
-                display_datacron($squad["datacron"], $datacron_icons, true);
+                display_datacron($squad["datacron"], $datacron_icons, $dict_categories, $FRE_FR, true);
                 echo "</td>";
             }
             echo "</tr>
