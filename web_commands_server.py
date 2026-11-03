@@ -281,7 +281,7 @@ async def handle_deploy_tb_platoons(request):
         ally_code = payload.get("ally_code")
         planets = payload.get("planets")
 
-        if not isinstance(phase, int) or not phase in [1, 2, 3, 4, 5, 6]:
+        if type(phase) is not int or phase not in range(1, 7):
             return web.json_response({"err_code": 400, "err_txt": "Invalid phase"}, status=400)
         if not isinstance(ally_code, str) or not ally_code.isdigit() or len(ally_code) != 9:
             return web.json_response({"err_code": 400, "err_txt": "Invalid ally_code"}, status=400)
@@ -381,7 +381,7 @@ async def handle_deploy_tb_platoons(request):
                 golog.log("ERR", "Deploy TB platoons phase mismatch")
                 return web.json_response({
                         "err_code": 409, 
-                        "err_txt": "Phase mismatch"
+                        "err_txt": "TB phase mismatch",
                         "requested_phase": phase,
                         "current_phase": result["currentRound"],
                     }, 
