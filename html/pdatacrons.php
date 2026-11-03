@@ -19,6 +19,8 @@ try {
 
     $icons = load_datacron_icons($conn_guionbot);
     $dict_categories = load_categories();
+    $dict_abilities_file = __DIR__ . '/../DATA/abilityList_dict.json';
+    $dict_abilities = json_decode(file_get_contents($dict_abilities_file), true) ?: [];
     $FRE_FR = load_loc('FRE_FR');
 
 } catch (PDOException $e) {
@@ -60,7 +62,7 @@ try {
 
 <?php foreach ($datacrons as $datacron): ?>
                         <div class="card datacron-card">
-<?php display_datacron($datacron, $icons, $dict_categories, $FRE_FR); ?>
+<?php display_datacron($datacron, $icons, $dict_categories, $dict_abilities, $FRE_FR); ?>
                         </div>
 <?php endforeach; ?>
                     </div>

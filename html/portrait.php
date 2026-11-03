@@ -126,7 +126,7 @@ function load_loc($loc_name) {
     }
     return $loc;
 }
-function display_datacron($datacron, $icons, $categories, $loc, $small = false) {
+function display_datacron($datacron, $icons, $categories, $abilities, $loc, $small = false) {
     $escape = function ($value) {
         return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
     };
@@ -140,24 +140,18 @@ function display_datacron($datacron, $icons, $categories, $loc, $small = false) 
         $value = trim((string) ($datacron['level_' . $level] ?? ''));
 
         if ($value !== '') {
-            error_log($value);
             $parts = explode(':', $value, 2);
             $abilityId = $parts[0];
             $targetRule = $parts[1];
 
             $target_rule = trim($targetRule ?? '');
 
-            error_log($abilityId);
-            error_log($targetRule);
-
-            $target_name = $categories[$targetRule]['descKey'];
-            error_log($target_name);
-            $ability_text_empty = $loc[strtoupper($abilityId).'_DESC'];
-            error_log($ability_text_empty);
+            $target_name_cat = $categories[$targetRule];
+            $target_name = $target_name_cat['descKey'];
+            $ability_loc_name = $abilities[$abilityId]['descKey'];
+            $ability_text_empty = $loc[$ability_loc_name];
             $ability_text = str_replace('{0}', $target_name, $ability_text_empty);
-            error_log($ability_text);
             $img_title = $img_title.'&#013;&#013;'.$ability_text;
-            error_log($img_title);
         }
     }
 

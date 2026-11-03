@@ -3171,10 +3171,6 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
 
     guildId = dict_guild["profile"]["id"]
 
-    dict_members_by_id={}
-    for member in dict_guild["member"]:
-        dict_members_by_id[member["playerId"]] = member["playerName"]
-
     tw_id=None
     tw_round=None
     if "territoryWarStatus" in dict_guild:

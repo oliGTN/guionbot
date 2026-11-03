@@ -64,8 +64,19 @@ include 'portrait.php';
 // read character dictionary
 $dict_units_string = file_get_contents("../DATA/unitsList_dict.json");
 $dict_units = json_decode($dict_units_string, true);
+foreach ($dict_units as $def_id => $unit) {
+    $dict_units_light[$def_id] = [];
+    $dict_units_light[$def_id]['name'] = $dict_units[$def_id]['name'];
+    $dict_units_light[$def_id]['forceAlignment'] = $dict_units[$def_id]['forceAlignment'];
+    $dict_units_light[$def_id]['combatType'] = $dict_units[$def_id]['combatType'];
+}
+$dict_units = $dict_units_light;
+
 $datacron_icons = load_datacron_icons($conn_guionbot);
 $dict_categories = load_categories();
+$dict_abilities_file = __DIR__ . '/../DATA/abilityList_dict.json';
+$dict_abilities = json_decode(file_get_contents($dict_abilities_file), true) ?: [];
+
 $FRE_FR = load_loc('FRE_FR');
 
 // --------------- GET ZONE INFO FOR THE SQUADS -----------
@@ -254,6 +265,9 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
     global $rarity_values;
     global $dict_units;
     global $datacron_icons;
+    global $dict_categories;
+    global $dict_abilities; 
+    global $FRE_FR;
 
     if (isset($squads[$zone_side][$zone_name])) {
         $zone_squads = $squads[$zone_side][$zone_name];
@@ -310,7 +324,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
             }
             if (!empty($squad["datacron"])) {
                 echo "<td style='font-size:12" . ($squad['is_beaten'] ? ";opacity:0.5" : "") . "'>";
-                display_datacron($squad["datacron"], $datacron_icons, $dict_categories, $FRE_FR, true);
+                display_datacron($squad["datacron"], $datacron_icons, $dict_categories, $dict_abilities, $FRE_FR, true);
                 echo "</td>";
             }
             echo "</tr>

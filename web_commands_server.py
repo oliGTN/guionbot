@@ -233,11 +233,28 @@ async def handle_deploy_tw_teams(request):
             }, status=400)
 
         #Update TW data in DB thanks to returned TW status
-        #TO-DO
-        golog.log("INFO", str(latestTWstatus)[:1000])
-        fjson = open("/tmp/latestTWstatus.json", "w")
-        fjson.write(json_dumps(latestTWstatus, indent=4))
-        fjson.close()
+        tw = latestTWstatus['territoryWarStatus'][0]
+        tw_id = tw['instanceId']
+        opp_guild_name = tw["awayGuild"]["profile"]["name"]
+        opp_guild_id = tw["awayGuild"]["profile"]["id"]
+        score = sum([int(x['zoneStatus']['score']) \
+                     for x in tw['homeGuild']['conflictStatus']])
+        opp_score = sum([int(x['zoneStatus']['score']) \
+                         for x in tw['awayGuild']['conflictStatus']])
+        currentRound = tw["currentRound"]
+
+        dict_guild = {'profile':{'id': guild_id}} | latestTWstatus
+
+        ret = await connect_rpc.get_tw_status(guild_id, 0, dict_guild=dict_guild)
+
+        homeGuild = ret['homeGuild']
+        awayGuild = ret['awayGuild']
+
+        await update_mysql.update_tw(guild_id, tw_id, opp_guild_id,
+                                      opp_guild_name, score, opp_score,
+                                      currentRound,
+                                      homeGuild, awayGuild)
+
 
         return web.json_response({
             "err_code": 0,
