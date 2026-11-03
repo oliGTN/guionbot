@@ -14,9 +14,18 @@ deployment service. Server-side configuration details are intentionally omitted.
 
 ## Request body
 
-The request must contain a 9-digit `ally_code` and a non-empty `planets` object.
-Other plan metadata (such as `plan_id`, `phase`, `player`, and `discord_id`)
-is accepted but not used for deployment.
+The request must contain:
+- `phase`: an integer from 1 to 6, representing the expected current TB phase.
+- `ally_code`: a 9-digit player ally code.
+- `planets`: a non-empty object containing the deployment plan.
+
+Other plan metadata (such as `plan_id`, `player`, and `discord_id`) is accepted
+but not used for deployment.
+
+Before each platoon deployment RPC call, the service checks the current TB
+phase against the supplied `phase`. If they differ, deployment stops and the
+endpoint returns HTTP `409 Conflict`. The response includes both phase values.
+This prevents a plan intended for a different TB phase from being deployed.
 
 Example (valid JSON), retaining the plan format produced by the planner:
 
@@ -69,6 +78,8 @@ The zone code must match `P<phase>-C<conflict>` for a regular zone, or `P<phase>
 
 The service groups entries in first-seen order. It continues to later platoons
 if an earlier RPC call fails, and returns an individual result for every group.
+The requested `phase` is passed to `connect_rpc.platoon_tb`, where the
+current phase is checked before the deployment RPC is issued.
 The API does not use the per-unit player/ally_code/discord_id fields; all
 assignments are deployed using the top-level `ally_code`.
 
@@ -141,7 +152,17 @@ each outcome category; backend errors are included in `failed`.
 - The internal deployment service is not exposed publicly.
 - The endpoint never accepts a guild ID from the request; the RPC acts using the submitted top-level ally code.
 
-HTTP status codes include 200 (all groups succeeded), 207 (partial/total group failure),
-400 (invalid payload), 401 (invalid API key), 403 (HTTPS required), 405 (wrong method),
-413 (request too large), 429 (rate limit), 502 (deployment backend communication failure), 503 (server-side configuration
-unavailable), and 504 (deployment backend timeout).
+HTTP status codes include:
+- `200`: all platoon groups succeeded.
+- `207`: one or more groups had a partial or unsuccessful unit-level outcome.
+- `400`: invalid payload, including a missing or invalid `phase` (must be an integer from 1 to 6).
+- `401`: invalid API key.
+- `403`: HTTPS required.
+- `405`: wrong method.
+- `409`: requested phase does not match the current TB phase. The JSON response
+  includes `requested_phase` and `current_phase`.
+- `413`: request too large or assignment/group limits exceeded.
+- `429`: rate limit exceeded.
+- `502`: deployment backend communication failure.
+- `503`: server-side configuration unavailable.
+- `504`: deployment backend timeout.

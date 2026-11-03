@@ -47,6 +47,81 @@ async def handle_tbzone_order(request):
         )
 
 
+async def handle_guild_connected_accounts(request):
+    expected_token = request.app["token"]
+    authorization = request.headers.get("Authorization", "")
+
+    if not expected_token or authorization != "Bearer " + expected_token:
+        return web.json_response(
+            {"err_code": 401, "err_txt": "Unauthorized"},
+            status=401
+        )
+
+    try:
+        payload = await request.json()
+        guild_id = payload.get("guild_id") if isinstance(payload, dict) else None
+
+        if (
+            not isinstance(guild_id, str)
+            or not guild_id.isdigit()
+            or not 1 <= len(guild_id) <= 24
+        ):
+            return web.json_response(
+                {"err_code": 400, "err_txt": "Invalid guild_id"},
+                status=400
+            )
+
+        err_code, err_txt, data = (
+            await connect_rpc.get_guild_connected_accounts(guild_id)
+        )
+
+        if err_code != 0:
+            golog.log(
+                "WAR",
+                "Connected accounts RPC failed for guild "
+                + guild_id
+                + ": "
+                + str(err_code)
+                + " "
+                + str(err_txt)
+            )
+            return web.json_response(
+                {
+                    "err_code": 502,
+                    "err_txt": "Unable to retrieve connected-account data"
+                },
+                status=502
+            )
+
+        if not isinstance(data, (dict, list)):
+            golog.log(
+                "ERR",
+                "Connected accounts RPC returned an unexpected data type "
+                "for guild " + guild_id
+            )
+            return web.json_response(
+                {
+                    "err_code": 502,
+                    "err_txt": "Invalid connected-account response"
+                },
+                status=502
+            )
+
+        return web.json_response({
+            "success": True,
+            "data": data
+        })
+
+    except Exception as error:
+        golog.log(
+            "ERR",
+            "Guild connected accounts command error: " + str(error)
+        )
+        return web.json_response(
+            {"err_code": 500, "err_txt": "Internal server error"},
+            status=500
+        )
+
 async def handle_tb_mapstats(request):
     expected_token = request.app["token"]
     authorization = request.headers.get("Authorization", "")
@@ -277,9 +352,12 @@ async def handle_deploy_tb_platoons(request):
         payload = await request.json()
         if not isinstance(payload, dict):
             return web.json_response({"err_code": 400, "err_txt": "JSON body must be an object"}, status=400)
+        phase = payload.get("phase")
         ally_code = payload.get("ally_code")
         planets = payload.get("planets")
 
+        if type(phase) is not int or phase not in range(1, 7):
+            return web.json_response({"err_code": 400, "err_txt": "Invalid phase"}, status=400)
         if not isinstance(ally_code, str) or not ally_code.isdigit() or len(ally_code) != 9:
             return web.json_response({"err_code": 400, "err_txt": "Invalid ally_code"}, status=400)
         if not isinstance(planets, dict) or not planets or len(planets) > 50:
@@ -362,6 +440,7 @@ async def handle_deploy_tb_platoons(request):
                 group["squad_id"],
                 group["requested_defIds"],
                 preload=(group["platoon_strategy"] == "PRELOAD"),
+                round=phase,
                 disable_rpc_call=False,
             )
 
@@ -373,6 +452,15 @@ async def handle_deploy_tb_platoons(request):
                 deployed_def_ids = []
                 already_deployed_def_ids = []
                 not_deployed_def_ids = []
+            elif err_code == 2:
+                golog.log("ERR", "Deploy TB platoons phase mismatch")
+                return web.json_response({
+                        "err_code": 409, 
+                        "err_txt": "TB phase mismatch",
+                        "requested_phase": phase,
+                        "current_phase": result["currentRound"],
+                    }, 
+                    status=409)
             else:
                 result_data = result if isinstance(result, dict) else {}
                 deployed_set = {
@@ -473,6 +561,7 @@ async def on_startup(app):
 def create_app():
     app = web.Application()
     app["token"] = TOKEN
+    app.router.add_post("/GuildConnectedAccounts", handle_guild_connected_accounts)
     app.router.add_post("/TBmapstats", handle_tb_mapstats)
     app.router.add_post("/TBzoneOrder", handle_tbzone_order)
     app.router.add_post("/SellMods", handle_sell_mods)
