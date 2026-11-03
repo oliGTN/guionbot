@@ -5,6 +5,7 @@ import aiohttp
 from aiohttp import web
 
 from connect_mysql import init_async_pool, close_async_pool
+import update_mysql
 from web_commands import process_tbzone_order
 import manage_mods
 import go
