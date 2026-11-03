@@ -47,6 +47,81 @@ async def handle_tbzone_order(request):
         )
 
 
+async def handle_guild_connected_accounts(request):
+    expected_token = request.app["token"]
+    authorization = request.headers.get("Authorization", "")
+
+    if not expected_token or authorization != "Bearer " + expected_token:
+        return web.json_response(
+            {"err_code": 401, "err_txt": "Unauthorized"},
+            status=401
+        )
+
+    try:
+        payload = await request.json()
+        guild_id = payload.get("guild_id") if isinstance(payload, dict) else None
+
+        if (
+            not isinstance(guild_id, str)
+            or not guild_id.isdigit()
+            or not 1 <= len(guild_id) <= 24
+        ):
+            return web.json_response(
+                {"err_code": 400, "err_txt": "Invalid guild_id"},
+                status=400
+            )
+
+        err_code, err_txt, data = (
+            await connect_rpc.get_guild_connected_accounts(guild_id)
+        )
+
+        if err_code != 0:
+            golog.log(
+                "WAR",
+                "Connected accounts RPC failed for guild "
+                + guild_id
+                + ": "
+                + str(err_code)
+                + " "
+                + str(err_txt)
+            )
+            return web.json_response(
+                {
+                    "err_code": 502,
+                    "err_txt": "Unable to retrieve connected-account data"
+                },
+                status=502
+            )
+
+        if not isinstance(data, (dict, list)):
+            golog.log(
+                "ERR",
+                "Connected accounts RPC returned an unexpected data type "
+                "for guild " + guild_id
+            )
+            return web.json_response(
+                {
+                    "err_code": 502,
+                    "err_txt": "Invalid connected-account response"
+                },
+                status=502
+            )
+
+        return web.json_response({
+            "success": True,
+            "data": data
+        })
+
+    except Exception as error:
+        golog.log(
+            "ERR",
+            "Guild connected accounts command error: " + str(error)
+        )
+        return web.json_response(
+            {"err_code": 500, "err_txt": "Internal server error"},
+            status=500
+        )
+
 async def handle_tb_mapstats(request):
     expected_token = request.app["token"]
     authorization = request.headers.get("Authorization", "")
@@ -486,6 +561,7 @@ async def on_startup(app):
 def create_app():
     app = web.Application()
     app["token"] = TOKEN
+    app.router.add_post("/GuildConnectedAccounts", handle_guild_connected_accounts)
     app.router.add_post("/TBmapstats", handle_tb_mapstats)
     app.router.add_post("/TBzoneOrder", handle_tbzone_order)
     app.router.add_post("/SellMods", handle_sell_mods)
