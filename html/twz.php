@@ -82,7 +82,7 @@ $FRE_FR = load_loc('FRE_FR');
 // --------------- GET ZONE INFO FOR THE SQUADS -----------
 // Prepare the SQL query
 $query = "SELECT tw_squads.id AS squad_id,";
-$query .= " side, zone_name, player_name, defId, cellIndex,";
+$query .= " tw_squads.side, tw_squads.zone_name, player_name, defId, cellIndex,";
 $query .= " is_beaten, fights, gp, tier AS gear, unitRelicTier AS relic,";
 $query .= " zetaCount, omicronCount,";
 $query .= " datacrons.id AS datacron_id, datacrons.setId AS datacron_setId,";
@@ -92,8 +92,10 @@ $query .= " datacrons.level_9 AS datacron_level_9, datacrons.level_12 AS datacro
 $query .= " datacrons.level_15 AS datacron_level_15";
 $query .= " FROM tw_squads";
 $query .= " JOIN tw_squad_cells ON tw_squad_cells.squad_id=tw_squads.id";
+$query .= " JOIN tw_zones ON tw_zones.tw_id=tw_squads.tw_id AND tw_zones.side=tw_squads.side AND tw_zones.zone_name=tw_squads.zone_name";
 $query .= " LEFT JOIN datacrons ON datacrons.id=tw_squads.datacron_id";
 $query .= " WHERE tw_squads.tw_id=".$tw_id;
+$query .= " AND (tw_zones.side='home' OR zoneState='ZONEOPEN')";
 $query .= " ORDER BY is_beaten, fights DESC, player_name, cellIndex";
 //error_log("query = ".$query);
 if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
