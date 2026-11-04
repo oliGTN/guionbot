@@ -121,7 +121,7 @@ CREATE TABLE `events` (
   `event_id` varchar(45) DEFAULT NULL,
   `timestamp` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3351 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=3371 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -213,8 +213,8 @@ DROP TABLE IF EXISTS `guild_bot_infos`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `guild_bot_infos` (
-  `server_id` bigint(20) NOT NULL,
-  `guild_id` varchar(24) NOT NULL DEFAULT '',
+  `guild_id` varchar(24) NOT NULL,
+  `server_id` bigint(20) DEFAULT 0,
   `gfile_name` varchar(45) DEFAULT '',
   `echostation_id` bigint(20) DEFAULT 0,
   `tbChanRead_id` bigint(20) DEFAULT 0,
@@ -235,7 +235,7 @@ CREATE TABLE `guild_bot_infos` (
   `twLatest_ts` bigint(20) DEFAULT 0,
   `tbLatest_ts` bigint(20) DEFAULT 0,
   `eventLatest_ts` bigint(20) DEFAULT 0,
-  PRIMARY KEY (`server_id`)
+  PRIMARY KEY (`guild_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -274,7 +274,7 @@ CREATE TABLE `guild_evolutions` (
   `description` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_guild_evolutions_player_timestamp` (`playerId`,`timestamp`)
-) ENGINE=InnoDB AUTO_INCREMENT=1054600 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=1055112 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -308,7 +308,7 @@ CREATE TABLE `guild_subteams` (
   PRIMARY KEY (`id`),
   KEY `guild_subteams_ibfk_1` (`team_id`),
   CONSTRAINT `guild_subteams_ibfk_1` FOREIGN KEY (`team_id`) REFERENCES `guild_teams` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5143 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5338 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -335,7 +335,7 @@ CREATE TABLE `guild_team_roster` (
   PRIMARY KEY (`id`),
   KEY `guild_team_roster_ibfk_1_idx` (`subteam_id`),
   CONSTRAINT `guild_team_roster_ibfk_1` FOREIGN KEY (`subteam_id`) REFERENCES `guild_subteams` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=29923 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=31239 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -352,7 +352,7 @@ CREATE TABLE `guild_team_roster_omicrons` (
   PRIMARY KEY (`id`),
   KEY `guild_team_roster_omicrons_ibfk_1` (`roster_id`),
   CONSTRAINT `guild_team_roster_omicrons_ibfk_1` FOREIGN KEY (`roster_id`) REFERENCES `guild_team_roster` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=10996 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12312 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -369,7 +369,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   PRIMARY KEY (`id`),
   KEY `guild_team_roster_zetas_ibfk_1` (`roster_id`),
   CONSTRAINT `guild_team_roster_zetas_ibfk_1` FOREIGN KEY (`roster_id`) REFERENCES `guild_team_roster` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=11779 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13097 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -388,7 +388,7 @@ CREATE TABLE `guild_teams` (
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2020 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2120 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -457,7 +457,7 @@ CREATE TABLE `mod_config_content` (
   `slot` int(1) DEFAULT NULL,
   `rarity` int(1) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5014935 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=5068304 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -472,7 +472,7 @@ CREATE TABLE `mod_config_list` (
   `name` varchar(255) NOT NULL,
   `allyCode` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1205 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=1210 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -670,7 +670,7 @@ CREATE TABLE `roster` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`),
   CONSTRAINT `roster_ibfk_1` FOREIGN KEY (`allyCode`) REFERENCES `players` (`allyCode`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=58243629 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58429201 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -689,7 +689,7 @@ CREATE TABLE `roster_evolutions` (
   PRIMARY KEY (`id`),
   KEY `allyCode_idx1` (`allyCode`),
   KEY `defId_idx1` (`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=40862026 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=40904961 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -709,7 +709,7 @@ CREATE TABLE `roster_skills` (
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`),
   CONSTRAINT `roster_skills_ibfk_1` FOREIGN KEY (`roster_id`) REFERENCES `roster` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=262748729 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=263549030 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -796,7 +796,7 @@ CREATE TABLE `tb_events` (
   UNIQUE KEY `UC_ts_author` (`timestamp`,`author_id`),
   KEY `tb_id` (`tb_id`),
   CONSTRAINT `tb_events_ibfk_1` FOREIGN KEY (`tb_id`) REFERENCES `tb_history` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=153833960 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=159087561 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -863,7 +863,7 @@ CREATE TABLE `tb_phases` (
   PRIMARY KEY (`id`),
   KEY `tb_id` (`tb_id`),
   CONSTRAINT `tb_phases_ibfk_1` FOREIGN KEY (`tb_id`) REFERENCES `tb_history` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=1238 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=1262 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -884,7 +884,7 @@ CREATE TABLE `tb_platoons` (
   PRIMARY KEY (`id`),
   KEY `tb_id` (`tb_id`),
   CONSTRAINT `tb_platoons_ibfk_1` FOREIGN KEY (`tb_id`) REFERENCES `tb_history` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=272864 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=275468 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -950,7 +950,7 @@ CREATE TABLE `tb_zones` (
   PRIMARY KEY (`id`),
   KEY `tb_id` (`tb_id`),
   CONSTRAINT `tb_zones_ibfk_1` FOREIGN KEY (`tb_id`) REFERENCES `tb_history` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4386 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=4462 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -979,7 +979,7 @@ CREATE TABLE `tw_events` (
   UNIQUE KEY `UC_ts_author` (`timestamp`,`author_id`),
   KEY `tw_id` (`tw_id`),
   CONSTRAINT `tw_events_ibfk_1` FOREIGN KEY (`tw_id`) REFERENCES `tw_history` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=35818755 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=36311490 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1001,7 +1001,7 @@ CREATE TABLE `tw_history` (
   `homeScore` int(11) DEFAULT NULL,
   `awayScore` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=555 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=563 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1039,7 +1039,7 @@ CREATE TABLE `tw_squad_cells` (
   `omicronCount` smallint(6) DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_squad_id` (`squad_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1639603 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=1664398 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1089,7 +1089,7 @@ CREATE TABLE `tw_zones` (
   PRIMARY KEY (`id`),
   KEY `tw_id` (`tw_id`),
   CONSTRAINT `tw_zones_ibfk_1` FOREIGN KEY (`tw_id`) REFERENCES `tw_history` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=11131 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=11291 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1755,4 +1755,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-28  2:03:42
+-- Dump completed on 2026-11-05  0:20:48
