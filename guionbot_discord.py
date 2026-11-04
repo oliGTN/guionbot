@@ -5926,36 +5926,42 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         # Launch actual command
         ret = await connect_rpc.get_tw_status(guild_id, 0, allyCode=connected_allyCode)
 
-        for home_away in [["homeGuild", "notre défense"], ["awayGuild", "la défense adverse"]]:
-            list_team_home=ret[home_away[0]]["list_defenses"]
-            best_teams = go.filter_tw_best_teams(list_team_home)
-            for unit_type in [["ships", "vaisseaux"], ["chars", "terrestre"]]:
-                for beaten_txt in [["beaten", "vaincue"], ["remaining", "invaincue"]]:
-                    cur_teams = best_teams[unit_type[0]][beaten_txt[0]]
-                    if cur_teams == None:
-                        continue
+        await send_tw_best_report(ctx.channel, ret)
 
-                    team_count = len(cur_teams["images"])
-                    fights = cur_teams["fights"]
+        await ctx.message.add_reaction(emojis.check)
 
-                    if team_count == 0:
-                        txt = "Rien de particulier à signaler pour "+home_away[1]+" "+unit_type[1]+" pour les teams "+beaten_txt[1]+"s"
-                    elif team_count == 1:
-                        txt = "Meilleure team de **"+home_away[1]+" "+unit_type[1]+"**, "+beaten_txt[1]+" après "+str(fights)+" combats"
-                    else:
-                        txt = "Meilleures teams de **"+home_away[1]+" "+unit_type[1]+"**, "+beaten_txt[1]+"s après "+str(fights)+" combats"
+async def send_tw_best_report(channel, ret):
+    """Send the gettwbest report to a Discord channel using an existing TW status."""
+    for home_away in [["homeGuild", "notre défense"], ["awayGuild", "la défense adverse"]]:
+        list_team_home = ret[home_away[0]]["list_defenses"]
+        best_teams = go.filter_tw_best_teams(list_team_home)
+        for unit_type in [["ships", "vaisseaux"], ["chars", "terrestre"]]:
+            for beaten_txt in [["beaten", "vaincue"], ["remaining", "invaincue"]]:
+                cur_teams = best_teams[unit_type[0]][beaten_txt[0]]
+                if cur_teams is None:
+                    continue
 
-                    full_img = None
-                    for img in cur_teams["images"]:
-                        full_img = portraits.add_vertical(full_img, img)
+                team_count = len(cur_teams["images"])
+                fights = cur_teams["fights"]
 
-                    if full_img == None:
-                        await ctx.send(content = txt)
-                    else:
-                        with BytesIO() as image_binary:
-                            full_img.save(image_binary, 'PNG')
-                            image_binary.seek(0)
-                            await ctx.send(content = txt, file=File(fp=image_binary, filename='image.png'))
+                if team_count == 0:
+                    txt = "Rien de particulier à signaler pour "+home_away[1]+" "+unit_type[1]+" pour les teams "+beaten_txt[1]+"s"
+                elif team_count == 1:
+                    txt = "Meilleure team de **"+home_away[1]+" "+unit_type[1]+"**, "+beaten_txt[1]+" après "+str(fights)+" combats"
+                else:
+                    txt = "Meilleures teams de **"+home_away[1]+" "+unit_type[1]+"**, "+beaten_txt[1]+"s après "+str(fights)+" combats"
+
+                full_img = None
+                for img in cur_teams["images"]:
+                    full_img = portraits.add_vertical(full_img, img)
+
+                if full_img is None:
+                    await channel.send(content=txt)
+                else:
+                    with BytesIO() as image_binary:
+                        full_img.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        await channel.send(content=txt, file=File(fp=image_binary, filename='image.png'))
 
         await ctx.message.add_reaction(emojis.check)
 
