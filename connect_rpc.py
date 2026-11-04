@@ -1245,25 +1245,31 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
             +", "+str(dict_events is None)+")" \
             +" from "+str(calling_func))
 
-    query = "SELECT allyCode, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
+    query = "SELECT chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
             "FROM guild_bot_infos "\
-            "LEFT JOIN guild_bots ON guild_bot_infos.guild_id=guild_bots.guild_id "\
-            "WHERE guild_bot_infos.guild_id='"+guild_id+"'"
+            "WHERE guild_id='"+guild_id+"'"
     golog.log("INFO", query)
     line = await connect_mysql.get_line_async(query)
 
     if line == None:
-        return 1, "INFO: no DB data for guild "+guild_id, None
-    
-    bot_allyCode = line[0]
-    chatChan_id = line[1]
-    twlogChan_id = line[2]
-    tblogChan_id = line[3]
+        golog.log("WAR", "INFO: no DB data for guild... creating default")
+        query = "INSERT INTO guild_bot_infos(guild_id) VALUES('"+guild_id+"')"
+        golog.log("INFO", query)
+        await connect_mysql.simple_execute_async(query)
 
-    if onlyLatest:
-        chatLatest_ts = line[4]
-    else:
+        chatChan_id = 0
+        twlogChan_id = 0
+        tblogChan_id = 0
         chatLatest_ts = 0
+    else:
+        chatChan_id = line[0]
+        twlogChan_id = line[1]
+        tblogChan_id = line[2]
+
+        if onlyLatest:
+            chatLatest_ts = line[3]
+        else:
+            chatLatest_ts = 0
 
     golog.log("INFO", chatLatest_ts, identifier=guild_id)
 
@@ -1273,7 +1279,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
             golog.log("ERR", err_txt)
             return 1, err_txt, None
 
-    golog.log("INFO", twlogChan_id, identifier=guild_id)
+    golog.log("INFO", "twlogChan_id="+str(twlogChan_id))
     # Get latest events only if the discord channel is defined
     if onlyLatest:
         eventTypes = []
@@ -1286,7 +1292,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
     else:
         eventTypes = ["CHAT", "TW", "TB"]
 
-    golog.log("INFO", onlyLatest, identifier=guild_id)
+    golog.log("INFO", "onlyLatest="+str(onlyLatest))
     # Get data from RPC
     if dict_events==None:
         err_code, err_txt, dict_events = await get_event_data(dict_guild, eventTypes, force_update, allyCode=allyCode)

@@ -1397,13 +1397,13 @@ async def update_tw_status(
     golog.log('DBG', query)
     channel_id = await connect_mysql.get_value_async(query)
 
-    if channel_id == None:
+    if channel_id == 0:
         if backup_channel_id==None:
             return 1, "ERR: pas de channel GT configuré pour la guilde "+guild_id, None
         channel_id = backup_channel_id
         
     tw_bot_channel = bot.get_channel(channel_id)
-    golog.log("DBG", "["+guild_id+"] TW channel: "+str(channel_id))
+    golog.log("INFO", "TW channel: "+str(channel_id), identifier=guild_id)
 
     # TW basic info
     tw_id = ret_tw_status["tw_id"]
