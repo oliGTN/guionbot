@@ -1,7 +1,7 @@
 from subprocess import run as subprocess_run
 import os
 import sys
-from json import load as json_load, dumps as json_dumps
+from json import load as json_load, loads as json_loads, dumps as json_dumps
 import re
 import threading
 import time
@@ -401,15 +401,26 @@ async def _get_event_events(session, event_type, guild_id, bot_allyCode,
                 "POST " + event_type + " events status=" + str(resp.status)
             )
 
-            t1 = time.perf_counter()
+            t_headers = time.perf_counter()
             if resp.status == 200:
-                resp_data = await resp.json()
-                t2 = time.perf_counter()
+                # Separate network/body transfer from synchronous JSON parsing.
+                # aiohttp transparently decompresses the body by default, so
+                # len(resp_body) is the decoded payload size seen by json_loads.
+                resp_body = await resp.read()
+                t_body = time.perf_counter()
+
+                resp_data = json_loads(resp_body)
+                t_json = time.perf_counter()
 
                 golog.log(
                     "INFO",
-                    f"{event_type} events HTTP={t1-t0:.2f}s, "
-                    f"JSON decode={t2-t1:.2f}s"
+                    f"{event_type} events "
+                    f"HTTP headers={t_headers-t0:.3f}s, "
+                    f"body read={t_body-t_headers:.3f}s, "
+                    f"JSON decode={t_json-t_body:.3f}s, "
+                    f"size={len(resp_body)} bytes, "
+                    f"content_length={resp.headers.get('Content-Length')}, "
+                    f"content_encoding={resp.headers.get('Content-Encoding', 'identity')}"
                 )
 
                 if use_cache_data:
