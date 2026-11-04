@@ -184,16 +184,36 @@ async def update_rpc_60secs(bot):
             "AND mod(minute(CURRENT_TIMESTAMP), period)=0 "\
             "AND NOT isnull(guild_bots.allyCode) "
     golog.log("DBG", query)
+    db_query_started = time.perf_counter()
     db_data = await connect_mysql.get_column_async(query)
+    golog.log(
+        "INFO",
+        f"RPC_UPDATE_TIMING stage=select_due_guilds "
+        f"seconds={time.perf_counter() - db_query_started:.3f} "
+        f"guild_count={len(db_data) if db_data else 0}"
+    )
     golog.log("DBG", "db_data: "+str(db_data))
 
     async def process_rpc_update(guild_id, guild_bots):
+        semaphore_wait_started = time.perf_counter()
         try:
             async with rpc_semaphore_60secs:
-                ec, et = await update_rpc_data(
-                    guild_id,
-                    guild_bots=guild_bots
-                )
+                semaphore_wait = time.perf_counter() - semaphore_wait_started
+                update_started = time.perf_counter()
+                try:
+                    ec, et = await update_rpc_data(
+                        guild_id,
+                        guild_bots=guild_bots
+                    )
+                finally:
+                    update_duration = time.perf_counter() - update_started
+                    golog.log(
+                        "INFO",
+                        f"RPC_UPDATE_TIMING guild={guild_id} "
+                        f"stage=update_rpc_data seconds={update_duration:.3f} "
+                        f"semaphore_wait={semaphore_wait:.3f}",
+                        identifier=guild_id
+                    )
 
             if ec == 401:
                 await connect_rpc.lock_bot_account(guild_id)
@@ -441,10 +461,13 @@ async def bot_loop_60minutes(bot):
         if not bot_test_mode:
             await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
 
-    # Check metadata
+    # Check metadata. This RPC has no allyCode parameter.
     ec, et, metadata = await connect_rpc.get_metadata()
-    if ec!=0:
-        golog.log("ERR", et)
+    if ec != 0 or not isinstance(metadata, dict):
+        golog.log("ERR", f"Unable to retrieve RPC metadata: {et}")
+        t_end = time.time()
+        golog.log("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
+        return
 
     LocalizationBundleVersion = metadata["latestLocalizationBundleVersion"]
     golog.log("INFO", "LocalizationBundleVersion="+LocalizationBundleVersion)
@@ -1653,12 +1676,19 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
 
     #This RPC call gets everything once, so that next calls in the 
     # following lines are able to use cache data
-    ec, et, ret_data = await connect_rpc.get_guild_rpc_data( 
-            guild_id, 
-            ["TW", "TB", "CHAT"], 
-            1, 
+    stage_started = time.perf_counter()
+    ec, et, ret_data = await connect_rpc.get_guild_rpc_data(
+            guild_id,
+            ["TW", "TB", "CHAT"],
+            1,
             allyCode=allyCode,
             guild_bots=guild_bots)
+    golog.log(
+        "INFO",
+        f"RPC_UPDATE_TIMING guild={guild_id} stage=get_guild_rpc_data "
+        f"seconds={time.perf_counter() - stage_started:.3f} result={ec}",
+        identifier=guild_id
+    )
 
     if ec!=0:
         golog.log("ERR", et)
@@ -1667,11 +1697,19 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
     dict_events = ret_data[2]
 
     #Update DB and website during TB
-    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, 
+    stage_started = time.perf_counter()
+    ec, et, tb_data = await connect_rpc.get_tb_status(
+                                guild_id, "", -1,
                                 fight_estimation_type=fight_estimation_type,
                                 compute_estimated_platoons=True,
                                 allyCode=allyCode,
                                 update_db=True)
+    golog.log(
+        "INFO",
+        f"RPC_UPDATE_TIMING guild={guild_id} stage=get_tb_status "
+        f"seconds={time.perf_counter() - stage_started:.3f} result={ec}",
+        identifier=guild_id
+    )
     if ec != 0:
         # No TB ongoing - close TB
         if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
@@ -1680,13 +1718,20 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
 
     
     #Update log channels
+    stage_started = time.perf_counter()
     ec, et, ret_data = await connect_rpc.get_guildLog_messages(
-                            guild_id, 
-                            True, 
-                            1, 
+                            guild_id,
+                            True,
+                            1,
                             allyCode=allyCode,
                             dict_guild=dict_guild,
                             dict_events=dict_events)
+    golog.log(
+        "INFO",
+        f"RPC_UPDATE_TIMING guild={guild_id} stage=get_guildLog_messages "
+        f"seconds={time.perf_counter() - stage_started:.3f} result={ec}",
+        identifier=guild_id
+    )
 
     golog.log("INFO", (ec, et), identifier=guild_id)
     if ec!=0:
@@ -1696,7 +1741,14 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
         log_data = {"CHAT": ret_data["CHAT"],
                     "TW": ret_data["TW"],
                     "TB": ret_data["TB"]}
+        stage_started = time.perf_counter()
         ec, et = await send_discord_logs(log_data, guild_id)
+        golog.log(
+            "INFO",
+            f"RPC_UPDATE_TIMING guild={guild_id} stage=send_discord_logs "
+            f"seconds={time.perf_counter() - stage_started:.3f} result={ec}",
+            identifier=guild_id
+        )
         if ec!=0:
             #failure to send logs is not critical
             return 0, et
