@@ -5933,6 +5933,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
         await ctx.message.add_reaction(emojis.check)
 
+#################################################
+# IN: ret = result from connect_rpc.get_tw_status
 async def send_tw_best_report(channel, ret):
     """Send the gettwbest report to a Discord channel using an existing TW status."""
     for home_away in [["homeGuild", "notre défense"], ["awayGuild", "la défense adverse"]]:
