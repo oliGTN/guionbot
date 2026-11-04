@@ -1423,9 +1423,7 @@ async def update_tw_status(
             await tw_bot_channel.send('```\n' + stxt + '```')
 
         # Automatically post best-team report in the same channel as the TW summary.
-        officer_cog = bot.get_cog("Commandes pour les officiers")
-        if officer_cog is not None:
-            await send_tw_best_report(tw_bot_channel, ret_tw_status)
+        await send_tw_best_report(tw_bot_channel, ret_tw_status)
 
     #intialize parameters
     awayGuild = ret_tw_status["awayGuild"]
@@ -5968,7 +5966,6 @@ async def send_tw_best_report(channel, ret):
                         image_binary.seek(0)
                         await channel.send(content=txt, file=File(fp=image_binary, filename='image.png'))
 
-        await ctx.message.add_reaction(emojis.check)
 
 ##############################################################
 # Class: OfficerCog
