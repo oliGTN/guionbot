@@ -63,8 +63,7 @@ async def handle_guild_connected_accounts(request):
 
         if (
             not isinstance(guild_id, str)
-            or not guild_id.isdigit()
-            or not 1 <= len(guild_id) <= 24
+            or not re.fullmatch(r"[A-Za-z0-9_-]{22}", guild_id)
         ):
             return web.json_response(
                 {"err_code": 400, "err_txt": "Invalid guild_id"},
