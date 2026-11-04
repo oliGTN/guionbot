@@ -1422,6 +1422,11 @@ async def update_tw_status(
         for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
             await tw_bot_channel.send('```\n' + stxt + '```')
 
+        # Automatically post best-team report in the same channel as the TW summary.
+        officer_cog = bot.get_cog("Commandes pour les officiers")
+        if officer_cog is not None:
+            await send_tw_best_report(tw_bot_channel, ret_tw_status)
+
     #intialize parameters
     awayGuild = ret_tw_status["awayGuild"]
     list_opponent_squads = awayGuild["list_defenses"]
