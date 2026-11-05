@@ -3988,18 +3988,23 @@ class ModsCog(commands.GroupCog, name="mods"):
                     "JOIN user_bot_infos ON user_bot_infos.allyCode=mod_config_list.allyCode " \
                     "WHERE channel_id="+str(channel_id)+" "\
                     "AND lower(name)='"+conf_name.lower()+"'"
-            golog.log("DBG", query)
+            golog.log("INFO", query)
             db_data = await connect_mysql.get_column_async(query)
             if len(db_data) > 0:
+                golog.log("INFO", "user confirmation requested")
                 user_choice = await bot_commands.confirmationPrompt(interaction, "Voulez-vous écrasez la conf "+conf_name+" ?")
                 if user_choice == False:
+                    golog.log("INFO", "user has cancelled")
                     await interaction.edit_original_response(content=emojis.redcross+" enregistrement annulé")
                     remove_command_from_queue(interaction)
                     return
 
+                golog.log("INFO", "user has confirmed")
+
             #Run the function
             ec, et = await manage_mods.create_mod_config(conf_name, txt_allyCode, list_alias)
 
+            golog.log("INFO", "create_mod_config: "+str((ec, et)))
             if ec == 0:
                 await interaction.edit_original_response(content=emojis.check+" "+et)
             else:
