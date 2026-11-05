@@ -4321,13 +4321,6 @@ class BronziumCog(commands.GroupCog, name="bronzium"):
     @golog.with_operation_context("bronzium.bronzium_open")
     async def bronzium_open(self, interaction: discord.Interaction, quantity: int):
         try:
-            # Check if not is locked
-            is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
-            if islocked_bot() and not is_owner:
-                golog.log("WAR", "bot is locked")
-                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
-                return
-
             # run command
             await bot_commands.bronzium_open(interaction, quantity)
 

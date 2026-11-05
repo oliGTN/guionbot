@@ -1221,7 +1221,7 @@ async def bronzium_open(ctx_interaction, quantity):
 
     txt_allyCode = str(bot_infos["allyCode"])
 
-    golog.log("INFO", "bronzium.open("+txt_allyCode+")")
+    golog.log("INFO", "START ("+txt_allyCode+", "+str(quantity)+")")
 
     #check validity of quantity (N x 250)
     if quantity%250 != 0:
@@ -1239,6 +1239,8 @@ async def bronzium_open(ctx_interaction, quantity):
             if ec != 0:
                 err_txt = "Une ouverture de pack a échoué: "+str(et)
                 await command_error(ctx_interaction, resp_msg, err_txt)
+                remove_command_from_queue(ctx_interaction)
+                return
 
         if (time.time()-prev_display_time) > 5:
             progress_msg = f"Exécution des ouverture de packs : **{i+1} / {open_count}** terminés..."

@@ -4279,7 +4279,7 @@ async def generic_rpc_call(
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
-                golog.log("DBG", rpc_path+" status="+str(resp.status))
+                golog.log("INFO", rpc_path+" status="+str(resp.status))
                 if resp.status==200:
                     resp_json = await(resp.json())
 

@@ -106,10 +106,7 @@ def log(level, txt, identifier=None):
     # Keep a traceback on one physical log line. This ensures journalctl/grep
     # can retrieve the complete exception together with its operation/run ID.
     # Other multiline log messages (for example message diffs) remain unchanged.
-    if isinstance(txt, str) and (
-        "Traceback (most recent call last):" in txt
-        or "\n  File " in txt
-    ):
+    if isinstance(txt, str):
         txt = txt.rstrip().replace("\r\n", "\n").replace("\r", "\n")
         txt = txt.replace("\n", r"\n")
 
