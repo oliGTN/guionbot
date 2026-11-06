@@ -755,6 +755,9 @@ foreach ($import_squad_list as $cell) {
             flex-wrap: nowrap;
             gap: 0.25rem;
             min-height: 100px;
+            width: max-content;
+            min-width: 120px;
+            box-sizing: border-box;
             padding: 0.75rem;
             border: 1px solid #ccc;
             border-radius: 4px;
@@ -797,7 +800,24 @@ foreach ($import_squad_list as $cell) {
             display: flex;
             align-items: flex-start;
             flex-wrap: nowrap;
-            width: 100%;
+            width: max-content;
+            min-width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* On narrow screens, let the edit area grow to the full team width
+           and scroll horizontally instead of squeezing the unit slots. */
+        @media (max-width: 768px) {
+            .tw-selected-team {
+                width: max-content;
+                min-width: 100%;
+                max-width: none;
+            }
+
+            .tw-selected-units {
+                flex: 0 0 auto;
+            }
         }
 
         .tw-selected-datacron {
