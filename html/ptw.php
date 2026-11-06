@@ -615,6 +615,7 @@ foreach ($import_squad_list as $cell) {
         .tw-tab.active { background: #fff; font-weight: bold; border-color: #888; }
         .tw-tab-panel { border-top: 1px solid #888; padding-top: 1rem; }
         .tw-import-add { margin: 0; }
+        .tw-import-actions { display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; flex: 0 0 auto; }
         .tw-import-team-row { display: flex; align-items: flex-start; gap: 0.5rem; }
         .tw-import-team-row .tw-team-portraits { flex: 1 1 auto; min-width: 0; }
         .tw-shared-zone-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; margin: 1rem 0 0.5rem; }
@@ -1153,12 +1154,20 @@ foreach (array_keys($player_datacron_sets) as $set_id):
                                                 <div class="tw-import-datacron" data-datacron-id="<?php echo htmlspecialchars($import_team['datacronId'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_team['datacronHtml']; ?></div>
 <?php endif; ?>
                                             </div>
-                                            <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode([
-                                                'zone' => $import_team['zone'],
-                                                'units' => $import_team['units'],
-                                                'datacronId' => $import_team['datacronId'],
-                                                'datacronHtml' => $import_team['datacronHtml'],
-                                            ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
+                                            <div class="tw-import-actions">
+                                                <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode([
+                                                    'zone' => $import_team['zone'],
+                                                    'units' => $import_team['units'],
+                                                    'datacronId' => $import_team['datacronId'],
+                                                    'datacronHtml' => $import_team['datacronHtml'],
+                                                ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
+                                                <button type="button" class="tw-add-team tw-import-add tw-import-add-in-zone" data-team="<?php echo htmlspecialchars(json_encode([
+                                                    'zone' => $import_team['zone'],
+                                                    'units' => $import_team['units'],
+                                                    'datacronId' => $import_team['datacronId'],
+                                                    'datacronHtml' => $import_team['datacronHtml'],
+                                                ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add in <?php echo htmlspecialchars($import_team['zone'], ENT_QUOTES, 'UTF-8'); ?></button>
+                                            </div>
                                         </div>
                                     </div>
 <?php endforeach; ?>
@@ -1790,6 +1799,9 @@ if (zoneSelect) {
             let imported;
             try { imported = JSON.parse(button.dataset.team || '{}'); } catch (e) { return; }
             if (!Array.isArray(imported.units) || imported.units.length === 0) return;
+            const targetZone = button.classList.contains('tw-import-add-in-zone')
+                ? imported.zone
+                : zoneSelect.value;
 
             // The current edit-zone selection is intentionally not treated
             // as deployed: editing a proposed team releases its units.
@@ -1807,7 +1819,7 @@ if (zoneSelect) {
                 // Open a partial import in the creator so the user can add
                 // replacement characters before creating the proposed team.
                 if (availableIds.length === 0) return;
-                zoneSelect.value = imported.zone || zoneSelect.value;
+                zoneSelect.value = targetZone || zoneSelect.value;
                 selectedUnits = availableIds;
                 const datacronStillAvailable = imported.datacronId
                     && twDatacrons[imported.datacronId]
@@ -1831,7 +1843,7 @@ if (zoneSelect) {
 
             proposedTeams.push({
                 id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random(),
-                zone: imported.zone || zoneSelect.value,
+                zone: targetZone || zoneSelect.value,
                 units: imported.units,
                 unitData: imported.unitData || [],
                 datacronId: imported.datacronId || '',
