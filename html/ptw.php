@@ -647,6 +647,9 @@ foreach ($import_squad_list as $cell) {
             border: 2px solid #f28c28;
             border-radius: 6px;
             padding: 0.5rem;
+            width: max-content;
+            min-width: 100%;
+            box-sizing: border-box;
         }
 
         .tw-team-proposed-header {
@@ -657,8 +660,8 @@ foreach ($import_squad_list as $cell) {
             color: #b35a00;
             font-weight: bold;
         }
-        .tw-proposed-team-row { display: flex; align-items: flex-start; gap: 0.75rem; }
-        .tw-proposed-team-row .tw-team-portraits { flex: 1 1 auto; min-width: 0; }
+        .tw-proposed-team-row { display: flex; align-items: flex-start; gap: 0.75rem; width: max-content; min-width: 100%; }
+        .tw-proposed-team-row .tw-team-portraits { flex: 0 0 auto; min-width: max-content; }
         .tw-team-actions { display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; flex: 0 0 auto; }
         .tw-team-edit { border: 0; border-radius: 4px; cursor: pointer; padding: 0.25rem 0.6rem; }
         .tw-import-unit-unavailable { position: relative; opacity: 0.7; }
