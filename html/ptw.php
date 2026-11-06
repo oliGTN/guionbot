@@ -1491,7 +1491,8 @@ if (zoneSelect) {
         let previousSet = null;
         datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
             const visible = (!selectedSet || card.dataset.setId === selectedSet)
-                && !proposedTeams.some((team) => team.datacronId === card.dataset.datacronId);
+                && card.dataset.datacronId !== String(datacronIdInput.value || '')
+                && !proposedTeams.some((team) => String(team.datacronId || '') === String(card.dataset.datacronId));
             card.style.display = visible ? 'block' : 'none';
 
             if (visible && !selectedSet && previousSet !== null && previousSet !== card.dataset.setId) {
@@ -1509,11 +1510,18 @@ if (zoneSelect) {
     if (datacronList) {
         datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
             card.addEventListener('click', () => {
+                // Do not allow selecting a datacron already assigned either
+                // to another proposed team or to the team currently in edit.
+                if (String(datacronIdInput.value || '') === String(card.dataset.datacronId)
+                    || proposedTeams.some((team) => String(team.datacronId || '') === String(card.dataset.datacronId))) {
+                    return;
+                }
                 datacronList.querySelectorAll('.tw-datacron-card').forEach((item) => item.classList.remove('selected'));
                 card.classList.add('selected');
                 datacronIdInput.value = card.dataset.datacronId;
                 selectedDatacronHtml = '';
                 renderSelected();
+                updateDatacrons();
             });
         });
     }
