@@ -472,9 +472,21 @@ if ($tw) {
             ':player_name' => $player['name'],
         ]);
         $player_datacrons = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Keep the complete inventory separately: the selector above excludes
+        // datacrons already deployed in this TW, but historical imports must
+        // distinguish those from datacrons the player no longer owns.
+        $inventory_stmt = $conn_guionbot->prepare(
+            "SELECT id FROM datacrons WHERE allyCode = :allycode"
+        );
+        $inventory_stmt->execute([':allycode' => $allycode]);
+        $player_datacron_ids = array_map('strval', $inventory_stmt->fetchAll(PDO::FETCH_COLUMN));
     } catch (PDOException $e) {
         error_log('Error fetching player datacrons: ' . $e->getMessage());
+        $player_datacron_ids = [];
     }
+} else {
+    $player_datacron_ids = [];
 }
 
 $player_datacron_html = [];
@@ -666,6 +678,22 @@ foreach ($import_squad_list as $cell) {
         .tw-team-edit { border: 0; border-radius: 4px; cursor: pointer; padding: 0.25rem 0.6rem; }
         .tw-import-unit-unavailable { position: relative; opacity: 0.7; }
         .tw-import-unit-unavailable::after {
+            content: "";
+            position: absolute;
+            left: -12%;
+            top: 50%;
+            width: 124%;
+            border-top: 4px solid #d00000;
+            transform: rotate(-35deg);
+            transform-origin: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .tw-import-datacron {
+            position: relative;
+            display: inline-block;
+        }
+        .tw-import-datacron-unavailable::after {
             content: "";
             position: absolute;
             left: -12%;
@@ -1101,7 +1129,9 @@ foreach (array_keys($player_datacron_sets) as $set_id):
 <?php foreach ($import_team['unitData'] as $import_unit_index => $import_unit): ?>
                                                 <div data-unit-id="<?php echo htmlspecialchars($import_unit['id'], ENT_QUOTES, 'UTF-8'); ?>" data-base-title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($import_unit['isShip'] && $import_unit_index >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
 <?php endforeach; ?>
-<?php echo $import_team['datacronHtml']; ?>
+<?php if ($import_team['datacronId'] !== ''): ?>
+                                                <div class="tw-import-datacron" data-datacron-id="<?php echo htmlspecialchars($import_team['datacronId'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_team['datacronHtml']; ?></div>
+<?php endif; ?>
                                             </div>
                                             <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode([
                                                 'zone' => $import_team['zone'],
@@ -1157,6 +1187,7 @@ if (historySelect) {
 }
 const twUnits = <?php echo json_encode($roster_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 const twDatacrons = <?php echo json_encode($player_datacron_html, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+const twPlayerDatacronIds = new Set(<?php echo json_encode($player_datacron_ids, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>);
 const twZoneCommands = <?php
 $creator_zone_commands = [];
 foreach ($tw_zones as $zone) {
@@ -1208,12 +1239,32 @@ if (zoneSelect) {
                     return;
                 }
 
+                // A historical datacron that is no longer in the player's
+                // inventory must not be imported with the team.
+                if (imported.datacronId && !twPlayerDatacronIds.has(String(imported.datacronId))) {
+                    imported.datacronId = '';
+                    imported.datacronHtml = '';
+                    addButton.dataset.team = JSON.stringify(imported);
+                    const staleDatacron = teamRow.querySelector('.tw-import-datacron');
+                    if (staleDatacron) staleDatacron.remove();
+                }
+
                 const missingIds = (imported.units || []).filter((unitId) =>
                     !twUnits.some((unit) => unit.id === unitId)
                 );
                 const conflictingIds = (imported.units || []).filter((unitId) =>
                     unavailableIds.has(unitId)
                 );
+                const datacronUnavailable = !!imported.datacronId && proposedTeams.some((team) =>
+                    String(team.datacronId || '') === String(imported.datacronId)
+                );
+                const importedDatacron = teamRow.querySelector('.tw-import-datacron');
+                if (importedDatacron) {
+                    importedDatacron.classList.toggle('tw-import-datacron-unavailable', datacronUnavailable);
+                    importedDatacron.title = datacronUnavailable
+                        ? 'Datacron is already assigned to a proposed team'
+                        : '';
+                }
                 const blockedIds = new Set([...missingIds, ...conflictingIds]);
 
                 teamRow.querySelectorAll('[data-unit-id]').forEach((unitElement) => {
@@ -1228,10 +1279,10 @@ if (zoneSelect) {
                     }
                 });
 
-                addButton.disabled = blockedIds.size > 0;
+                addButton.disabled = blockedIds.size > 0 || datacronUnavailable;
                 addButton.title = blockedIds.size > 0
                     ? 'Cannot add this team because one or more units are unavailable in the create-team unit selector.'
-                    : '';
+                    : (datacronUnavailable ? 'Cannot add this team because its datacron is already assigned to a proposed team.' : '');
             });
         });
     }
