@@ -1266,6 +1266,9 @@ if (zoneSelect) {
                         : '';
                 }
                 const blockedIds = new Set([...missingIds, ...conflictingIds]);
+                const availableIds = (imported.units || []).filter((unitId) =>
+                    twUnits.some((unit) => unit.id === unitId) && !unavailableIds.has(unitId)
+                );
 
                 teamRow.querySelectorAll('[data-unit-id]').forEach((unitElement) => {
                     const unitId = unitElement.dataset.unitId;
@@ -1279,10 +1282,17 @@ if (zoneSelect) {
                     }
                 });
 
-                addButton.disabled = blockedIds.size > 0 || datacronUnavailable;
-                addButton.title = blockedIds.size > 0
-                    ? 'Cannot add this team because one or more units are unavailable in the create-team unit selector.'
-                    : (datacronUnavailable ? 'Cannot add this team because its datacron is already assigned to a proposed team.' : '');
+                // A partially available historical team can still be brought
+                // into the creator for editing, using only its available units.
+                const partiallyAvailable = blockedIds.size > 0 && availableIds.length > 0;
+                addButton.disabled = (blockedIds.size > 0 && !partiallyAvailable) || datacronUnavailable;
+                addButton.title = datacronUnavailable
+                    ? 'Cannot add this team because its datacron is already assigned to a proposed team.'
+                    : (partiallyAvailable
+                        ? 'Import available characters into the team editor; unavailable characters will be skipped.'
+                        : (blockedIds.size > 0
+                            ? 'Cannot add this team because none of its characters are available.'
+                            : ''));
             });
         });
     }
@@ -1758,9 +1768,46 @@ if (zoneSelect) {
             let imported;
             try { imported = JSON.parse(button.dataset.team || '{}'); } catch (e) { return; }
             if (!Array.isArray(imported.units) || imported.units.length === 0) return;
+
+            const unavailableIds = new Set(selectedUnits);
+            proposedTeams.forEach((team) => (team.units || []).forEach((unitId) => unavailableIds.add(unitId)));
+            const missingIds = imported.units.filter((unitId) =>
+                !twUnits.some((unit) => unit.id === unitId)
+            );
+            const conflictingIds = imported.units.filter((unitId) => unavailableIds.has(unitId));
+            const availableIds = imported.units.filter((unitId) =>
+                twUnits.some((unit) => unit.id === unitId) && !unavailableIds.has(unitId)
+            );
+
+            if (missingIds.length > 0 || conflictingIds.length > 0) {
+                // Open a partial import in the creator so the user can add
+                // replacement characters before creating the proposed team.
+                if (availableIds.length === 0) return;
+                zoneSelect.value = imported.zone || zoneSelect.value;
+                selectedUnits = availableIds;
+                const datacronStillAvailable = imported.datacronId
+                    && twDatacrons[imported.datacronId]
+                    && !proposedTeams.some((team) => String(team.datacronId || '') === String(imported.datacronId));
+                datacronIdInput.value = datacronStillAvailable ? imported.datacronId : '';
+                selectedDatacronHtml = datacronStillAvailable ? (imported.datacronHtml || twDatacrons[imported.datacronId]) : '';
+                if (datacronList) {
+                    datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
+                        card.classList.toggle('selected', card.dataset.datacronId === datacronIdInput.value);
+                    });
+                }
+                updateCreator();
+                renderSelected();
+                renderResults();
+                updateDatacrons();
+                refreshImportTeamAvailability();
+                document.getElementById('tw-create-tab-button').click();
+                unitSearch.focus();
+                return;
+            }
+
             proposedTeams.push({
                 id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random(),
-                zone: zoneSelect.value,
+                zone: imported.zone || zoneSelect.value,
                 units: imported.units,
                 unitData: imported.unitData || [],
                 datacronId: imported.datacronId || '',
