@@ -1241,7 +1241,9 @@ if (zoneSelect) {
     let proposedTeams = [];
 
     function refreshImportTeamAvailability() {
-        const unavailableIds = new Set(selectedUnits);
+        // Units in the edit zone are released from their proposed team
+        // and must be shown as available in historical imports.
+        const unavailableIds = new Set();
         proposedTeams.forEach((team) => {
             (team.units || []).forEach((unitId) => unavailableIds.add(unitId));
         });
@@ -1789,7 +1791,9 @@ if (zoneSelect) {
             try { imported = JSON.parse(button.dataset.team || '{}'); } catch (e) { return; }
             if (!Array.isArray(imported.units) || imported.units.length === 0) return;
 
-            const unavailableIds = new Set(selectedUnits);
+            // The current edit-zone selection is intentionally not treated
+            // as deployed: editing a proposed team releases its units.
+            const unavailableIds = new Set();
             proposedTeams.forEach((team) => (team.units || []).forEach((unitId) => unavailableIds.add(unitId)));
             const missingIds = imported.units.filter((unitId) =>
                 !twUnits.some((unit) => unit.id === unitId)
