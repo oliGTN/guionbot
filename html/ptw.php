@@ -1819,6 +1819,11 @@ if (zoneSelect) {
 
     document.querySelectorAll('.tw-import-add').forEach((button) => {
         button.addEventListener('click', () => {
+            // Remove the persistent keyboard/mouse focus highlight after
+            // choosing the historical zone-specific import action.
+            if (button.classList.contains('tw-import-add-in-zone')) {
+                button.blur();
+            }
             let imported;
             try { imported = JSON.parse(button.dataset.team || '{}'); } catch (e) { return; }
             if (!Array.isArray(imported.units) || imported.units.length === 0) return;
