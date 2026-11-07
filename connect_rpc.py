@@ -3233,9 +3233,6 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                                                              dict_guild=dict_guild,
                                                              dict_events=dict_events)
 
-            # Display best teams in GT channel
-            # TODO
-
             await manage_events.create_event("tw_end", guild_id, tw_id)
 
     prev_dict_guild[guild_id] = dict_guild

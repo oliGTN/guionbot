@@ -1401,7 +1401,7 @@ async def update_tw_status(
         allyCode=None,
         update_discord_logs=False):
 
-    golog.log("DBG", (guild_id, backup_channel_id, allyCode))
+    golog.log("INFO", (guild_id, backup_channel_id, allyCode))
     if allyCode==None:
         #using the warbot
         #ec, et, ret_tw_alerts = await go.get_tw_alerts(guild_id, -1)
