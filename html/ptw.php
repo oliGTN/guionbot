@@ -616,8 +616,23 @@ foreach ($import_squad_list as $cell) {
         .tw-tab-panel { border-top: 1px solid #888; padding-top: 1rem; }
         .tw-import-add { margin: 0; }
         .tw-import-actions { display: flex; flex-direction: column; align-items: stretch; gap: 0.35rem; flex: 0 0 auto; }
-        .tw-import-team-row { display: flex; align-items: flex-start; gap: 0.5rem; }
-        .tw-import-team-row .tw-team-portraits { flex: 1 1 auto; min-width: 0; }
+        .tw-import-team-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            width: max-content;
+            min-width: 100%;
+            box-sizing: border-box;
+        }
+        .tw-import-team-row .tw-team-portraits {
+            flex: 0 0 auto;
+            width: max-content;
+            min-width: max-content;
+        }
+        .tw-import-actions {
+            position: relative;
+            z-index: 2;
+        }
         .tw-shared-zone-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; margin: 1rem 0 0.5rem; }
         .tw-inline-select { display: inline-flex; align-items: center; gap: 0.5rem; }
         .tw-inline-select label { margin: 0; white-space: nowrap; }
@@ -1804,6 +1819,11 @@ if (zoneSelect) {
 
     document.querySelectorAll('.tw-import-add').forEach((button) => {
         button.addEventListener('click', () => {
+            // Remove the persistent keyboard/mouse focus highlight after
+            // choosing the historical zone-specific import action.
+            if (button.classList.contains('tw-import-add-in-zone')) {
+                button.blur();
+            }
             let imported;
             try { imported = JSON.parse(button.dataset.team || '{}'); } catch (e) { return; }
             if (!Array.isArray(imported.units) || imported.units.length === 0) return;
