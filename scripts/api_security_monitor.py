@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 CONFIG = "/home/pi/GuionBot/SERVER_SECRETS/api_security_monitor.json"
-RX = re.compile(r'^(\S+) \S+ \S+ \[([^]]+)\] "([^"]*)" (\d{3}) (\S+)')
+RX = re.compile(r'^(S+) S+ S+ \[([^]]+)\] "([^"]*)" (\d{3}) (\S+)')
 PROBE = re.compile(r'(\.\./|%2e%2e|/\.env|wp-admin|wp-login|phpmyadmin|\.git|/cgi-bin)', re.I)
 INJECT = re.compile(r'(union(?:%20|\s)+select|sleep\s*\(|<script|information_schema)', re.I)
 
@@ -87,7 +87,14 @@ def main():
     except Exception: state = {"alerts": {}, "daily": None}
     def send(message):
         body = json.dumps({"content": message[:1900], "allowed_mentions": {"parse": []}}).encode()
-        req = urllib.request.Request(cfg["discord_webhook"], data=body, headers={"Content-Type": "application/json"})
+        req = urllib.request.Request(
+            cfg["discord_webhook"],
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0"
+            }
+        )
         with urllib.request.urlopen(req, timeout=15) as response:
             if response.status not in (200, 204): raise RuntimeError("Discord webhook failed")
     if a.check:
