@@ -34,6 +34,34 @@ def safe_request_target(target):
 def clean_header(value, limit=180):
     return re.sub(r'[\x00-\x1f\x7f]', ' ', str(value))[:limit].strip()
 
+
+
+SENSITIVE_PATH = re.compile(
+    r'(^|/)(\.env(?:\.|$)|\.git(?:/|$)|wp-admin(?:/|$)|wp-login\.php$|'
+    r'phpmyadmin(?:/|$)|cgi-bin(?:/|$))', re.I
+)
+
+
+def request_fingerprint(request):
+    """Stable identity for one Apache request, independent of log rotation."""
+    fields = (request.get("ip"), request.get("ts"), request.get("method"),
+              request.get("target"), request.get("status"))
+    return json.dumps(fields, separators=(",", ":"), ensure_ascii=True)
+
+
+def is_high_risk_success(request):
+    """Only treat a 2xx response as a high-severity disclosure/exploit signal."""
+    if not 200 <= int(request.get("status", 0)) < 300:
+        return False
+    target = request.get("target", "")
+    return bool(SENSITIVE_PATH.search(urlsplit(target).path) or INJECT.search(target))
+
+
+def normalized_thresholds(config):
+    """Tolerate accidental whitespace around JSON threshold names."""
+    return {str(key).strip(): value for key, value in config.get("thresholds", {}).items()}
+
+
 def main():
     import argparse
     p = argparse.ArgumentParser()
@@ -87,6 +115,7 @@ def main():
                     pass
         except OSError:
             pass
+    thresholds = normalized_thresholds(cfg)
     grouped = collections.defaultdict(list)
     for x in requests:
         grouped[x["ip"]].append(x)
@@ -98,26 +127,60 @@ def main():
         two = [x for x in rows if now - x["ts"] <= 120]
         badkeys = sum(x.get("event_type") in ("INVALID_API_KEY", "MALFORMED_AUTH") for x in five)
         forbidden = sum(x.get("event_type") == "ENDPOINT_FORBIDDEN" for x in two)
-        limited = sum(x.get("event_type") == "RATE_LIMIT_EXCEEDED" or x.get("status") == 429 for x in five)
-        badparams = sum(x.get("status") in (400, 405, 413) for x in five)
-        paths = {x.get("path", "") for x in two}
-        if badkeys >= cfg["thresholds"].get("invalid_keys_5m", 5): incidents.append(("MEDIUM", "INVALID_KEYS", ip, badkeys))
-        if forbidden >= cfg["thresholds"].get("forbidden_2m", 3): incidents.append(("HIGH", "FORBIDDEN_ENDPOINTS", ip, forbidden))
-        if len(paths) >= cfg["thresholds"].get("distinct_paths_2m", 10): incidents.append(("HIGH", "PATH_SCAN", ip, len(paths)))
-        if limited >= cfg["thresholds"].get("rate_limit_5m", 10): incidents.append(("HIGH", "RATE_LIMIT", ip, limited))
-        if badparams >= cfg["thresholds"].get("invalid_params_5m", 20): incidents.append(("MEDIUM", "INVALID_PARAMETERS", ip, badparams))
-    malicious_by_ip = collections.defaultdict(list)
+        # Count rate limits from the PHP event only; Apache's matching 429 is
+        # the same request and must not be counted a second time.
+        limited = sum(x.get("event_type") == "RATE_LIMIT_EXCEEDED" for x in five)
+        badparams = sum(x.get("status") in (400, 405, 413) and "method" in x for x in five)
+        paths = {x.get("path", "") for x in two if "method" in x}
+        if badkeys >= thresholds.get("invalid_keys_5m", 5): incidents.append(("MEDIUM", "INVALID_KEYS", ip, badkeys))
+        if forbidden >= thresholds.get("forbidden_2m", 3): incidents.append(("MEDIUM", "FORBIDDEN_ENDPOINTS", ip, forbidden))
+        if len(paths) >= thresholds.get("distinct_paths_2m", 10): incidents.append(("MEDIUM", "PATH_SCAN", ip, len(paths)))
+        if limited >= thresholds.get("rate_limit_5m", 10): incidents.append(("MEDIUM", "RATE_LIMIT", ip, limited))
+        if badparams >= thresholds.get("invalid_params_5m", 20): incidents.append(("MEDIUM", "INVALID_PARAMETERS", ip, badparams))
+    malicious_requests = []
     for x in requests:
         if PROBE.search(x["target"]) or INJECT.search(x["target"]):
             x["rules"] = malicious_match(x["target"])
-            malicious_by_ip[x["ip"]].append(x)
-    for ip, matches in malicious_by_ip.items():
-        latest = max(matches, key=lambda x: x["ts"])
-        incidents.append(("HIGH", "MALICIOUS_URI", ip, len(matches), latest))
+            malicious_requests.append(x)
     statepath = Path(cfg["state_path"])
     statepath.parent.mkdir(parents=True, exist_ok=True)
     try: state = json.loads(statepath.read_text())
     except Exception: state = {"alerts": {}, "daily": None}
+    state.setdefault("alerts", {})
+    state.setdefault("daily", None)
+    state.setdefault("malicious_seen", {})
+    state.setdefault("malicious_pending", {})
+
+    # Only newly observed requests can generate URI alerts. Keep a short
+    # per-IP pending window so low-volume repeated probes are grouped.
+    fresh_malicious = []
+    for x in malicious_requests:
+        fingerprint = request_fingerprint(x)
+        if fingerprint not in state["malicious_seen"]:
+            fresh_malicious.append(x)
+        state["malicious_seen"][fingerprint] = x["ts"]
+    state["malicious_seen"] = {
+        key: ts for key, ts in state["malicious_seen"].items() if now - ts < 172800
+    }
+    for x in fresh_malicious:
+        ip = x["ip"]
+        if is_high_risk_success(x):
+            incidents.append(("HIGH", "SENSITIVE_SUCCESS", ip, 1, x))
+        else:
+            state["malicious_pending"].setdefault(ip, []).append({
+                "ts": x["ts"], "target": x["target"], "method": x["method"],
+                "status": x["status"], "user_agent": x.get("user_agent", "-"),
+                "rules": x.get("rules", [])
+            })
+    for ip in list(state["malicious_pending"]):
+        pending = [x for x in state["malicious_pending"][ip] if now - x["ts"] <= 300]
+        if len(pending) >= 3:
+            latest = max(pending, key=lambda x: x["ts"])
+            incidents.append(("MEDIUM", "MALICIOUS_URI", ip, len(pending), latest))
+            pending = []
+        state["malicious_pending"][ip] = pending
+        if not pending:
+            del state["malicious_pending"][ip]
     def send(message):
         body = json.dumps({"content": message[:1900], "allowed_mentions": {"parse": []}}).encode()
         req = urllib.request.Request(
@@ -131,26 +194,36 @@ def main():
         with urllib.request.urlopen(req, timeout=15) as response:
             if response.status not in (200, 204): raise RuntimeError("Discord webhook failed")
     if a.check:
+        from zoneinfo import ZoneInfo
+        due = []
+        due_keys = []
         for incident in incidents:
             severity, kind, ip, count = incident[:4]
             key = severity + ":" + kind + ":" + ip
-            if now - state["alerts"].get(key, 0) >= 1800:
-                message = ("**GUIONBOT API SECURITY — " + severity + "**\n" +
-                           kind + " from " + ip + ": " + str(count) +
-                           " event(s). No automatic blocking.")
-                if kind == "MALICIOUS_URI" and len(incident) > 4:
-                    x = incident[4]
-                    from zoneinfo import ZoneInfo
-                    local_time = dt.datetime.fromtimestamp(
-                        x["ts"], ZoneInfo(cfg.get("timezone", "Europe/Paris"))
-                    ).strftime("%Y-%m-%d %H:%M:%S %Z")
-                    message += ("\nTime: " + local_time +
-                                "\nRule: " + (", ".join(x.get("rules", [])) or "URI probe") +
-                                "\nRequest: " + clean_header(x.get("method", "?")) +
-                                " " + safe_request_target(x["target"]) +
-                                "\nHTTP status: " + str(x["status"]) +
-                                "\nUser-Agent: " + clean_header(x.get("user_agent", "-")))
-                send(message)
+            if now - state["alerts"].get(key, 0) < 1800:
+                continue
+            detail = ""
+            if len(incident) > 4:
+                x = incident[4]
+                local_time = dt.datetime.fromtimestamp(
+                    x["ts"], ZoneInfo(cfg.get("timezone", "Europe/Paris"))
+                ).strftime("%H:%M:%S")
+                detail = (" — " + local_time + ", " +
+                          (", ".join(x.get("rules", [])) or "sensitive path") +
+                          ", " + clean_header(x.get("method", "?")) + " " +
+                          safe_request_target(x.get("target", "/")) +
+                          ", HTTP " + str(x.get("status", "?")) +
+                          ", UA " + clean_header(x.get("user_agent", "-"), 100))
+            due.append(severity + " " + kind + " — " + ip + ": " +
+                       str(count) + " event(s)" + detail)
+            due_keys.append(key)
+        if due:
+            # One compact digest per check, rather than one Discord post per IP.
+            message = ("**GUIONBOT API SECURITY — ALERT DIGEST**\n" +
+                       "\n".join(due) +
+                       "\nNo automatic blocking.")
+            send(message)
+            for key in due_keys:
                 state["alerts"][key] = now
         state["alerts"] = {k:v for k,v in state["alerts"].items() if now-v < 86400}
     if a.daily:
@@ -161,12 +234,16 @@ def main():
             suspicious = [x for x in requests if x["status"] in (400,401,403,404,405,413,429) or PROBE.search(x["target"]) or INJECT.search(x["target"])]
             types = collections.Counter(x.get("event_type", "UNKNOWN") for x in events)
             ips = collections.Counter(x["ip"] for x in suspicious).most_common(5)
+            uri_rules = collections.Counter(rule for x in requests for rule in malicious_match(x["target"]))
+            successful_sensitive = sum(is_high_risk_success(x) for x in requests)
             message = ("**GUIONBOT API — DAILY SECURITY REPORT**\nPrevious 24 hours\n"
-                       "Requests: " + str(len(requests)) + "\nSuspicious: " + str(len(suspicious)) +
-                       "\nPHP events: " + str(len(events)) + "\nThreshold incidents: " + str(len(incidents)) +
+                       "Requests: " + str(len(requests)) + "\nSuspicious HTTP/URI requests: " + str(len(suspicious)) +
+                       "\nURI detections by rule: " + str(dict(uri_rules)) +
+                       "\nSuccessful sensitive/exploit-pattern responses (2xx): " + str(successful_sensitive) +
+                       "\nPHP events: " + str(len(events)) + "\nActive threshold incidents: " + str(len(incidents)) +
                        "\nHTTP statuses: " + str(dict(statuses)) + "\nPHP event types: " + str(dict(types)) +
                        "\nTop suspicious IPs: " + str(ips) +
-                       "\nAssessment: " + ("No threshold incident detected." if not incidents else "Review detections."))
+                       "\nAssessment: " + ("No active threshold incident detected." if not incidents else "Review grouped detections."))
             send(message)
             state["daily"] = today
     tmp = statepath.with_suffix(".tmp")
