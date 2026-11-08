@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import collections, datetime as dt, json, re, time, urllib.request
+import collections, datetime as dt, gzip, glob, json, re, time, urllib.request
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -19,25 +19,29 @@ def main():
     cfg = json.load(open(CONFIG))
     now = time.time()
     requests = []
-    try:
-        with open(cfg["access_log"], encoding="utf-8", errors="replace") as f:
-            for line in f:
-                m = RX.match(line)
-                if not m:
-                    continue
-                ip, stamp, request, status, size = m.groups()
-                try:
-                    ts = dt.datetime.strptime(stamp, "%d/%b/%Y:%H:%M:%S %z").timestamp()
-                except ValueError:
-                    continue
-                if ts < now - 86400:
-                    continue
-                parts = request.split()
-                target = parts[1] if len(parts) > 1 else "/"
-                requests.append({"ip": ip, "ts": ts, "path": urlsplit(target).path,
-                                 "target": target, "status": int(status)})
-    except OSError as e:
-        print("Apache log unavailable:", e)
+    log_paths = [cfg["access_log"]] + glob.glob(cfg["access_log"] + ".[0-9]*")
+    for log_path in log_paths:
+        try:
+            opener = gzip.open if log_path.endswith(".gz") else open
+            with opener(log_path, "rt", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    m = RX.match(line)
+                    if not m:
+                        continue
+                    ip, stamp, request, status, size = m.groups()
+                    try:
+                        ts = dt.datetime.strptime(stamp, "%d/%b/%Y:%H:%M:%S %z").timestamp()
+                    except ValueError:
+                        continue
+                    if ts < now - 86400:
+                        continue
+                    parts = request.split()
+                    target = parts[1] if len(parts) > 1 else "/"
+                    requests.append({"ip": ip, "ts": ts, "path": urlsplit(target).path,
+                                     "target": target, "status": int(status)})
+        except OSError as e:
+            if log_path == cfg["access_log"]:
+                print("Apache log unavailable:", e)
     events = []
     for path in Path(cfg["event_dir"]).glob("events-*.jsonl"):
         try:
