@@ -1024,7 +1024,8 @@ async def get_player_initialdata(ac, use_cache_data=False):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     if "err_code" in initialdata_player:
-        return 1, initialdata_player["err_txt"], None
+        # Preserve the RPC error code (notably 100 for EA email One-Time Code).
+        return initialdata_player["err_code"], initialdata_player["err_txt"], None
 
     return 0, "", initialdata_player
 
