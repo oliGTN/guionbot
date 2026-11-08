@@ -80,10 +80,10 @@ def collect_new_malicious(requests, state, now):
 def queue_malicious_activity(fresh, state, now):
     """Queue low-risk probes; return grouped repeated probes and high-risk successes."""
     pending_by_ip = state.setdefault("malicious_pending", {})
-    high_risk = []
+    high_risk_by_ip = collections.defaultdict(list)
     for request in fresh:
         if is_high_risk_success(request):
-            high_risk.append(("HIGH", "SENSITIVE_SUCCESS", request["ip"], 1, request))
+            high_risk_by_ip[request["ip"]].append(request)
         else:
             pending_by_ip.setdefault(request["ip"], []).append({
                 "ts": request["ts"], "target": request["target"],
@@ -91,6 +91,10 @@ def queue_malicious_activity(fresh, state, now):
                 "user_agent": request.get("user_agent", "-"),
                 "rules": request.get("rules", [])
             })
+    high_risk = []
+    for ip, matches in high_risk_by_ip.items():
+        latest = max(matches, key=lambda x: x["ts"])
+        high_risk.append(("HIGH", "SENSITIVE_SUCCESS", ip, len(matches), latest))
     repeated = []
     for ip in list(pending_by_ip):
         pending = [x for x in pending_by_ip[ip] if now - x["ts"] <= 300]
