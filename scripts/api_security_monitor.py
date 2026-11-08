@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 CONFIG = "/home/pi/GuionBot/SERVER_SECRETS/api_security_monitor.json"
-RX = re.compile(r'^(S+) S+ S+ \[([^]]+)\] "([^"]*)" (\d{3}) (\S+)')
+RX = re.compile(r'^(\\S+) \\S+ \\S+ \\[([^]]+)\\] "([^"]*)" (\\d{3}) (\\S+)')
 PROBE = re.compile(r'(\.\./|%2e%2e|/\.env|wp-admin|wp-login|phpmyadmin|\.git|/cgi-bin)', re.I)
 INJECT = re.compile(r'(union(?:%20|\s)+select|sleep\s*\(|<script|information_schema)', re.I)
 
