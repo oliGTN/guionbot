@@ -38,3 +38,5 @@ Read and deployment limits use separate buckets; deployment defaults are
 The existing `api_key` legacy entry can be removed after migrating the existing
 client to an `api_clients` entry with its SHA-256 hash and `endpoints => ['*']`.
 Do not remove it until that migration is complete.
+
+- `mod-inventory` — `/api/v1/mod-inventory.php`
