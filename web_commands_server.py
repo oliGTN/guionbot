@@ -549,6 +549,84 @@ async def handle_deploy_tb_platoons(request):
         return web.json_response({"err_code": 500, "err_txt": "Internal server error"}, status=500)
 
 
+async def handle_mod_inventory(request):
+    expected_token = request.app["token"]
+    authorization = request.headers.get("Authorization", "")
+    if not expected_token or authorization != "Bearer " + expected_token:
+        return web.json_response(
+            {"err_code": 401, "err_txt": "Unauthorized"},
+            status=401
+        )
+
+    try:
+        payload = await request.json()
+        if not isinstance(payload, dict):
+            return web.json_response(
+                {"err_code": 400, "err_txt": "JSON body must be an object"},
+                status=400
+            )
+
+        ally_code = payload.get("allycode")
+        if (
+            not isinstance(ally_code, str)
+            or not re.fullmatch(r"[0-9]{9}", ally_code)
+        ):
+            return web.json_response(
+                {"err_code": 400, "err_txt": "Invalid allycode"},
+                status=400
+            )
+
+        # Always bypass cached initialdata: the caller expects the live mod inventory.
+        err_code, err_txt, initialdata = await connect_rpc.get_player_initialdata(
+            ac=ally_code,
+            use_cache_data=False
+        )
+        if err_code != 0:
+            golog.log(
+                "WAR",
+                "Mod inventory RPC failed for allyCode " + ally_code
+                + "; internal_err_code=" + str(err_code)
+                + "; internal_err_txt=" + str(err_txt)
+            )
+            return web.json_response(
+                {"err_code": 502, "err_txt": "Unable to retrieve mod inventory"},
+                status=502
+            )
+
+        inventory = initialdata.get("inventory") if isinstance(initialdata, dict) else None
+        if not isinstance(inventory, dict) or "unequippedMod" not in inventory:
+            golog.log(
+                "ERR",
+                "Mod inventory RPC response is missing inventory.unequippedMod "
+                "for allyCode " + ally_code
+            )
+            return web.json_response(
+                {"err_code": 502, "err_txt": "Invalid mod inventory response"},
+                status=502
+            )
+
+        unequipped_mods = inventory["unequippedMod"]
+        if not isinstance(unequipped_mods, (dict, list)):
+            golog.log(
+                "ERR",
+                "Mod inventory RPC returned an unexpected unequippedMod type "
+                "for allyCode " + ally_code
+            )
+            return web.json_response(
+                {"err_code": 502, "err_txt": "Invalid mod inventory response"},
+                status=502
+            )
+
+        return web.json_response({"unequippedMod": unequipped_mods})
+
+    except Exception as error:
+        golog.log("ERR", "Mod inventory command error: " + str(error))
+        return web.json_response(
+            {"err_code": 500, "err_txt": "Internal server error"},
+            status=500
+        )
+
+
 async def on_startup(app):
     if not app["token"]:
         raise RuntimeError("GUIONBOT_WEB_COMMANDS_TOKEN is not configured")
@@ -566,6 +644,7 @@ def create_app():
     app.router.add_post("/SellMods", handle_sell_mods)
     app.router.add_post("/DeployTWTeams", handle_deploy_tw_teams)
     app.router.add_post("/DeployTBPlatoons", handle_deploy_tb_platoons)
+    app.router.add_post("/ModInventory", handle_mod_inventory)
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
     return app
