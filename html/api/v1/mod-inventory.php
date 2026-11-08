@@ -99,7 +99,7 @@ if ($httpCode === 200 && array_key_exists('unequippedMod', $result)) {
         'RateLimit-Remaining' => (string)$authContext['remaining'],
     ]);
 }
-if (in_array($httpCode, [400, 401, 502, 503], true)) {
+if (in_array($httpCode, [202, 400, 401, 502, 503], true)) {
     modInventoryApiRespond($httpCode, $result);
 }
 error_log('Mod inventory API received an unexpected internal service HTTP status: ' . $httpCode);
