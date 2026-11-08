@@ -67,6 +67,13 @@ class SecurityMonitorTests(unittest.TestCase):
         result = monitor.normalized_thresholds({"thresholds": {" rate_limit_5m ": 7}})
         self.assertEqual(result["rate_limit_5m"], 7)
 
+    def test_alert_digest_uses_real_newlines(self):
+        message = monitor.build_alert_digest(["MEDIUM PATH_SCAN — 203.0.113.10: 10 event(s)",
+                                              "MEDIUM MALICIOUS_URI — 203.0.113.10: 3 event(s)"])
+        self.assertIn("\n", message)
+        self.assertNotIn("\\n", message)
+        self.assertEqual(len(message.splitlines()), 4)
+
     def test_fingerprint_is_stable(self):
         row = request()
         self.assertEqual(monitor.request_fingerprint(row), monitor.request_fingerprint(dict(row)))
