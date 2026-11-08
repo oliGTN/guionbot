@@ -38,7 +38,7 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
         $authorization = trim((string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
     }
     if (!preg_match('/^Bearer\s+([^\s]+)$/i', $authorization, $matches)) {
-        $respond(401, ['success' => false, 'error' => 'Unauthorized'], ['WWW-Authenticate' => 'Bearer']);
+        apiSecurityLog('MALFORMED_AUTH', 'MEDIUM');\n        $respond(401, ['success' => false, 'error' => 'Unauthorized'], ['WWW-Authenticate' => 'Bearer']);
     }
     $presentedKey = $matches[1];
     $clientId = null;
