@@ -63,11 +63,13 @@ def main():
         badkeys = sum(x.get("event_type") in ("INVALID_API_KEY", "MALFORMED_AUTH") for x in five)
         forbidden = sum(x.get("event_type") == "ENDPOINT_FORBIDDEN" for x in two)
         limited = sum(x.get("event_type") == "RATE_LIMIT_EXCEEDED" or x.get("status") == 429 for x in five)
+        badparams = sum(x.get("status") in (400, 405, 413) for x in five)
         paths = {x.get("path", "") for x in two}
         if badkeys >= cfg["thresholds"].get("invalid_keys_5m", 5): incidents.append(("MEDIUM", "INVALID_KEYS", ip, badkeys))
         if forbidden >= cfg["thresholds"].get("forbidden_2m", 3): incidents.append(("HIGH", "FORBIDDEN_ENDPOINTS", ip, forbidden))
         if len(paths) >= cfg["thresholds"].get("distinct_paths_2m", 10): incidents.append(("HIGH", "PATH_SCAN", ip, len(paths)))
         if limited >= cfg["thresholds"].get("rate_limit_5m", 10): incidents.append(("HIGH", "RATE_LIMIT", ip, limited))
+        if badparams >= cfg["thresholds"].get("invalid_params_5m", 20): incidents.append(("MEDIUM", "INVALID_PARAMETERS", ip, badparams))
     for x in requests:
         if PROBE.search(x["target"]) or INJECT.search(x["target"]):
             incidents.append(("HIGH", "MALICIOUS_URI", x["ip"], 1))
