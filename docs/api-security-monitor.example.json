@@ -1,0 +1,13 @@
+{
+  "discord_webhook": "REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL",
+  "access_log": "/var/log/apache2/guionbot-api-access.log",
+  "event_dir": "/var/log/guionbot-api-security",
+  "state_path": "/var/lib/guionbot-api-security/state.json",
+  "timezone": "Europe/Paris",
+  "thresholds": {
+    "invalid_keys_5m": 5,
+    "forbidden_2m": 3,
+    "distinct_paths_2m": 10,
+    "rate_limit_5m": 10
+  }
+}
