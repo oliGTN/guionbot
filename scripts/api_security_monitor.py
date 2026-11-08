@@ -12,13 +12,13 @@ INJECT = re.compile(r'(union(?:%20|\s)+select|sleep\s*\(|<script|information_sch
 def malicious_match(target):
     labels = []
     rules = (
-        ("path traversal", r'(\\.\\./|%2e%2e)'),
-        ("environment-file probe", r'/\\.env'),
+        ("path traversal", r'(\.\./|%2e%2e)'),
+        ("environment-file probe", r'/\.env'),
         ("WordPress probe", r'wp-admin|wp-login'),
         ("phpMyAdmin probe", r'phpmyadmin'),
-        ("Git metadata probe", r'\\.git'),
+        ("Git metadata probe", r'\.git'),
         ("CGI probe", r'/cgi-bin'),
-        ("SQL injection pattern", r'union(?:%20|\\s)+select|sleep\\s*\\(|information_schema'),
+        ("SQL injection pattern", r'union(?:%20|\s)+select|sleep\s*\(|information_schema'),
         ("script injection pattern", r'<script'),
     )
     for label, expression in rules:
@@ -32,7 +32,7 @@ def safe_request_target(target):
     return urlunsplit(("", "", parts.path[:300], query, ""))[:500]
 
 def clean_header(value, limit=180):
-    return re.sub(r'[\\x00-\\x1f\\x7f]', ' ', str(value))[:limit].strip()
+    return re.sub(r'[\x00-\x1f\x7f]', ' ', str(value))[:limit].strip()
 
 def main():
     import argparse
@@ -64,7 +64,9 @@ def main():
                     parts = request.split()
                     target = parts[1] if len(parts) > 1 else "/"
                     requests.append({"ip": ip, "ts": ts, "path": urlsplit(target).path,
-                                     "target": target, "status": int(status)})
+                                     "target": target, "status": int(status),
+                                     "method": parts[0] if len(parts) > 0 else "?",
+                                     "user_agent": line.rstrip().split('"')[-2] if line.count('"') >= 6 else "-"})
         except OSError as e:
             if log_path == cfg["access_log"]:
                 print("Apache log unavailable:", e)
