@@ -29,6 +29,7 @@ Endpoint permission names:
 - `tb-zones` — `/api/v1/tb-zones.php`
 - `tb-history` — `/api/v1/tb-history.php`
 - `tb-platoon-deploy` — `/api/v1/tb-platoon-deploy.php`
+- `mod-inventory` — `/api/v1/mod-inventory.php`
 
 Use `['*']` to grant every endpoint. An empty list grants none.
 Set `enabled` to false to revoke a client without deleting its configuration.
@@ -38,5 +39,3 @@ Read and deployment limits use separate buckets; deployment defaults are
 The existing `api_key` legacy entry can be removed after migrating the existing
 client to an `api_clients` entry with its SHA-256 hash and `endpoints => ['*']`.
 Do not remove it until that migration is complete.
-
-- `mod-inventory` — `/api/v1/mod-inventory.php`
