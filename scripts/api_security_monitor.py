@@ -43,8 +43,12 @@ def main():
             if log_path == cfg["access_log"]:
                 print("Apache log unavailable:", e)
     events = []
+    first_event_day = dt.datetime.fromtimestamp(now - 86400, dt.timezone.utc).date()
     for path in Path(cfg["event_dir"]).glob("events-*.jsonl"):
         try:
+            event_day = dt.date.fromisoformat(path.stem.replace("events-", "", 1))
+            if event_day < first_event_day:
+                continue
             for line in path.read_text(errors="replace").splitlines():
                 try:
                     x = json.loads(line)
