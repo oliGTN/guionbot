@@ -62,6 +62,49 @@ def normalized_thresholds(config):
     return {str(key).strip(): value for key, value in config.get("thresholds", {}).items()}
 
 
+def collect_new_malicious(requests, state, now):
+    """Return newly observed suspicious requests and retain a bounded dedupe ledger."""
+    seen = state.setdefault("malicious_seen", {})
+    fresh = []
+    for request in requests:
+        fingerprint = request_fingerprint(request)
+        if fingerprint not in seen:
+            fresh.append(request)
+        seen[fingerprint] = request["ts"]
+    state["malicious_seen"] = {
+        key: ts for key, ts in seen.items() if now - ts < 172800
+    }
+    return fresh
+
+
+def queue_malicious_activity(fresh, state, now):
+    """Queue low-risk probes; return grouped repeated probes and high-risk successes."""
+    pending_by_ip = state.setdefault("malicious_pending", {})
+    high_risk = []
+    for request in fresh:
+        if is_high_risk_success(request):
+            high_risk.append(("HIGH", "SENSITIVE_SUCCESS", request["ip"], 1, request))
+        else:
+            pending_by_ip.setdefault(request["ip"], []).append({
+                "ts": request["ts"], "target": request["target"],
+                "method": request["method"], "status": request["status"],
+                "user_agent": request.get("user_agent", "-"),
+                "rules": request.get("rules", [])
+            })
+    repeated = []
+    for ip in list(pending_by_ip):
+        pending = [x for x in pending_by_ip[ip] if now - x["ts"] <= 300]
+        if len(pending) >= 3:
+            latest = max(pending, key=lambda x: x["ts"])
+            repeated.append(("MEDIUM", "MALICIOUS_URI", ip, len(pending), latest))
+            pending = []
+        if pending:
+            pending_by_ip[ip] = pending
+        else:
+            del pending_by_ip[ip]
+    return high_risk + repeated
+
+
 def main():
     import argparse
     p = argparse.ArgumentParser()
@@ -151,36 +194,10 @@ def main():
     state.setdefault("malicious_seen", {})
     state.setdefault("malicious_pending", {})
 
-    # Only newly observed requests can generate URI alerts. Keep a short
-    # per-IP pending window so low-volume repeated probes are grouped.
-    fresh_malicious = []
-    for x in malicious_requests:
-        fingerprint = request_fingerprint(x)
-        if fingerprint not in state["malicious_seen"]:
-            fresh_malicious.append(x)
-        state["malicious_seen"][fingerprint] = x["ts"]
-    state["malicious_seen"] = {
-        key: ts for key, ts in state["malicious_seen"].items() if now - ts < 172800
-    }
-    for x in fresh_malicious:
-        ip = x["ip"]
-        if is_high_risk_success(x):
-            incidents.append(("HIGH", "SENSITIVE_SUCCESS", ip, 1, x))
-        else:
-            state["malicious_pending"].setdefault(ip, []).append({
-                "ts": x["ts"], "target": x["target"], "method": x["method"],
-                "status": x["status"], "user_agent": x.get("user_agent", "-"),
-                "rules": x.get("rules", [])
-            })
-    for ip in list(state["malicious_pending"]):
-        pending = [x for x in state["malicious_pending"][ip] if now - x["ts"] <= 300]
-        if len(pending) >= 3:
-            latest = max(pending, key=lambda x: x["ts"])
-            incidents.append(("MEDIUM", "MALICIOUS_URI", ip, len(pending), latest))
-            pending = []
-        state["malicious_pending"][ip] = pending
-        if not pending:
-            del state["malicious_pending"][ip]
+    # Only newly observed requests can generate URI alerts. Routine probes
+    # are silent unless repeated at least three times within five minutes.
+    fresh_malicious = collect_new_malicious(malicious_requests, state, now)
+    incidents.extend(queue_malicious_activity(fresh_malicious, state, now))
     def send(message):
         body = json.dumps({"content": message[:1900], "allowed_mentions": {"parse": []}}).encode()
         req = urllib.request.Request(
