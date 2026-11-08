@@ -109,6 +109,13 @@ def queue_malicious_activity(fresh, state, now):
     return high_risk + repeated
 
 
+
+def build_alert_digest(lines):
+    """Format a grouped Discord alert using actual line breaks."""
+    return ("**GUIONBOT API SECURITY — ALERT DIGEST**\n" +
+            "\n".join(lines) +
+            "\nNo automatic blocking.")
+
 def main():
     import argparse
     p = argparse.ArgumentParser()
@@ -251,16 +258,14 @@ def main():
             # on the next minute check instead of being silently discarded.
             selected = []
             selected_keys = []
-            used = len("**GUIONBOT API SECURITY — ALERT DIGEST**\\n\\nNo automatic blocking.")
+            used = len("**GUIONBOT API SECURITY — ALERT DIGEST**\n\nNo automatic blocking.")
             for line, key in zip(due, due_keys):
                 if used + len(line) + 1 > 1750:
                     break
                 selected.append(line)
                 selected_keys.append(key)
                 used += len(line) + 1
-            message = ("**GUIONBOT API SECURITY — ALERT DIGEST**\\n" +
-                       "\\n".join(selected) +
-                       "\\nNo automatic blocking.")
+            message = build_alert_digest(selected)
             send(message)
             for key in selected_keys:
                 state["alerts"][key] = now
