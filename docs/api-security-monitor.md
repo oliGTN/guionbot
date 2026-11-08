@@ -20,10 +20,50 @@ Add to the HTTPS virtual host serving guionbot.fr:
 ```apache
 CustomLog ${APACHE_LOG_DIR}/guionbot-api-access.log combined
 ```
-Then run `sudo apachectl configtest` and `sudo systemctl reload apache2`. Do not log Authorization headers or request bodies. Grant the monitor user read access to this log without making it world-readable.
+This is an Apache configuration directive, not a shell command. Put it inside the relevant `<VirtualHost *:443>` block. Then run `sudo apachectl configtest` and `sudo systemctl reload apache2`. Do not log Authorization headers or request bodies. Grant the monitor user read access to this log without making it world-readable.
+
+## Create the Discord webhook
+
+Create a dedicated private channel in the Discord server where you want to receive alerts (for example, `#api-security-alerts`). Restrict access to trusted administrators.
+
+1. Open Discord and select the server.
+2. Open **Server Settings**.
+3. Go to **Integrations** → **Webhooks**. Depending on the Discord client layout, Webhooks may appear directly under Integrations.
+4. Click **New Webhook** (or **Create Webhook**).
+5. Give it a clear name, such as `GuionBot API Security`.
+6. Set **Channel** to the private `#api-security-alerts` channel.
+7. Click **Copy Webhook URL** and keep the URL private.
+
+A webhook URL contains a secret token: anyone who obtains it can post messages to that channel. Do not paste it into GitHub, commit it to the repository, include it in logs, or share it in screenshots. If it is exposed, return to **Server Settings** → **Integrations** → **Webhooks**, select the webhook and regenerate its URL (or delete it and create a replacement).
 
 ## Configuration
-Create `/home/pi/GuionBot/SERVER_SECRETS/api_security_monitor.json` from `docs/api-security-monitor.example.json`, replace the webhook placeholder with a private Discord webhook, and protect it:
+
+On the Raspberry Pi, create the monitor configuration from the example:
+```bash
+cd /home/pi/GuionBot/guionbot-dev
+cp docs/api-security-monitor.example.json /home/pi/GuionBot/SERVER_SECRETS/api_security_monitor.json
+nano /home/pi/GuionBot/SERVER_SECRETS/api_security_monitor.json
+```
+
+Replace only the `discord_webhook` placeholder with the URL copied from Discord. Keep the other settings unless you deliberately want to tune them. The file should look like this (use your actual webhook URL; this is only a format example):
+```json
+{
+  "discord_webhook": "https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN",
+  "access_log": "/var/log/apache2/guionbot-api-access.log",
+  "event_dir": "/var/log/guionbot-api-security",
+  "state_path": "/var/lib/guionbot-api-security/state.json",
+  "timezone": "Europe/Paris",
+  "thresholds": {
+    "invalid_keys_5m": 5,
+    "forbidden_2m": 3,
+    "distinct_paths_2m": 10,
+    "rate_limit_5m": 10,
+    "invalid_params_5m": 20
+  }
+}
+```
+
+Protect the configuration file so the webhook is not readable by other local users:
 ```bash
 sudo chown pi:www-data /home/pi/GuionBot/SERVER_SECRETS/api_security_monitor.json
 sudo chmod 0640 /home/pi/GuionBot/SERVER_SECRETS/api_security_monitor.json
