@@ -581,6 +581,25 @@ async def handle_mod_inventory(request):
             ac=ally_code,
             use_cache_data=False
         )
+        if err_code == 100:
+            # EA has emailed an OTC. The user must submit it through GuionBot's
+            # /connect envoie-otc command; this API does not accept OTC values.
+            return web.json_response(
+                {
+                    "err_code": 100,
+                    "action_required": "EA_ONE_TIME_CODE",
+                    "message": (
+                        "EA has sent a One-Time Code to the email address linked "
+                        "to this account. Ask the user to check their email and "
+                        "submit the 5- or 6-digit code in GuionBot using "
+                        "/connect envoie-otc in the Discord channel where "
+                        "GuionBot is configured. Retry this request after the "
+                        "code has been accepted."
+                    )
+                },
+                status=202
+            )
+
         if err_code != 0:
             golog.log(
                 "WAR",
