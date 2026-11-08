@@ -191,12 +191,20 @@ def main():
     except Exception: state = {"alerts": {}, "daily": None}
     state.setdefault("alerts", {})
     state.setdefault("daily", None)
-    state.setdefault("malicious_seen", {})
     state.setdefault("malicious_pending", {})
+
+    # On the first run after upgrading, baseline the existing 24h log window.
+    # This prevents a one-time flood from replaying historical scan traffic.
+    if "malicious_seen" not in state:
+        state["malicious_seen"] = {
+            request_fingerprint(x): x["ts"] for x in malicious_requests
+        }
+        fresh_malicious = []
+    else:
+        fresh_malicious = collect_new_malicious(malicious_requests, state, now)
 
     # Only newly observed requests can generate URI alerts. Routine probes
     # are silent unless repeated at least three times within five minutes.
-    fresh_malicious = collect_new_malicious(malicious_requests, state, now)
     incidents.extend(queue_malicious_activity(fresh_malicious, state, now))
     def send(message):
         body = json.dumps({"content": message[:1900], "allowed_mentions": {"parse": []}}).encode()
@@ -235,12 +243,22 @@ def main():
                        str(count) + " event(s)" + detail)
             due_keys.append(key)
         if due:
-            # One compact digest per check, rather than one Discord post per IP.
-            message = ("**GUIONBOT API SECURITY — ALERT DIGEST**\n" +
-                       "\n".join(due) +
-                       "\nNo automatic blocking.")
+            # Keep the Discord payload bounded. Unsent entries remain eligible
+            # on the next minute check instead of being silently discarded.
+            selected = []
+            selected_keys = []
+            used = len("**GUIONBOT API SECURITY — ALERT DIGEST**\\n\\nNo automatic blocking.")
+            for line, key in zip(due, due_keys):
+                if used + len(line) + 1 > 1750:
+                    break
+                selected.append(line)
+                selected_keys.append(key)
+                used += len(line) + 1
+            message = ("**GUIONBOT API SECURITY — ALERT DIGEST**\\n" +
+                       "\\n".join(selected) +
+                       "\\nNo automatic blocking.")
             send(message)
-            for key in due_keys:
+            for key in selected_keys:
                 state["alerts"][key] = now
         state["alerts"] = {k:v for k,v in state["alerts"].items() if now-v < 86400}
     if a.daily:
