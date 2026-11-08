@@ -26,3 +26,4 @@ html/guionbotdb_secret.php
 html/oauth_secret.php
 html/codex_secret.php
 __pycache__/*
+scripts/__pycache__/*
