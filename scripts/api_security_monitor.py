@@ -1,12 +1,38 @@
 #!/usr/bin/env python3
 import collections, datetime as dt, gzip, glob, json, re, time, urllib.request
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 CONFIG = "/home/pi/GuionBot/SERVER_SECRETS/api_security_monitor.json"
 RX = re.compile(r'^(\S+) \S+ \S+ \[([^]]+)\] "([^"]*)" (\d{3}) (\S+)')
 PROBE = re.compile(r'(\.\./|%2e%2e|/\.env|wp-admin|wp-login|phpmyadmin|\.git|/cgi-bin)', re.I)
 INJECT = re.compile(r'(union(?:%20|\s)+select|sleep\s*\(|<script|information_schema)', re.I)
+
+
+def malicious_match(target):
+    labels = []
+    rules = (
+        ("path traversal", r'(\\.\\./|%2e%2e)'),
+        ("environment-file probe", r'/\\.env'),
+        ("WordPress probe", r'wp-admin|wp-login'),
+        ("phpMyAdmin probe", r'phpmyadmin'),
+        ("Git metadata probe", r'\\.git'),
+        ("CGI probe", r'/cgi-bin'),
+        ("SQL injection pattern", r'union(?:%20|\\s)+select|sleep\\s*\\(|information_schema'),
+        ("script injection pattern", r'<script'),
+    )
+    for label, expression in rules:
+        if re.search(expression, target, re.I):
+            labels.append(label)
+    return labels
+
+def safe_request_target(target):
+    parts = urlsplit(target)
+    query = urlencode([(key[:80], "[REDACTED]") for key, _ in parse_qsl(parts.query, keep_blank_values=True)[:12]])
+    return urlunsplit(("", "", parts.path[:300], query, ""))[:500]
+
+def clean_header(value, limit=180):
+    return re.sub(r'[\\x00-\\x1f\\x7f]', ' ', str(value))[:limit].strip()
 
 def main():
     import argparse
@@ -78,9 +104,14 @@ def main():
         if len(paths) >= cfg["thresholds"].get("distinct_paths_2m", 10): incidents.append(("HIGH", "PATH_SCAN", ip, len(paths)))
         if limited >= cfg["thresholds"].get("rate_limit_5m", 10): incidents.append(("HIGH", "RATE_LIMIT", ip, limited))
         if badparams >= cfg["thresholds"].get("invalid_params_5m", 20): incidents.append(("MEDIUM", "INVALID_PARAMETERS", ip, badparams))
+    malicious_by_ip = collections.defaultdict(list)
     for x in requests:
         if PROBE.search(x["target"]) or INJECT.search(x["target"]):
-            incidents.append(("HIGH", "MALICIOUS_URI", x["ip"], 1))
+            x["rules"] = malicious_match(x["target"])
+            malicious_by_ip[x["ip"]].append(x)
+    for ip, matches in malicious_by_ip.items():
+        latest = max(matches, key=lambda x: x["ts"])
+        incidents.append(("HIGH", "MALICIOUS_URI", ip, len(matches), latest))
     statepath = Path(cfg["state_path"])
     statepath.parent.mkdir(parents=True, exist_ok=True)
     try: state = json.loads(statepath.read_text())
@@ -98,10 +129,26 @@ def main():
         with urllib.request.urlopen(req, timeout=15) as response:
             if response.status not in (200, 204): raise RuntimeError("Discord webhook failed")
     if a.check:
-        for severity, kind, ip, count in incidents:
+        for incident in incidents:
+            severity, kind, ip, count = incident[:4]
             key = severity + ":" + kind + ":" + ip
             if now - state["alerts"].get(key, 0) >= 1800:
-                send("**GUIONBOT API SECURITY — " + severity + "**\n" + kind + " from " + ip + ": " + str(count) + " events. No automatic blocking.")
+                message = ("**GUIONBOT API SECURITY — " + severity + "**\n" +
+                           kind + " from " + ip + ": " + str(count) +
+                           " event(s). No automatic blocking.")
+                if kind == "MALICIOUS_URI" and len(incident) > 4:
+                    x = incident[4]
+                    from zoneinfo import ZoneInfo
+                    local_time = dt.datetime.fromtimestamp(
+                        x["ts"], ZoneInfo(cfg.get("timezone", "Europe/Paris"))
+                    ).strftime("%Y-%m-%d %H:%M:%S %Z")
+                    message += ("\nTime: " + local_time +
+                                "\nRule: " + (", ".join(x.get("rules", [])) or "URI probe") +
+                                "\nRequest: " + clean_header(x.get("method", "?")) +
+                                " " + safe_request_target(x["target"]) +
+                                "\nHTTP status: " + str(x["status"]) +
+                                "\nUser-Agent: " + clean_header(x.get("user_agent", "-")))
+                send(message)
                 state["alerts"][key] = now
         state["alerts"] = {k:v for k,v in state["alerts"].items() if now-v < 86400}
     if a.daily:
