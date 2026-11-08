@@ -87,7 +87,7 @@ def main():
     except Exception: state = {"alerts": {}, "daily": None}
     def send(message):
         body = json.dumps({"content": message[:1900], "allowed_mentions": {"parse": []}}).encode()
-        req = urllib.request.Request(cfg["discord_webhook"], data=body, headers={"Content-Type": "application/json"})
+        req = urllib.request.Request(cfg["discord_webhook"], data=body, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=15) as response:
             if response.status not in (200, 204): raise RuntimeError("Discord webhook failed")
     if a.check:
