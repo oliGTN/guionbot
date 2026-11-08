@@ -15,6 +15,7 @@ declare(strict_types=1);
  */
 function apiAuthenticate(string $endpoint, callable $respond, string $bucket = 'read'): array
 {
+    require_once __DIR__ . '/api_security.php';
     $configPath = '/home/pi/GuionBot/SERVER_SECRETS/web_api.php';
     if (!is_file($configPath) || !is_readable($configPath)) {
         error_log('API configuration is missing or unreadable');
@@ -38,7 +39,8 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
         $authorization = trim((string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
     }
     if (!preg_match('/^Bearer\s+([^\s]+)$/i', $authorization, $matches)) {
-        apiSecurityLog('MALFORMED_AUTH', 'MEDIUM');\n        $respond(401, ['success' => false, 'error' => 'Unauthorized'], ['WWW-Authenticate' => 'Bearer']);
+        apiSecurityLog('MALFORMED_AUTH', 'MEDIUM');
+        $respond(401, ['success' => false, 'error' => 'Unauthorized'], ['WWW-Authenticate' => 'Bearer']);
     }
     $presentedKey = $matches[1];
     $clientId = null;
@@ -67,11 +69,14 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
     }
 
     if ($clientId === null || !is_array($client) || empty($client['enabled'])) {
+        apiSecurityLog('INVALID_API_KEY', 'MEDIUM');
         $respond(401, ['success' => false, 'error' => 'Unauthorized'], ['WWW-Authenticate' => 'Bearer']);
     }
 
     $allowed = $client['endpoints'] ?? [];
     if (!is_array($allowed) || (!in_array('*', $allowed, true) && !in_array($endpoint, $allowed, true))) {
+        $GLOBALS['apiSecurityClientId'] = $clientId;
+        apiSecurityLog('ENDPOINT_FORBIDDEN', 'HIGH', ['endpoint' => $endpoint]);
         $respond(403, ['success' => false, 'error' => 'Endpoint not permitted']);
     }
 
@@ -125,12 +130,17 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
     fclose($rateHandle);
 
     if ($rateError !== null) {
+        $GLOBALS['apiSecurityClientId'] = $clientId;
+        apiSecurityLog('RATE_LIMIT_EXCEEDED', 'HIGH', ['bucket' => $bucket]);
         $respond(429, ['success' => false, 'error' => $rateError], [
             'Retry-After' => (string)$retryAfter,
             'RateLimit-Limit' => (string)$perMinute,
             'RateLimit-Remaining' => '0'
         ]);
     }
+
+    $GLOBALS['apiSecurityClientId'] = $clientId;
+    apiSecurityLog('AUTH_SUCCESS', 'INFO', ['endpoint' => $endpoint, 'bucket' => $bucket]);
 
     return [
         'config' => $config,
