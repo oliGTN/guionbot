@@ -8,6 +8,7 @@
     "invalid_keys_5m": 5,
     "forbidden_2m": 3,
     "distinct_paths_2m": 10,
-    "rate_limit_5m": 10
+    "rate_limit_5m": 10,
+    "invalid_params_5m": 20
   }
 }
