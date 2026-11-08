@@ -3,7 +3,7 @@
 ## Scope and behavior
 - Apache access log records all HTTP requests, including successful calls and unknown URLs.
 - PHP JSONL events record malformed bearer authentication, invalid API keys, forbidden endpoint access, rate-limit failures and successful authentication.
-- Immediate Discord alerts cover repeated invalid keys (5/5 min), forbidden endpoint access (3/2 min), 10 distinct paths/2 min, rate-limit events (10/5 min), and suspicious URI/injection patterns.
+- Immediate Discord alerts cover repeated invalid keys (5/5 min), forbidden endpoint access (3/2 min), 10 distinct paths/2 min, rate-limit events (10/5 min), bursts of invalid parameters (20/5 min), and suspicious URI/injection patterns.
 - Alerts are deduplicated for 30 minutes per severity/type/source.
 - A daily 24-hour Discord report is sent at 08:00 Europe/Paris, including quiet days.
 - PHP event logs are retained for 90 days. No automatic IP blocking is performed.
