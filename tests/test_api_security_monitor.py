@@ -78,6 +78,48 @@ class SecurityMonitorTests(unittest.TestCase):
         row = request()
         self.assertEqual(monitor.request_fingerprint(row), monitor.request_fingerprint(dict(row)))
 
+    def test_medium_threshold_incidents_are_coalesced_without_rolling_window_double_count(self):
+        state = {}
+        incidents = [
+            ("MEDIUM", "PATH_SCAN", "203.0.113.10", 12),
+            ("MEDIUM", "PATH_SCAN", "203.0.113.10", 15),
+            ("MEDIUM", "INVALID_PARAMETERS", "203.0.113.10", 22),
+            ("MEDIUM", "MALICIOUS_URI", "203.0.113.10", 3),
+            ("MEDIUM", "MALICIOUS_URI", "203.0.113.10", 2),
+        ]
+        monitor.queue_medium_incidents(incidents, state, 1000)
+        self.assertEqual(state["medium_pending"]["PATH_SCAN:203.0.113.10"]["count"], 15)
+        self.assertEqual(state["medium_pending"]["INVALID_PARAMETERS:203.0.113.10"]["count"], 22)
+        self.assertEqual(state["medium_pending"]["MALICIOUS_URI:203.0.113.10"]["count"], 5)
+        self.assertEqual(state["medium_digest_due"], 4600)
+
+    def test_medium_digest_groups_rules_by_ip(self):
+        pending = {
+            "PATH_SCAN:203.0.113.10": {"ip": "203.0.113.10", "kind": "PATH_SCAN", "count": 15},
+            "MALICIOUS_URI:203.0.113.10": {"ip": "203.0.113.10", "kind": "MALICIOUS_URI", "count": 5},
+            "INVALID_PARAMETERS:203.0.113.11": {"ip": "203.0.113.11", "kind": "INVALID_PARAMETERS", "count": 22},
+        }
+        lines = monitor.medium_digest_lines(pending)
+        self.assertEqual(len(lines), 2)
+        self.assertIn("PATH_SCAN 15 event(s)", lines[0])
+        self.assertIn("MALICIOUS_URI 5 event(s)", lines[0])
+
+    def test_medium_digest_is_hourly(self):
+        state = {}
+        monitor.queue_medium_incidents([("MEDIUM", "PATH_SCAN", "203.0.113.10", 12)], state, 1000)
+        self.assertFalse(monitor.medium_digest_due(state, 4599))
+        self.assertTrue(monitor.medium_digest_due(state, 4600))
+
+    def test_high_incident_is_not_queued_as_medium(self):
+        state = {}
+        monitor.queue_medium_incidents([("HIGH", "SENSITIVE_SUCCESS", "203.0.113.10", 1)], state, 1000)
+        self.assertEqual(state["medium_pending"], {})
+
+    def test_high_alert_key_separates_different_sensitive_paths(self):
+        a = ("HIGH", "SENSITIVE_SUCCESS", "203.0.113.10", 1, request(target="/.env", status=200))
+        b = ("HIGH", "SENSITIVE_SUCCESS", "203.0.113.10", 1, request(target="/.git/config", status=200))
+        self.assertNotEqual(monitor.high_alert_key(a), monitor.high_alert_key(b))
+
 
 if __name__ == "__main__":
     unittest.main()
