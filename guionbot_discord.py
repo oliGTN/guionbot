@@ -3953,13 +3953,14 @@ async def run_codex_remod(dict_export, cancel_event, progress_callback):
 
 class CodexRemodView(discord.ui.View):
     def __init__(self, ally_code, progress_json=None, comparison_html=None, initialdata=None,
-                 mods_to_delete=None, cancel_event=None, owner_id=None, running=False, needs_sell=False):
+                 mods_to_delete=None, needed_inventory=None, cancel_event=None, owner_id=None, running=False, needs_sell=False):
         super().__init__(timeout=1800)
         self.ally_code = str(ally_code)
         self.progress_json = progress_json
         self.comparison_html = comparison_html
         self.initialdata = initialdata
         self.mods_to_delete = list(mods_to_delete or [])
+        self.needed_inventory = needed_inventory
         self.cancel_event = cancel_event
         self.owner_id = owner_id
         self.running = running
@@ -4119,19 +4120,23 @@ class CodexRemodView(discord.ui.View):
             if len(result) > 1800:
                 result = result[:1790] + "…"
             if "inventaire plein" in str(et).casefold():
-                if self.mods_to_delete:
+                needed_inventory = max(0, int(ret_data.get("needed_inventory", 0) or 0))
+                mods_to_sell = self.mods_to_delete[:needed_inventory]
+                if needed_inventory > 0 and len(mods_to_sell) >= needed_inventory:
                     sell_view = CodexRemodView(
                         self.ally_code,
                         progress_json=self.progress_json,
                         comparison_html=self.comparison_html,
                         initialdata=self.initialdata,
-                        mods_to_delete=self.mods_to_delete,
+                        mods_to_delete=mods_to_sell,
+                        needed_inventory=needed_inventory,
                         owner_id=self.owner_id,
                         needs_sell=True
                     )
                     await interaction.edit_original_response(
-                        content=result + "\n\nL'inventaire de mods est plein. Codex Remod propose de vendre "
-                        + str(len(self.mods_to_delete)) + " mods de la liste fournie dans results.zip. "
+                        content=result + "\n\nL'inventaire de mods est plein. Il faut libérer "
+                        + str(needed_inventory) + " places. Codex Remod propose donc de vendre "
+                        + str(len(mods_to_sell)) + " mods de la liste fournie dans results.zip. "
                         + "Confirme leur vente pour pouvoir relancer le déplacement.",
                         view=sell_view
                     )
@@ -4140,7 +4145,7 @@ class CodexRemodView(discord.ui.View):
                         child.disabled = True
                     golog.log("ERR", "Codex Remod: inventory full but no valid mod IDs were extracted from mods_a_supprimer.json/csv")
                     await interaction.edit_original_response(
-                        content=result + "\n\nLa liste mods_a_supprimer.json (ou CSV) est absente ou ne contient aucun identifiant de mod exploitable. Aucune vente n'a été effectuée.",
+                        content=result + "\n\nLe calcul indique qu'il faut libérer " + str(needed_inventory) + " places, mais la liste mods_a_supprimer.json (ou CSV) ne contient pas assez d'identifiants de mod exploitables. Aucune vente n'a été effectuée.",
                         view=self
                     )
                 return
