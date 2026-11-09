@@ -3974,7 +3974,6 @@ class CodexRemodView(discord.ui.View):
     async def apply(self, interaction):
         if not await self._check_owner(interaction):
             return
-        await interaction.response.defer(thinking=True)
         ret_add, resp_msg = await add_command_to_queue(interaction)
         if ret_add != 0:
             remove_command_from_queue(interaction)
