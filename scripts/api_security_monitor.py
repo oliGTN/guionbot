@@ -111,10 +111,66 @@ def queue_malicious_activity(fresh, state, now):
 
 
 def build_alert_digest(lines):
-    """Format a grouped Discord alert using actual line breaks."""
+    """Format an immediate HIGH Discord alert using actual line breaks."""
     return ("**GUIONBOT API SECURITY — ALERT DIGEST**\n" +
             "\n".join(lines) +
             "\nNo automatic blocking.")
+
+
+def queue_medium_incidents(incidents, state, now):
+    """Coalesce MEDIUM incidents for an hourly digest without losing detections."""
+    pending = state.setdefault("medium_pending", {})
+    for incident in incidents:
+        severity, kind, ip, count = incident[:4]
+        if severity != "MEDIUM":
+            continue
+        key = kind + ":" + ip
+        entry = pending.setdefault(key, {
+            "kind": kind, "ip": ip, "count": 0,
+            "first_seen": now, "last_seen": now
+        })
+        # Threshold incidents are evaluated on overlapping rolling windows;
+        # keep their peak window count rather than adding the same requests
+        # repeatedly. MALICIOUS_URI batches contain newly-seen fingerprints,
+        # so their counts can be accumulated safely.
+        if kind == "MALICIOUS_URI":
+            entry["count"] += int(count)
+        else:
+            entry["count"] = max(int(entry["count"]), int(count))
+        entry["last_seen"] = now
+    if pending and "medium_digest_due" not in state:
+        state["medium_digest_due"] = now + 3600
+    return pending
+
+
+def medium_digest_lines(pending):
+    """Build one line per source IP, grouping all MEDIUM rules for that IP."""
+    by_ip = collections.defaultdict(list)
+    for entry in pending.values():
+        by_ip[entry["ip"]].append(entry)
+    lines = []
+    for ip in sorted(by_ip):
+        entries = sorted(by_ip[ip], key=lambda x: x["kind"])
+        details = "; ".join(
+            entry["kind"] + " " + str(entry["count"]) + " event(s)"
+            for entry in entries
+        )
+        lines.append("MEDIUM SCAN — " + ip + ": " + details)
+    return lines
+
+
+def medium_digest_due(state, now):
+    """Return whether the queued MEDIUM digest is due."""
+    return bool(state.get("medium_pending")) and now >= state.get("medium_digest_due", now + 3600)
+
+
+def high_alert_key(incident):
+    """Deduplicate HIGH incidents by source and affected path where available."""
+    severity, kind, ip, count = incident[:4]
+    suffix = ""
+    if len(incident) > 4:
+        suffix = ":" + urlsplit(incident[4].get("target", "")).path[:200]
+    return severity + ":" + kind + ":" + ip + suffix
 
 def main():
     import argparse
@@ -184,12 +240,29 @@ def main():
         # Count rate limits from the PHP event only; Apache's matching 429 is
         # the same request and must not be counted a second time.
         limited = sum(x.get("event_type") == "RATE_LIMIT_EXCEEDED" for x in five)
-        badparams = sum(x.get("status") in (400, 405, 413) and "method" in x for x in five)
+        # Only count malformed requests aimed at GuionBot API endpoints.
+        # Website 400/405/413 responses are not API parameter incidents.
+        badparams = sum(
+            x.get("status") in (400, 405, 413)
+            and str(x.get("path", "")).startswith("/api/v1/")
+            and "method" in x
+            for x in five
+        )
         paths = {x.get("path", "") for x in two if "method" in x}
+        forbidden_severity = (
+            "HIGH" if any(x.get("event_type") == "ENDPOINT_FORBIDDEN"
+                          and x.get("severity") == "HIGH" for x in two)
+            else "MEDIUM"
+        )
+        rate_severity = (
+            "HIGH" if any(x.get("event_type") == "RATE_LIMIT_EXCEEDED"
+                          and x.get("severity") == "HIGH" for x in five)
+            else "MEDIUM"
+        )
         if badkeys >= thresholds.get("invalid_keys_5m", 5): incidents.append(("MEDIUM", "INVALID_KEYS", ip, badkeys))
-        if forbidden >= thresholds.get("forbidden_2m", 3): incidents.append(("MEDIUM", "FORBIDDEN_ENDPOINTS", ip, forbidden))
+        if forbidden >= thresholds.get("forbidden_2m", 3): incidents.append((forbidden_severity, "FORBIDDEN_ENDPOINTS", ip, forbidden))
         if len(paths) >= thresholds.get("distinct_paths_2m", 10): incidents.append(("MEDIUM", "PATH_SCAN", ip, len(paths)))
-        if limited >= thresholds.get("rate_limit_5m", 10): incidents.append(("MEDIUM", "RATE_LIMIT", ip, limited))
+        if limited >= thresholds.get("rate_limit_5m", 10): incidents.append((rate_severity, "RATE_LIMIT", ip, limited))
         if badparams >= thresholds.get("invalid_params_5m", 20): incidents.append(("MEDIUM", "INVALID_PARAMETERS", ip, badparams))
     malicious_requests = []
     for x in requests:
@@ -231,12 +304,16 @@ def main():
             if response.status not in (200, 204): raise RuntimeError("Discord webhook failed")
     if a.check:
         from zoneinfo import ZoneInfo
-        due = []
-        due_keys = []
+        high_due = []
+        high_keys = []
         for incident in incidents:
             severity, kind, ip, count = incident[:4]
-            key = severity + ":" + kind + ":" + ip
-            if now - state["alerts"].get(key, 0) < 1800:
+            if severity != "HIGH":
+                continue
+            key = high_alert_key(incident)
+            # A short per-incident cooldown suppresses repeat notifications
+            # while allowing new HIGH incidents to surface promptly.
+            if now - state["alerts"].get(key, 0) < 300:
                 continue
             detail = ""
             if len(incident) > 4:
@@ -250,38 +327,60 @@ def main():
                           safe_request_target(x.get("target", "/")) +
                           ", HTTP " + str(x.get("status", "?")) +
                           ", UA " + clean_header(x.get("user_agent", "-"), 100))
-            due.append(severity + " " + kind + " — " + ip + ": " +
-                       str(count) + " event(s)" + detail)
-            due_keys.append(key)
-        if due:
-            # Keep the Discord payload bounded. Unsent entries remain eligible
-            # on the next minute check instead of being silently discarded.
-            selected = []
+            high_due.append("HIGH " + kind + " — " + ip + ": " +
+                            str(count) + " event(s)" + detail)
+            high_keys.append(key)
+
+        # HIGH alerts are always sent immediately, before any MEDIUM digest.
+        if high_due:
+            send(build_alert_digest(high_due))
+            for key in high_keys:
+                state["alerts"][key] = now
+
+        queue_medium_incidents(incidents, state, now)
+        if medium_digest_due(state, now):
+            pending = state["medium_pending"]
+            all_lines = medium_digest_lines(pending)
             selected_keys = []
+            selected_lines = []
             used = len("**GUIONBOT API SECURITY — ALERT DIGEST**\n\nNo automatic blocking.")
-            for line, key in zip(due, due_keys):
+            for line in all_lines:
                 if used + len(line) + 1 > 1750:
                     break
-                selected.append(line)
-                selected_keys.append(key)
+                selected_lines.append(line)
                 used += len(line) + 1
-            message = build_alert_digest(selected)
-            send(message)
-            for key in selected_keys:
-                state["alerts"][key] = now
+            if selected_lines:
+                selected_ips = {
+                    line.split(" — ", 1)[1].split(":", 1)[0]
+                    for line in selected_lines
+                }
+                selected_keys = [
+                    key for key, entry in pending.items()
+                    if entry["ip"] in selected_ips
+                ]
+                send(build_alert_digest(selected_lines))
+                for key in selected_keys:
+                    pending.pop(key, None)
+                if pending:
+                    # Keep overflow queued; retry on the next monitor run.
+                    state["medium_digest_due"] = now
+                else:
+                    state.pop("medium_digest_due", None)
         state["alerts"] = {k:v for k,v in state["alerts"].items() if now-v < 86400}
     if a.daily:
         from zoneinfo import ZoneInfo
         today = dt.datetime.now(ZoneInfo(cfg.get("timezone", "Europe/Paris"))).date().isoformat()
         if state.get("daily") != today:
             statuses = collections.Counter(str(x["status"]) for x in requests)
-            suspicious = [x for x in requests if x["status"] in (400,401,403,404,405,413,429) or PROBE.search(x["target"]) or INJECT.search(x["target"])]
+            uri_suspicious = [x for x in requests if PROBE.search(x["target"]) or INJECT.search(x["target"])]
+            http_errors = [x for x in requests if x["status"] in (400,401,403,404,405,413,429)]
             types = collections.Counter(x.get("event_type", "UNKNOWN") for x in events)
-            ips = collections.Counter(x["ip"] for x in suspicious).most_common(5)
+            ips = collections.Counter(x["ip"] for x in uri_suspicious).most_common(5)
             uri_rules = collections.Counter(rule for x in requests for rule in malicious_match(x["target"]))
             successful_sensitive = sum(is_high_risk_success(x) for x in requests)
             message = ("**GUIONBOT API — DAILY SECURITY REPORT**\nPrevious 24 hours\n"
-                       "Requests: " + str(len(requests)) + "\nSuspicious HTTP/URI requests: " + str(len(suspicious)) +
+                       "Requests: " + str(len(requests)) + "\nURI-pattern requests: " + str(len(uri_suspicious)) +
+                       "\nHTTP error responses (400/401/403/404/405/413/429): " + str(len(http_errors)) +
                        "\nURI detections by rule: " + str(dict(uri_rules)) +
                        "\nSuccessful sensitive/exploit-pattern responses (2xx): " + str(successful_sensitive) +
                        "\nPHP events: " + str(len(events)) + "\nActive threshold incidents: " + str(len(incidents)) +
