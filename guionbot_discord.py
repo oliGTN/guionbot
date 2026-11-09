@@ -3734,6 +3734,290 @@ class TbCog(commands.GroupCog, name="bt"):
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
             remove_command_from_queue(interaction)
 
+CODEX_REMOD_API_BASE = "https://remod.swgoh-codex.com/api"
+
+
+def load_codex_remod_secret():
+    """Read the same Codex API secret used by html/codexcon.php."""
+    secret_file = "/etc/remod-secret.txt"
+    if os.path.isfile(secret_file) and os.access(secret_file, os.R_OK):
+        with open(secret_file, "r", encoding="utf-8") as f:
+            secret = f.read().strip()
+            if secret:
+                return secret
+
+    php_secret_file = "/home/pi/GuionBot/SERVER_SECRETS/codex_secret.php"
+    if os.path.isfile(php_secret_file) and os.access(php_secret_file, os.R_OK):
+        with open(php_secret_file, "r", encoding="utf-8") as f:
+            php_content = f.read()
+        match = re.search(
+            r"\\$REMOD_API_SECRET\\s*=\\s*(['\\\"])(.*?)\\1\\s*;",
+            php_content,
+            re.DOTALL
+        )
+        if match:
+            return match.group(2).replace("\\\\'", "'").replace('\\\\"', '"').strip()
+    return None
+
+
+async def run_codex_remod(dict_export, cancel_event, progress_callback):
+    """Submit a restoreMyProgress export, report remote progress and return ZIP members."""
+    secret = load_codex_remod_secret()
+    if not secret:
+        return 1, "Le secret de l'API Codex Remod est introuvable (codex_secret.php ou /etc/remod-secret.txt).", None
+
+    headers = {"Authorization": "Bearer " + secret, "Accept": "application/json"}
+    timeout = aiohttp.ClientTimeout(total=180, connect=10)
+    job_id = None
+
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        form = aiohttp.FormData()
+        form.add_field(
+            "file",
+            json_dumps(dict_export, ensure_ascii=False).encode("utf-8"),
+            filename="restoreMyProgress.json",
+            content_type="application/json"
+        )
+        form.add_field("mode", "full")
+        form.add_field("lang", "fr")
+        form.add_field("min_level", "all")
+        form.add_field("free_unselected", "false")
+        form.add_field("protect_level", "none")
+        form.add_field("cible", "moyenne")
+        form.add_field("poids_k1", "0.5")
+        form.add_field("time_limit", "8")
+        form.add_field("max_heroes", "0")
+        form.add_field("suppr_vitesse_max", "10")
+        form.add_field("sans_bot", "false")
+
+        try:
+            async with session.post(
+                CODEX_REMOD_API_BASE + "/jobs",
+                data=form,
+                headers=headers
+            ) as response:
+                body = await response.json(content_type=None)
+                if response.status < 200 or response.status >= 300:
+                    detail = body.get("detail", body.get("error", "HTTP " + str(response.status))) if isinstance(body, dict) else "HTTP " + str(response.status)
+                    return 1, "Codex Remod : " + str(detail), None
+                job_id = body.get("id") if isinstance(body, dict) else None
+                if not isinstance(job_id, str) or not re.fullmatch(r"[a-fA-F0-9-]{16,80}", job_id):
+                    return 1, "Codex Remod a retourné un identifiant de tâche invalide.", None
+        except Exception as error:
+            golog.log("ERR", "Codex Remod submit failed: " + traceback.format_exc())
+            return 1, "Impossible d'envoyer les données au serveur Codex Remod : " + str(error), None
+
+        cancel_sent = False
+        while True:
+            if cancel_event.is_set() and not cancel_sent:
+                try:
+                    async with session.post(
+                        CODEX_REMOD_API_BASE + "/jobs/" + job_id + "/cancel",
+                        headers=headers
+                    ) as response:
+                        cancel_body = await response.json(content_type=None)
+                        if response.status not in (200, 202, 409):
+                            detail = cancel_body.get("detail", "HTTP " + str(response.status)) if isinstance(cancel_body, dict) else "HTTP " + str(response.status)
+                            return 1, "Impossible d'annuler le calcul Codex Remod : " + str(detail), None
+                    cancel_sent = True
+                except Exception as error:
+                    golog.log("ERR", "Codex Remod cancellation failed: " + traceback.format_exc())
+                    return 1, "Erreur lors de l'annulation du calcul Codex Remod : " + str(error), None
+
+            try:
+                async with session.get(
+                    CODEX_REMOD_API_BASE + "/jobs/" + job_id,
+                    headers=headers
+                ) as response:
+                    state = await response.json(content_type=None)
+                    if response.status < 200 or response.status >= 300:
+                        detail = state.get("detail", "HTTP " + str(response.status)) if isinstance(state, dict) else "HTTP " + str(response.status)
+                        return 1, "Impossible de suivre le calcul Codex Remod : " + str(detail), None
+            except Exception as error:
+                golog.log("ERR", "Codex Remod status request failed: " + traceback.format_exc())
+                return 1, "Erreur lors du suivi du calcul Codex Remod : " + str(error), None
+
+            if not isinstance(state, dict):
+                return 1, "Réponse de statut invalide du serveur Codex Remod.", None
+
+            status = state.get("status", "unknown")
+            progress = state.get("progress") or {}
+            if isinstance(progress, dict):
+                done = progress.get("done", 0)
+                total = progress.get("total", 0)
+                pct = progress.get("pct", 0)
+                await progress_callback(status, done, total, pct, state.get("queue_position"))
+
+            if status == "done":
+                break
+            if status == "cancelled":
+                return 2, "Calcul Codex Remod annulé.", None
+            if status == "error":
+                detail = state.get("error") or "Le serveur Codex Remod a signalé une erreur."
+                diagnostic = state.get("log") or state.get("logs") or state.get("error_detail")
+                if diagnostic:
+                    golog.log("ERR", "Codex Remod error details: " + str(diagnostic)[:12000])
+                return 1, str(detail), None
+
+            await asyncio.sleep(4)
+
+        try:
+            async with session.get(
+                CODEX_REMOD_API_BASE + "/jobs/" + job_id + "/zip",
+                headers={**headers, "Accept": "application/zip, application/octet-stream"}
+            ) as response:
+                archive_bytes = await response.read()
+                if response.status < 200 or response.status >= 300 or len(archive_bytes) < 4 or archive_bytes[:2] != b"PK":
+                    return 1, "Impossible de télécharger l'archive de résultats Codex Remod.", None
+
+            with zipfile.ZipFile(BytesIO(archive_bytes), "r") as archive:
+                members = {
+                    os.path.basename(name).lower(): archive.read(name)
+                    for name in archive.namelist()
+                    if not name.endswith("/")
+                }
+            progress_json = members.get("progress_out.json")
+            comparison_html = members.get("comparaison_toutes_stats.html")
+            if progress_json is None or comparison_html is None:
+                missing = []
+                if progress_json is None:
+                    missing.append("progress_out.json")
+                if comparison_html is None:
+                    missing.append("comparaison_toutes_stats.html")
+                return 1, "L'archive Codex Remod ne contient pas : " + ", ".join(missing), None
+
+            try:
+                json_loads(progress_json.decode("utf-8-sig"))
+            except Exception:
+                return 1, "Le fichier progress_out.json fourni par Codex Remod est invalide.", None
+
+            return 0, "", {
+                "progress_out": progress_json.decode("utf-8-sig"),
+                "comparison_html": comparison_html,
+            }
+        except Exception as error:
+            golog.log("ERR", "Codex Remod ZIP processing failed: " + traceback.format_exc())
+            return 1, "Erreur lors du traitement de l'archive Codex Remod : " + str(error), None
+        finally:
+            # Match the website workflow: remove the remote job after retrieving its result.
+            try:
+                async with session.delete(
+                    CODEX_REMOD_API_BASE + "/jobs/" + job_id,
+                    headers=headers
+                ):
+                    pass
+            except Exception:
+                golog.log("WAR", "Unable to delete completed Codex Remod job " + str(job_id))
+
+
+class CodexRemodView(discord.ui.View):
+    def __init__(self, ally_code, progress_json=None, comparison_html=None, cancel_event=None,
+                 owner_id=None, running=False):
+        super().__init__(timeout=1800)
+        self.ally_code = str(ally_code)
+        self.progress_json = progress_json
+        self.comparison_html = comparison_html
+        self.cancel_event = cancel_event
+        self.owner_id = owner_id
+        self.running = running
+        if running:
+            button = discord.ui.Button(label="Annuler", style=discord.ButtonStyle.danger)
+            button.callback = self.cancel
+            self.add_item(button)
+        else:
+            apply_button = discord.ui.Button(label="Appliquer les mods en jeu", style=discord.ButtonStyle.success)
+            apply_button.callback = self.apply
+            self.add_item(apply_button)
+            show_button = discord.ui.Button(label="Visualiser les suggestions", style=discord.ButtonStyle.primary)
+            show_button.callback = self.visualize
+            self.add_item(show_button)
+            cancel_button = discord.ui.Button(label="Annuler", style=discord.ButtonStyle.secondary)
+            cancel_button.callback = self.dismiss
+            self.add_item(cancel_button)
+
+    async def _check_owner(self, interaction):
+        if self.owner_id is not None and interaction.user.id != self.owner_id:
+            await interaction.response.send_message("Cette action appartient à l'utilisateur qui a lancé la commande.", ephemeral=True)
+            return False
+        return True
+
+    async def cancel(self, interaction):
+        if not await self._check_owner(interaction):
+            return
+        if self.cancel_event is not None:
+            self.cancel_event.set()
+        await interaction.response.edit_message(
+            content="⏳ Annulation du calcul Codex Remod demandée…",
+            view=self
+        )
+
+    async def dismiss(self, interaction):
+        if not await self._check_owner(interaction):
+            return
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(content="Commande annulée. Aucune modification n'a été appliquée.", view=self)
+
+    async def visualize(self, interaction):
+        if not await self._check_owner(interaction):
+            return
+        html_file = discord.File(
+            BytesIO(self.comparison_html),
+            filename="comparaison_toutes_stats.html"
+        )
+        await interaction.response.send_message(
+            "Voici le rapport HTML. Télécharge-le puis ouvre-le dans ton navigateur pour visualiser les suggestions.",
+            file=html_file,
+            ephemeral=True
+        )
+
+    async def apply(self, interaction):
+        if not await self._check_owner(interaction):
+            return
+        await interaction.response.defer(thinking=True)
+        ret_add, resp_msg = await add_command_to_queue(interaction)
+        if ret_add != 0:
+            remove_command_from_queue(interaction)
+            await interaction.edit_original_response(content=resp_msg or "Impossible d'ajouter la commande à la file.")
+            return
+
+        acquired = False
+        try:
+            if await acquire_sem(self.ally_code, waiting=False) == 1:
+                await interaction.edit_original_response(content=emojis.redcross + " Ce joueur a déjà une commande bot en cours.")
+                return
+            acquired = True
+            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(
+                self.progress_json,
+                self.ally_code,
+                False,
+                interaction=interaction
+            )
+            if not isinstance(ret_data, dict):
+                ret_data = {}
+            details = ret_data.get("cost", "")
+            for key, reason in (
+                ("missing", "car ce mod n'existe plus"),
+                ("forbidden", "car ce mod est de niveau or pour un perso de gear inférieur à 12")
+            ):
+                for unit, mod_ids in (ret_data.get(key) or {}).items():
+                    count = len(mod_ids)
+                    details += "\\n" + emojis.warning + " " + str(count) + (" mod" if count == 1 else " mods") + " ne peut" + ("" if count == 1 else " pas") + " être posé" + ("" if count == 1 else "s") + " sur " + unit + " " + reason
+            result = (emojis.check if ec == 0 else emojis.redcross) + " " + (details if ec == 0 else et + ("\\n" + details if details else ""))
+            if len(result) > 1800:
+                result = result[:1790] + "…"
+            for child in self.children:
+                child.disabled = True
+            await interaction.edit_original_response(content=result, view=self)
+        except Exception:
+            golog.log("ERR", "Codex remod apply callback failed: " + traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross + " Erreur pendant l'application des mods.", view=None)
+        finally:
+            if acquired:
+                await release_sem(self.ally_code)
+            remove_command_from_queue(interaction)
+
+
 ##############################################################
 # Class: ModsCog - for Google accounts
 # Description: contains all slash commands for mods
@@ -4252,6 +4536,108 @@ class ModsCog(commands.GroupCog, name="mods"):
 
         remove_command_from_queue(interaction)
         return
+
+    @app_commands.command(name="codex-remod")
+    @golog.with_operation_context("mods.codex-remod")
+    async def codex_remod(self, interaction: discord.Interaction):
+        ret_add, resp_msg = await add_command_to_queue(interaction)
+        if ret_add != 0:
+            remove_command_from_queue(interaction)
+            return
+
+        ally_code = None
+        acquired = False
+        cancel_event = asyncio.Event()
+        try:
+            ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
+            if ec != 0:
+                await interaction.edit_original_response(content=emojis.redcross + " ERR: " + et)
+                return
+
+            ally_code = str(bot_infos["allyCode"])
+            golog.log("INFO", "START mods.codex-remod(" + ally_code + ")")
+            if await acquire_sem(ally_code, waiting=False) == 1:
+                await interaction.edit_original_response(content=emojis.redcross + " ERR: ce joueur a déjà une commande bot en cours")
+                return
+            acquired = True
+
+            await interaction.edit_original_response(content="⏳ Préparation de l'export des mods pour Codex Remod…")
+            previous_export = None
+            player_path = "PLAYERDATA/" + ally_code
+            previous_path = player_path + "/modoptimizer_input.json"
+            if os.path.isfile(previous_path):
+                with open(previous_path, "r", encoding="utf-8") as f:
+                    previous_export = json_load(f)
+
+            ec, et, dict_export = await manage_mods.get_modopti_export(
+                ally_code,
+                prev_modopti_content=previous_export
+            )
+            if ec != 0:
+                await interaction.edit_original_response(content=emojis.redcross + " " + et)
+                return
+
+            async def report_progress(status, done, total, pct, queue_position):
+                if status == "queued":
+                    position = " (position " + str(queue_position) + ")" if queue_position else ""
+                    message = "⏳ Codex Remod en attente d'un créneau" + position + "…"
+                else:
+                    try:
+                        percent = max(0, min(100, float(pct)))
+                    except (TypeError, ValueError):
+                        percent = 0
+                    message = "⏳ Codex Remod en cours : " + str(done) + " / " + str(total) + " personnages (" + str(round(percent)) + "%)"
+                try:
+                    await interaction.edit_original_response(
+                        content=message,
+                        view=CodexRemodView(
+                            ally_code,
+                            cancel_event=cancel_event,
+                            owner_id=interaction.user.id,
+                            running=True
+                        )
+                    )
+                except discord.errors.HTTPException:
+                    # The command's original interaction may have expired; keep the job running.
+                    golog.log("WAR", "Unable to update Codex Remod progress message for " + ally_code)
+
+            await interaction.edit_original_response(
+                content="⏳ Export prêt. Envoi au serveur Codex Remod…",
+                view=CodexRemodView(
+                    ally_code,
+                    cancel_event=cancel_event,
+                    owner_id=interaction.user.id,
+                    running=True
+                )
+            )
+            ec, et, result_files = await run_codex_remod(dict_export, cancel_event, report_progress)
+            if ec == 2:
+                await interaction.edit_original_response(content=emojis.warning + " " + et, view=None)
+                return
+            if ec != 0:
+                await interaction.edit_original_response(content=emojis.redcross + " " + et, view=None)
+                return
+
+            final_view = CodexRemodView(
+                ally_code,
+                progress_json=result_files["progress_out"],
+                comparison_html=result_files["comparison_html"],
+                owner_id=interaction.user.id
+            )
+            await interaction.edit_original_response(
+                content=emojis.check + " Remod terminé avec succès. Que souhaites-tu faire ?",
+                view=final_view
+            )
+        except Exception:
+            golog.log("ERR", traceback.format_exc())
+            try:
+                await interaction.edit_original_response(content=emojis.redcross + " erreur inconnue pendant le Codex Remod", view=None)
+            except Exception:
+                pass
+        finally:
+            if acquired and ally_code is not None:
+                await release_sem(ally_code)
+            remove_command_from_queue(interaction)
 
     @app_commands.command(name="level-up")
     @app_commands.rename(only_speed_sec="avec-secondaire-vitesse")
