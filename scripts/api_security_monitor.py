@@ -261,7 +261,10 @@ def main():
         )
         if badkeys >= thresholds.get("invalid_keys_5m", 5): incidents.append(("MEDIUM", "INVALID_KEYS", ip, badkeys))
         if forbidden >= thresholds.get("forbidden_2m", 3): incidents.append((forbidden_severity, "FORBIDDEN_ENDPOINTS", ip, forbidden))
-        if len(paths) >= thresholds.get("distinct_paths_2m", 10): incidents.append(("MEDIUM", "PATH_SCAN", ip, len(paths)))
+        # A minimum of 20 distinct paths avoids alerting on low-volume
+        # background noise even if the deployed config still says 10.
+        path_scan_threshold = max(20, int(thresholds.get("distinct_paths_2m", 20)))
+        if len(paths) >= path_scan_threshold: incidents.append(("MEDIUM", "PATH_SCAN", ip, len(paths)))
         if limited >= thresholds.get("rate_limit_5m", 10): incidents.append((rate_severity, "RATE_LIMIT", ip, limited))
         if badparams >= thresholds.get("invalid_params_5m", 20): incidents.append(("MEDIUM", "INVALID_PARAMETERS", ip, badparams))
     malicious_requests = []
@@ -333,9 +336,25 @@ def main():
 
         # HIGH alerts are always sent immediately, before any MEDIUM digest.
         if high_due:
-            send(build_alert_digest(high_due))
-            for key in high_keys:
-                state["alerts"][key] = now
+            # Send bounded messages separately. Record only keys whose message
+            # was accepted by Discord, so a failure cannot silently drop HIGHs.
+            batch_lines = []
+            batch_keys = []
+            batch_size = len("**GUIONBOT API SECURITY — ALERT DIGEST**\n\nNo automatic blocking.")
+            for line, key in zip(high_due, high_keys):
+                if batch_lines and batch_size + len(line) + 1 > 1750:
+                    send(build_alert_digest(batch_lines))
+                    for sent_key in batch_keys:
+                        state["alerts"][sent_key] = now
+                    batch_lines, batch_keys = [], []
+                    batch_size = len("**GUIONBOT API SECURITY — ALERT DIGEST**\n\nNo automatic blocking.")
+                batch_lines.append(line)
+                batch_keys.append(key)
+                batch_size += len(line) + 1
+            if batch_lines:
+                send(build_alert_digest(batch_lines))
+                for sent_key in batch_keys:
+                    state["alerts"][sent_key] = now
 
         queue_medium_incidents(incidents, state, now)
         if medium_digest_due(state, now):
