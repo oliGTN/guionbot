@@ -3877,6 +3877,8 @@ async def run_codex_remod(dict_export, cancel_event, progress_callback):
                 }
             progress_json = members.get("progress_out.json")
             comparison_html = members.get("comparaison_toutes_stats.html")
+            delete_json = members.get("mods_a_supprimer.json")
+            delete_csv = members.get("mods_a_supprimer.csv")
             if progress_json is None or comparison_html is None:
                 missing = []
                 if progress_json is None:
@@ -3890,9 +3892,46 @@ async def run_codex_remod(dict_export, cancel_event, progress_callback):
             except Exception:
                 return 1, "Le fichier progress_out.json fourni par Codex Remod est invalide.", None
 
+            mods_to_delete = []
+            if delete_json is not None:
+                try:
+                    delete_data = json_loads(delete_json.decode("utf-8-sig"))
+                    if isinstance(delete_data, dict):
+                        delete_data = delete_data.get("mods", delete_data.get("mods_a_supprimer", []))
+                    if isinstance(delete_data, list):
+                        for item in delete_data:
+                            mod_id = item.get("id") if isinstance(item, dict) else item
+                            if isinstance(mod_id, str) and mod_id.strip():
+                                mods_to_delete.append(mod_id.strip())
+                except Exception:
+                    golog.log("ERR", "Invalid mods_a_supprimer.json in Codex Remod ZIP")
+            elif delete_csv is not None:
+                # Current website results use CSV; the mod ID is the second column
+                # unless a recognised ID header is present (same rule as codexremod_results.js).
+                try:
+                    import csv
+                    import io
+                    rows = list(csv.reader(io.StringIO(delete_csv.decode("utf-8-sig"))))
+                    if rows:
+                        headers = [str(value).strip().lower().replace(" ", "_") for value in rows[0]]
+                        id_index = next((i for i, value in enumerate(headers)
+                                         if value in ("id_mod", "mod_id", "mod_uid", "id", "identifiant")), 1)
+                        for row in rows[1:]:
+                            if len(row) > id_index and row[id_index].strip():
+                                mods_to_delete.append(row[id_index].strip())
+                except Exception:
+                    golog.log("ERR", "Invalid mods_a_supprimer.csv in Codex Remod ZIP")
+
+            # Keep order while removing duplicates and reject malformed IDs.
+            mods_to_delete = list(dict.fromkeys(
+                mod_id for mod_id in mods_to_delete
+                if re.fullmatch(r"[A-Za-z0-9_-]{6,100}", mod_id)
+            ))
+
             return 0, "", {
                 "progress_out": progress_json.decode("utf-8-sig"),
                 "comparison_html": comparison_html,
+                "mods_to_delete": mods_to_delete,
             }
         except Exception as error:
             golog.log("ERR", "Codex Remod ZIP processing failed: " + traceback.format_exc())
@@ -3910,13 +3949,14 @@ async def run_codex_remod(dict_export, cancel_event, progress_callback):
 
 
 class CodexRemodView(discord.ui.View):
-    def __init__(self, ally_code, progress_json=None, comparison_html=None, initialdata=None, cancel_event=None,
-                 owner_id=None, running=False):
+    def __init__(self, ally_code, progress_json=None, comparison_html=None, initialdata=None,
+                 mods_to_delete=None, cancel_event=None, owner_id=None, running=False, needs_sell=False):
         super().__init__(timeout=1800)
         self.ally_code = str(ally_code)
         self.progress_json = progress_json
         self.comparison_html = comparison_html
         self.initialdata = initialdata
+        self.mods_to_delete = list(mods_to_delete or [])
         self.cancel_event = cancel_event
         self.owner_id = owner_id
         self.running = running
@@ -3924,6 +3964,16 @@ class CodexRemodView(discord.ui.View):
             button = discord.ui.Button(label="Annuler", style=discord.ButtonStyle.danger)
             button.callback = self.cancel
             self.add_item(button)
+        elif needs_sell:
+            sell_button = discord.ui.Button(
+                label="Vendre les " + str(len(self.mods_to_delete)) + " mods requis",
+                style=discord.ButtonStyle.danger
+            )
+            sell_button.callback = self.sell_required_mods
+            self.add_item(sell_button)
+            cancel_button = discord.ui.Button(label="Annuler", style=discord.ButtonStyle.secondary)
+            cancel_button.callback = self.dismiss
+            self.add_item(cancel_button)
         else:
             apply_button = discord.ui.Button(label="Appliquer les mods en jeu", style=discord.ButtonStyle.success)
             apply_button.callback = self.apply
@@ -3971,6 +4021,66 @@ class CodexRemodView(discord.ui.View):
             ephemeral=True
         )
 
+    async def sell_required_mods(self, interaction):
+        if not await self._check_owner(interaction):
+            return
+        if not self.mods_to_delete:
+            await interaction.response.send_message("La liste des mods à vendre est vide.", ephemeral=True)
+            return
+
+        ret_add, resp_msg = await add_command_to_queue(interaction)
+        if ret_add != 0:
+            remove_command_from_queue(interaction)
+            await interaction.response.send_message(resp_msg or "Impossible d'ajouter la vente à la file.", ephemeral=True)
+            return
+
+        acquired = False
+        try:
+            await interaction.response.defer(thinking=True)
+            if await acquire_sem(self.ally_code, waiting=False) == 1:
+                await interaction.edit_original_response(content=emojis.redcross + " Ce joueur a déjà une commande bot en cours.", view=None)
+                return
+            acquired = True
+
+            await interaction.edit_original_response(
+                content="⏳ Vente des " + str(len(self.mods_to_delete)) + " mods recommandés par Codex Remod…",
+                view=None
+            )
+            ec, et = await manage_mods.sell_mods(
+                self.mods_to_delete,
+                self.ally_code,
+                interaction=None
+            )
+            if ec != 0:
+                await interaction.edit_original_response(
+                    content=emojis.redcross + " La vente des mods a échoué : " + str(et),
+                    view=None
+                )
+                return
+
+            # Inventory has changed: do not reuse the pre-sale initialdata snapshot.
+            next_view = CodexRemodView(
+                self.ally_code,
+                progress_json=self.progress_json,
+                comparison_html=self.comparison_html,
+                initialdata=None,
+                mods_to_delete=self.mods_to_delete,
+                owner_id=self.owner_id
+            )
+            await interaction.edit_original_response(
+                content=emojis.check + " " + str(len(self.mods_to_delete))
+                + " mods vendus avec succès. Tu peux maintenant relancer le déplacement des mods en jeu.",
+                view=next_view
+            )
+        except Exception:
+            golog.log("ERR", "Codex remod sell callback failed: " + traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross + " Erreur pendant la vente des mods.", view=None)
+        finally:
+            if acquired:
+                await release_sem(self.ally_code)
+            remove_command_from_queue(interaction)
+
+
     async def apply(self, interaction):
         if not await self._check_owner(interaction):
             return
@@ -4006,6 +4116,23 @@ class CodexRemodView(discord.ui.View):
             result = (emojis.check if ec == 0 else emojis.redcross) + " " + (details if ec == 0 else et + ("\n" + details if details else ""))
             if len(result) > 1800:
                 result = result[:1790] + "…"
+            if et == "inventaire plein" and self.mods_to_delete:
+                sell_view = CodexRemodView(
+                    self.ally_code,
+                    progress_json=self.progress_json,
+                    comparison_html=self.comparison_html,
+                    initialdata=self.initialdata,
+                    mods_to_delete=self.mods_to_delete,
+                    owner_id=self.owner_id,
+                    needs_sell=True
+                )
+                await interaction.edit_original_response(
+                    content=result + "\\n\\nL'inventaire de mods est plein. Codex Remod propose de vendre "
+                    + str(len(self.mods_to_delete)) + " mods de la liste fournie dans results.zip. "
+                    + "Confirme leur vente pour pouvoir relancer le déplacement.",
+                    view=sell_view
+                )
+                return
             for child in self.children:
                 child.disabled = True
             await interaction.edit_original_response(content=result, view=self)
@@ -4624,6 +4751,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 progress_json=result_files["progress_out"],
                 comparison_html=result_files["comparison_html"],
                 initialdata=initialdata,
+                mods_to_delete=result_files.get("mods_to_delete", []),
                 owner_id=interaction.user.id
             )
             await interaction.edit_original_response(
