@@ -443,6 +443,24 @@ async def handle_deploy_tb_platoons(request):
                 disable_rpc_call=False,
             )
 
+            # Match mod-inventory's EA one-time-code response.
+            if err_code == 100:
+                return web.json_response(
+                    {
+                        "err_code": 100,
+                        "action_required": "EA_ONE_TIME_CODE",
+                        "message": (
+                            "EA has sent a One-Time Code to the email address linked "
+                            "to this account. Ask the user to check their email and "
+                            "submit the 5- or 6-digit code in GuionBot using "
+                            "/connect envoie-otc in the Discord channel where "
+                            "GuionBot is configured. Retry this request after the "
+                            "code has been accepted."
+                        )
+                    },
+                    status=202
+                )
+
             # Expose only the requested public outcome lists. Internal RPC
             # categories and diagnostics remain hidden from the remote client.
             if err_code in (502, 504):
