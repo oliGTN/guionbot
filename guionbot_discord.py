@@ -4124,7 +4124,7 @@ class CodexRemodView(discord.ui.View):
                 ):
                     for unit, mod_ids in (data.get(key) or {}).items():
                         count = len(mod_ids)
-                        details += "\\n" + emojis.warning + " " + str(count) + (" mod" if count == 1 else " mods") + " ne peut" + ("" if count == 1 else " pas") + " être posé" + ("" if count == 1 else "s") + " sur " + unit + " " + reason
+                        details += "\n" + emojis.warning + " " + str(count) + (" mod" if count == 1 else " mods") + " ne peut" + ("" if count == 1 else " pas") + " être posé" + ("" if count == 1 else "s") + " sur " + unit + " " + reason
                 return details
 
             sim_details = format_details(sim_data)
@@ -4146,7 +4146,7 @@ class CodexRemodView(discord.ui.View):
                         content=emojis.redcross + " Simulation échouée : il faut libérer "
                         + str(needed_inventory) + " places dans l'inventaire. "
                         + str(len(mods_to_sell)) + " mods de la liste Codex sont proposés à la vente."
-                        + ("\\n" + sim_details if sim_details else "")
+                        + ("\n" + sim_details if sim_details else "")
                         + "\\n\\nConfirme leur vente pour relancer la simulation puis l'application.",
                         view=sell_view
                     )
@@ -4154,7 +4154,7 @@ class CodexRemodView(discord.ui.View):
                     await interaction.edit_original_response(
                         content=emojis.redcross + " Simulation échouée : il faut libérer "
                         + str(needed_inventory) + " places, mais la liste Codex ne contient pas assez de mods valides. Aucune vente n'a été effectuée."
-                        + ("\\n" + sim_details if sim_details else ""),
+                        + ("\n" + sim_details if sim_details else ""),
                         view=None
                     )
                 return
@@ -4162,7 +4162,7 @@ class CodexRemodView(discord.ui.View):
             if sim_ec != 0:
                 await interaction.edit_original_response(
                     content=emojis.redcross + " Simulation échouée : " + str(sim_et)
-                    + ("\\n" + sim_details if sim_details else ""),
+                    + ("\n" + sim_details if sim_details else ""),
                     view=None
                 )
                 return
@@ -4182,7 +4182,7 @@ class CodexRemodView(discord.ui.View):
             if not isinstance(ret_data, dict):
                 ret_data = {}
             details = format_details(ret_data)
-            result = (emojis.check if ec == 0 else emojis.redcross) + " " + (details if ec == 0 else str(et) + ("\\n" + details if details else ""))
+            result = (emojis.check if ec == 0 else emojis.redcross) + " " + (details if ec == 0 else str(et) + ("\n" + details if details else ""))
             if len(result) > 1800:
                 result = result[:1790] + "…"
 
@@ -4210,7 +4210,7 @@ class CodexRemodView(discord.ui.View):
 
             for child in self.children:
                 child.disabled = True
-            await interaction.edit_original_response(content=result, view=self)
+            await interaction.edit_original_response(content=result, view=None)
         except Exception:
             golog.log("ERR", "Codex remod apply callback failed: " + traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross + " Erreur pendant l'application des mods.", view=None)
