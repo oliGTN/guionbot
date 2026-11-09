@@ -3900,7 +3900,10 @@ async def run_codex_remod(dict_export, cancel_event, progress_callback):
                         delete_data = delete_data.get("mods", delete_data.get("mods_a_supprimer", []))
                     if isinstance(delete_data, list):
                         for item in delete_data:
-                            mod_id = item.get("id") if isinstance(item, dict) else item
+                            mod_id = (
+                                item.get("id", item.get("mod_id", item.get("mod_uid", item.get("modId"))))
+                                if isinstance(item, dict) else item
+                            )
                             if isinstance(mod_id, str) and mod_id.strip():
                                 mods_to_delete.append(mod_id.strip())
                 except Exception:
@@ -4031,12 +4034,11 @@ class CodexRemodView(discord.ui.View):
         ret_add, resp_msg = await add_command_to_queue(interaction)
         if ret_add != 0:
             remove_command_from_queue(interaction)
-            await interaction.response.send_message(resp_msg or "Impossible d'ajouter la vente à la file.", ephemeral=True)
+            await interaction.edit_original_response(content=resp_msg or "Impossible d'ajouter la vente à la file.")
             return
 
         acquired = False
         try:
-            await interaction.response.defer(thinking=True)
             if await acquire_sem(self.ally_code, waiting=False) == 1:
                 await interaction.edit_original_response(content=emojis.redcross + " Ce joueur a déjà une commande bot en cours.", view=None)
                 return
@@ -4127,7 +4129,7 @@ class CodexRemodView(discord.ui.View):
                     needs_sell=True
                 )
                 await interaction.edit_original_response(
-                    content=result + "\\n\\nL'inventaire de mods est plein. Codex Remod propose de vendre "
+                    content=result + "\n\nL'inventaire de mods est plein. Codex Remod propose de vendre "
                     + str(len(self.mods_to_delete)) + " mods de la liste fournie dans results.zip. "
                     + "Confirme leur vente pour pouvoir relancer le déplacement.",
                     view=sell_view
