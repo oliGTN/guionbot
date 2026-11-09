@@ -369,10 +369,10 @@ def main():
                 selected_lines.append(line)
                 used += len(line) + 1
             if selected_lines:
-                selected_ips = {
-                    line.split(" — ", 1)[1].split(":", 1)[0]
-                    for line in selected_lines
-                }
+                # Lines are emitted in sorted-IP order. Derive the selected
+                # IPs from the same sorted groups (works for IPv4 and IPv6).
+                ordered_ips = sorted({entry["ip"] for entry in pending.values()})
+                selected_ips = set(ordered_ips[:len(selected_lines)])
                 selected_keys = [
                     key for key, entry in pending.items()
                     if entry["ip"] in selected_ips
