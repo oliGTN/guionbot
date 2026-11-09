@@ -275,7 +275,7 @@ async def send_ea_otc(txt_allyCode, otc):
 
 #########################################
 # Get full guild data, using the allyCode
-async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
+async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1, preserve_ea_code=False):
     # RPC REQUEST for guild
     url = "http://localhost:8000/guild"
     params = {"allyCode": txt_allyCode, "use_cache_data":use_cache_data,
@@ -306,7 +306,7 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
 
     if "err_code" in guild_json:
         rpc_err_code = guild_json["err_code"]
-        return (100 if rpc_err_code == 100 else 1), guild_json["err_txt"], None
+        return (100 if preserve_ea_code and rpc_err_code == 100 else 1), guild_json["err_txt"], None
 
     if "guild" in guild_json:
         dict_guild = guild_json["guild"]
@@ -3464,7 +3464,7 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
         return 1, "Plus rien à déployer"
 
     # Remove already deployed units
-    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
+    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False, preserve_ea_code=True)
     if err_code != 0:
         golog.log("ERR", err_txt)
         return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode
