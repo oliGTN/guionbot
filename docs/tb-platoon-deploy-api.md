@@ -139,7 +139,14 @@ HTTP 200 is returned only when every platoon is `SUCCESS`. HTTP 207
 Backend communication failures use gateway status codes instead: HTTP 502
 (`Bad Gateway`) when the deployment backend is unavailable or returns an
 invalid/error response, and HTTP 504 (`Gateway Timeout`) when it does not
-respond in time. The response does not expose internal RPC codes or messages.
+respond in time.
+
+An EA account connection requiring a One-Time Code follows the same behavior
+as the mod-inventory API: HTTP 202 with `err_code: 100` and
+`action_required: "EA_ONE_TIME_CODE"`. The response instructs the user to
+submit the code through GuionBot's `/connect envoie-otc` command, then retry
+the request. This is an account-authentication action, not a platoon deployment
+failure.
 The top-level `completed`, `partial`, and `failed` fields count platoons in
 each outcome category; backend errors are included in `failed`.
 
