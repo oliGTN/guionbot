@@ -87,7 +87,8 @@ if (!is_array($result)) {
     tbPlatoonApiRespond(502, ['success' => false, 'err_code' => 502, 'err_txt' => 'Invalid deployment service response']);
 }
 // Preserve deployment outcomes and backend gateway errors from the internal service.
-if (in_array($httpCode, [200, 207, 502, 504], true)) {
+if (in_array($httpCode, [200, 202, 207, 502, 504], true)) {
+    // Preserve the EA One-Time Code action response (HTTP 202) unchanged.
     tbPlatoonApiRespond($httpCode, $result);
 }
 error_log('TB platoon deploy API received an unexpected internal service HTTP status: ' . $httpCode);
