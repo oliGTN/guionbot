@@ -3778,7 +3778,6 @@ async def run_codex_remod(dict_export, cancel_event, progress_callback):
             filename="restoreMyProgress.json",
             content_type="application/json"
         )
-        form.add_field("mode", "full")
         form.add_field("lang", "fr")
         form.add_field("min_level", "all")
         form.add_field("free_unselected", "false")
