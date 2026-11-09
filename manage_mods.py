@@ -656,12 +656,12 @@ async def apply_config_allocations(config_name, txt_allyCode, is_simu, interacti
                                        interaction=interaction)
 
 ########################################
-async def get_modopti_export(txt_allyCode, prev_modopti_content=None):
+async def get_modopti_export(txt_allyCode, prev_modopti_content=None, return_initialdata=False):
 
     #Get player API data
     ec, et, dict_player = await go.load_player(txt_allyCode, 1, True)
     if ec!=0:
-        return ec, et, None
+        return (ec, et, None, None) if return_initialdata else (ec, et, None)
 
     dict_player = goutils.roster_from_dict_to_list(dict_player)
 
@@ -674,12 +674,15 @@ async def get_modopti_export(txt_allyCode, prev_modopti_content=None):
     #Add stats
     ec, et, dict_player = connect_crinolo.add_base_stats(dict_player)
     if ec!=0:
-        return ec, et, None
+        return (ec, et, None, initialdata) if return_initialdata else (ec, et, None)
 
-    return await get_modopti_export_from_playerdata(
+    ec, et, dict_export = await get_modopti_export_from_playerdata(
             dict_player,
             initialdata=initialdata,
             prev_modopti_content=prev_modopti_content)
+    if return_initialdata:
+        return ec, et, dict_export, initialdata
+    return ec, et, dict_export
 
 async def get_modopti_export_from_playerdata(
         dict_player, 
