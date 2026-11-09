@@ -3910,12 +3910,13 @@ async def run_codex_remod(dict_export, cancel_event, progress_callback):
 
 
 class CodexRemodView(discord.ui.View):
-    def __init__(self, ally_code, progress_json=None, comparison_html=None, cancel_event=None,
+    def __init__(self, ally_code, progress_json=None, comparison_html=None, initialdata=None, cancel_event=None,
                  owner_id=None, running=False):
         super().__init__(timeout=1800)
         self.ally_code = str(ally_code)
         self.progress_json = progress_json
         self.comparison_html = comparison_html
+        self.initialdata = initialdata
         self.cancel_event = cancel_event
         self.owner_id = owner_id
         self.running = running
@@ -3989,7 +3990,8 @@ class CodexRemodView(discord.ui.View):
                 self.progress_json,
                 self.ally_code,
                 False,
-                interaction=interaction
+                interaction=interaction,
+                initialdata=self.initialdata
             )
             if not isinstance(ret_data, dict):
                 ret_data = {}
@@ -4567,9 +4569,10 @@ class ModsCog(commands.GroupCog, name="mods"):
                 with open(previous_path, "r", encoding="utf-8") as f:
                     previous_export = json_load(f)
 
-            ec, et, dict_export = await manage_mods.get_modopti_export(
+            ec, et, dict_export, initialdata = await manage_mods.get_modopti_export(
                 ally_code,
-                prev_modopti_content=previous_export
+                prev_modopti_content=previous_export,
+                return_initialdata=True
             )
             if ec != 0:
                 await interaction.edit_original_response(content=emojis.redcross + " " + et)
@@ -4620,6 +4623,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 ally_code,
                 progress_json=result_files["progress_out"],
                 comparison_html=result_files["comparison_html"],
+                initialdata=initialdata,
                 owner_id=interaction.user.id
             )
             await interaction.edit_original_response(
