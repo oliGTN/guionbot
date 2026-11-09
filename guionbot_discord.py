@@ -3751,12 +3751,12 @@ def load_codex_remod_secret():
         with open(php_secret_file, "r", encoding="utf-8") as f:
             php_content = f.read()
         match = re.search(
-            r"\\$REMOD_API_SECRET\\s*=\\s*(['\\\"])(.*?)\\1\\s*;",
+            r"\$REMOD_API_SECRET\s*=\s*(['\"])(.*?)\1\s*;",
             php_content,
             re.DOTALL
         )
         if match:
-            return match.group(2).replace("\\\\'", "'").replace('\\\\"', '"').strip()
+            return match.group(2).replace("\\'", "'").replace('\\"', '"').strip()
     return None
 
 
@@ -4002,8 +4002,8 @@ class CodexRemodView(discord.ui.View):
             ):
                 for unit, mod_ids in (ret_data.get(key) or {}).items():
                     count = len(mod_ids)
-                    details += "\\n" + emojis.warning + " " + str(count) + (" mod" if count == 1 else " mods") + " ne peut" + ("" if count == 1 else " pas") + " être posé" + ("" if count == 1 else "s") + " sur " + unit + " " + reason
-            result = (emojis.check if ec == 0 else emojis.redcross) + " " + (details if ec == 0 else et + ("\\n" + details if details else ""))
+                    details += "\n" + emojis.warning + " " + str(count) + (" mod" if count == 1 else " mods") + " ne peut" + ("" if count == 1 else " pas") + " être posé" + ("" if count == 1 else "s") + " sur " + unit + " " + reason
+            result = (emojis.check if ec == 0 else emojis.redcross) + " " + (details if ec == 0 else et + ("\n" + details if details else ""))
             if len(result) > 1800:
                 result = result[:1790] + "…"
             for child in self.children:
