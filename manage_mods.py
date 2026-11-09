@@ -343,17 +343,14 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
 
 
-            if is_simu:
-                #Check if inventory will sustain the removal of mods from target Unit
-                #Transitory inventory is the current state of dict_player_mods,
-                # but before the latest mods have been added from inventory 
-                # to the target Unit.
-                tmp_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None] + mods_to_add
-                golog.log("INFO", "Transitory inventory ("+allyCode+") during "+target_char_defId+": "+str(len(tmp_inventory)))
-                if len(tmp_inventory) > max_inventory:
-                    max_inventory = len(tmp_inventory)
+            # Track peak transient inventory in simulation and real application
+            # modes, so an inventory-full RPC error reports the required slots.
+            tmp_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None] + mods_to_add
+            golog.log("INFO", "Transitory inventory ("+allyCode+") during "+target_char_defId+": "+str(len(tmp_inventory)))
+            if len(tmp_inventory) > max_inventory:
+                max_inventory = len(tmp_inventory)
 
-            else:
+            if not is_simu:
                 # If not simulation mode, send the request to RPC
                 ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
 
@@ -364,7 +361,12 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                         err_txt = "inventaire plein"
                     else:
                         err_txt = str([target_char_defId, mods_to_add, mods_to_remove])+": "+et
-                    return ec, err_txt, {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
+                    return ec, err_txt, {
+                        "cost": cost_txt,
+                        "missing": missing_mods,
+                        "forbidden": forbidden_mods,
+                        "needed_inventory": max(0, max_inventory - initial_inventory),
+                    }
 
         elif len(mods_to_remove) > 0:
             if not is_simu:
@@ -372,6 +374,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                 ret_data = {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
             else:
                 ret_data = {"missing": missing_mods, "forbidden": forbidden_mods}
+            ret_data["needed_inventory"] = max(0, max_inventory - initial_inventory)
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
 
         unit_count = new_unit_count
@@ -412,7 +415,12 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
     else:
         cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
     
-    return ret_code, ret_txt, {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
+    return ret_code, ret_txt, {
+        "cost": cost_txt,
+        "missing": missing_mods,
+        "forbidden": forbidden_mods,
+        "needed_inventory": max(0, max_inventory - initial_inventory),
+    }
 
 async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     dict_unitsList = godata.get("unitsList_dict.json")
