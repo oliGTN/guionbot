@@ -4099,6 +4099,79 @@ class CodexRemodView(discord.ui.View):
                 await interaction.edit_original_response(content=emojis.redcross + " Ce joueur a déjà une commande bot en cours.")
                 return
             acquired = True
+
+            # Simulate first, reusing the initialdata fetched during the export.
+            # This makes the inventory/credit checks without changing any mods in game.
+            await interaction.edit_original_response(
+                content=emojis.hourglass + " Simulation des déplacements de mods…",
+                view=None
+            )
+            sim_ec, sim_et, sim_data = await manage_mods.apply_modoptimizer_allocations(
+                self.progress_json,
+                self.ally_code,
+                True,
+                interaction=interaction,
+                initialdata=self.initialdata
+            )
+            if not isinstance(sim_data, dict):
+                sim_data = {}
+
+            def format_details(data):
+                details = data.get("cost", "")
+                for key, reason in (
+                    ("missing", "car ce mod n'existe plus"),
+                    ("forbidden", "car ce mod est de niveau or pour un perso de gear inférieur à 12")
+                ):
+                    for unit, mod_ids in (data.get(key) or {}).items():
+                        count = len(mod_ids)
+                        details += "\\n" + emojis.warning + " " + str(count) + (" mod" if count == 1 else " mods") + " ne peut" + ("" if count == 1 else " pas") + " être posé" + ("" if count == 1 else "s") + " sur " + unit + " " + reason
+                return details
+
+            sim_details = format_details(sim_data)
+            if sim_data.get("inventory_full"):
+                needed_inventory = max(0, int(sim_data.get("needed_inventory", 0) or 0))
+                mods_to_sell = self.mods_to_delete[:needed_inventory]
+                if needed_inventory > 0 and len(mods_to_sell) >= needed_inventory:
+                    sell_view = CodexRemodView(
+                        self.ally_code,
+                        progress_json=self.progress_json,
+                        comparison_html=self.comparison_html,
+                        initialdata=self.initialdata,
+                        mods_to_delete=mods_to_sell,
+                        needed_inventory=needed_inventory,
+                        owner_id=self.owner_id,
+                        needs_sell=True
+                    )
+                    await interaction.edit_original_response(
+                        content=emojis.redcross + " Simulation échouée : il faut libérer "
+                        + str(needed_inventory) + " places dans l'inventaire. "
+                        + str(len(mods_to_sell)) + " mods de la liste Codex sont proposés à la vente."
+                        + ("\\n" + sim_details if sim_details else "")
+                        + "\\n\\nConfirme leur vente pour relancer la simulation puis l'application.",
+                        view=sell_view
+                    )
+                else:
+                    await interaction.edit_original_response(
+                        content=emojis.redcross + " Simulation échouée : il faut libérer "
+                        + str(needed_inventory) + " places, mais la liste Codex ne contient pas assez de mods valides. Aucune vente n'a été effectuée."
+                        + ("\\n" + sim_details if sim_details else ""),
+                        view=None
+                    )
+                return
+
+            if sim_ec != 0:
+                await interaction.edit_original_response(
+                    content=emojis.redcross + " Simulation échouée : " + str(sim_et)
+                    + ("\\n" + sim_details if sim_details else ""),
+                    view=None
+                )
+                return
+
+            # The simulation passed: now perform the actual game changes.
+            await interaction.edit_original_response(
+                content=emojis.hourglass + " Simulation réussie. Application des mods en jeu…",
+                view=None
+            )
             ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(
                 self.progress_json,
                 self.ally_code,
@@ -4108,17 +4181,12 @@ class CodexRemodView(discord.ui.View):
             )
             if not isinstance(ret_data, dict):
                 ret_data = {}
-            details = ret_data.get("cost", "")
-            for key, reason in (
-                ("missing", "car ce mod n'existe plus"),
-                ("forbidden", "car ce mod est de niveau or pour un perso de gear inférieur à 12")
-            ):
-                for unit, mod_ids in (ret_data.get(key) or {}).items():
-                    count = len(mod_ids)
-                    details += "\n" + emojis.warning + " " + str(count) + (" mod" if count == 1 else " mods") + " ne peut" + ("" if count == 1 else " pas") + " être posé" + ("" if count == 1 else "s") + " sur " + unit + " " + reason
-            result = (emojis.check if ec == 0 else emojis.redcross) + " " + (details if ec == 0 else et + ("\n" + details if details else ""))
+            details = format_details(ret_data)
+            result = (emojis.check if ec == 0 else emojis.redcross) + " " + (details if ec == 0 else str(et) + ("\\n" + details if details else ""))
             if len(result) > 1800:
                 result = result[:1790] + "…"
+
+            # Keep a fallback in case the inventory changes between simulation and apply.
             if "inventaire plein" in str(et).casefold():
                 needed_inventory = max(0, int(ret_data.get("needed_inventory", 0) or 0))
                 mods_to_sell = self.mods_to_delete[:needed_inventory]
@@ -4134,21 +4202,12 @@ class CodexRemodView(discord.ui.View):
                         needs_sell=True
                     )
                     await interaction.edit_original_response(
-                        content=result + "\n\nL'inventaire de mods est plein. Il faut libérer "
-                        + str(needed_inventory) + " places. Codex Remod propose donc de vendre "
-                        + str(len(mods_to_sell)) + " mods de la liste fournie dans results.zip. "
-                        + "Confirme leur vente pour pouvoir relancer le déplacement.",
+                        content=result + "\\n\\nL'inventaire est devenu plein pendant l'application. Il faut libérer "
+                        + str(needed_inventory) + " places. Confirme la vente des mods proposés pour relancer.",
                         view=sell_view
                     )
-                else:
-                    for child in self.children:
-                        child.disabled = True
-                    golog.log("ERR", "Codex Remod: inventory full but no valid mod IDs were extracted from mods_a_supprimer.json/csv")
-                    await interaction.edit_original_response(
-                        content=result + "\n\nLe calcul indique qu'il faut libérer " + str(needed_inventory) + " places, mais la liste mods_a_supprimer.json (ou CSV) ne contient pas assez d'identifiants de mod exploitables. Aucune vente n'a été effectuée.",
-                        view=self
-                    )
-                return
+                    return
+
             for child in self.children:
                 child.disabled = True
             await interaction.edit_original_response(content=result, view=self)
