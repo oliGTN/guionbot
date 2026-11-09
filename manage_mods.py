@@ -420,6 +420,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         "missing": missing_mods,
         "forbidden": forbidden_mods,
         "needed_inventory": max(0, max_inventory - initial_inventory),
+        "inventory_full": max_inventory > 500,
     }
 
 async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
