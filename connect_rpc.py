@@ -305,7 +305,8 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     if "err_code" in guild_json:
-        return 1, guild_json["err_txt"], None
+        rpc_err_code = guild_json["err_code"]
+        return (100 if rpc_err_code == 100 else 1), guild_json["err_txt"], None
 
     if "guild" in guild_json:
         dict_guild = guild_json["guild"]
@@ -3725,7 +3726,7 @@ async def platoon_tb(
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         golog.log("ERR", err_txt)
-        return 1, "Erreur en se connectant au compte "+txt_allyCode+": "+err_txt, None
+        return (100 if err_code == 100 else 1), "Erreur en se connectant au compte "+txt_allyCode+": "+err_txt, None
     
     player_name = dict_player["name"]
     dict_roster = {} # this dict may be used with defId or unit ID as a key
@@ -3742,7 +3743,7 @@ async def platoon_tb(
     err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
     if err_code != 0:
         golog.log("ERR", err_txt)
-        return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode, None
+        return (100 if err_code == 100 else 1), "Erreur en récupérant les infos guilde de "+txt_allyCode+": "+err_txt, None
 
     if not "territoryBattleStatus" in dict_guild:
         return 2, "Pas de BT en cours", None
