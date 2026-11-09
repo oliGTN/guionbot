@@ -4118,22 +4118,31 @@ class CodexRemodView(discord.ui.View):
             result = (emojis.check if ec == 0 else emojis.redcross) + " " + (details if ec == 0 else et + ("\n" + details if details else ""))
             if len(result) > 1800:
                 result = result[:1790] + "…"
-            if et == "inventaire plein" and self.mods_to_delete:
-                sell_view = CodexRemodView(
-                    self.ally_code,
-                    progress_json=self.progress_json,
-                    comparison_html=self.comparison_html,
-                    initialdata=self.initialdata,
-                    mods_to_delete=self.mods_to_delete,
-                    owner_id=self.owner_id,
-                    needs_sell=True
-                )
-                await interaction.edit_original_response(
-                    content=result + "\n\nL'inventaire de mods est plein. Codex Remod propose de vendre "
-                    + str(len(self.mods_to_delete)) + " mods de la liste fournie dans results.zip. "
-                    + "Confirme leur vente pour pouvoir relancer le déplacement.",
-                    view=sell_view
-                )
+            if "inventaire plein" in str(et).casefold():
+                if self.mods_to_delete:
+                    sell_view = CodexRemodView(
+                        self.ally_code,
+                        progress_json=self.progress_json,
+                        comparison_html=self.comparison_html,
+                        initialdata=self.initialdata,
+                        mods_to_delete=self.mods_to_delete,
+                        owner_id=self.owner_id,
+                        needs_sell=True
+                    )
+                    await interaction.edit_original_response(
+                        content=result + "\n\nL'inventaire de mods est plein. Codex Remod propose de vendre "
+                        + str(len(self.mods_to_delete)) + " mods de la liste fournie dans results.zip. "
+                        + "Confirme leur vente pour pouvoir relancer le déplacement.",
+                        view=sell_view
+                    )
+                else:
+                    for child in self.children:
+                        child.disabled = True
+                    golog.log("ERR", "Codex Remod: inventory full but no valid mod IDs were extracted from mods_a_supprimer.json/csv")
+                    await interaction.edit_original_response(
+                        content=result + "\n\nLa liste mods_a_supprimer.json (ou CSV) est absente ou ne contient aucun identifiant de mod exploitable. Aucune vente n'a été effectuée.",
+                        view=self
+                    )
                 return
             for child in self.children:
                 child.disabled = True
