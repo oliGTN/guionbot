@@ -1624,8 +1624,9 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             if not isinstance(assignments, list):
                 return 1, "Invalid platoon assignment list for planet '" + str(planet_name) + "'", 0
 
-            # ROTE Comlink platoons are numbered in the opposite direction
-            # from the display names stored in tb_platoons.
+            # The JSON dictionary key is the display platoon number.
+            # squad_id carries the reversed Comlink identifier (e.g. key "1"
+            # corresponds to squad_id "tb3-platoon-6").
             platoon_name = zone_name + "-" + str(platoon_number)
 
             for assignment in assignments:
