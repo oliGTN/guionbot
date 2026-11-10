@@ -1516,7 +1516,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
     Comlink instance ID.
     """
     filename_match = re.fullmatch(
-        r"rote_phase([1-6])_([A-Za-z0-9_-]+)\\.json",
+        r"rote_phase([1-6])_([A-Za-z0-9_-]+)\.json",
         filename or "",
         re.IGNORECASE
     )
@@ -1524,7 +1524,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         return 1, "Invalid ROTECODEX filename", 0
 
     if not isinstance(plan_data, dict):
-        return 1, "ROTEC0DEX JSON root must be an object", 0
+        return 1, "ROTECODEX JSON root must be an object", 0
 
     phase = plan_data.get("phase")
     plan_id = plan_data.get("plan_id")
@@ -1556,7 +1556,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
     if not tb_row:
         golog.log(
             "ERR",
-            "ROTEC0DEX import rejected: no ongoing TB found in tb_history "
+            "ROTECODEX import rejected: no ongoing TB found in tb_history "
             "for guild '" + guild_name + "'"
         )
         return 1, "No ongoing TB found for guild '" + guild_name + "'", 0
@@ -1626,7 +1626,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
 
             # ROTE Comlink platoons are numbered in the opposite direction
             # from the display names stored in tb_platoons.
-            platoon_name = zone_name + "-" + str(7 - int(platoon_number))
+            platoon_name = zone_name + "-" + str(platoon_number)
 
             for assignment in assignments:
                 if not isinstance(assignment, dict):
@@ -1704,7 +1704,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
 
     golog.log(
         "INFO",
-        "ROTEC0DEX import completed for guild '" + guild_name
+        "ROTECODEX import completed for guild '" + guild_name
         + "', phase " + str(phase)
         + ": inserted " + str(len(values))
         + ", skipped unknown players " + str(skipped_players),
@@ -1713,7 +1713,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
     if skipped_players:
         golog.log(
             "WAR",
-            "ROTEC0DEX import skipped " + str(skipped_players)
+            "ROTECODEX import skipped " + str(skipped_players)
             + " assignments because allyCode was not found in guild '"
             + guild_name + "'",
             identifier=str(guild_id)
