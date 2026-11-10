@@ -53,6 +53,55 @@ async def load_config_players(guild_id=None):
 
 
 ########################################
+# Read ROTECODEX allocations imported into tb_platoons
+########################################
+async def get_rotecodex_tb_platoon_allocations(guild_id, tbs_round):
+    """
+    Return the imported ROTE plan as the same allocation dictionary used by
+    EchoBot: {platoon_name: {unit_name: [player_name, ...]}}.
+    tb_platoons.tb_id is the internal tb_history.id.
+    """
+    if not isinstance(tbs_round, str) or not tbs_round.startswith("ROTE"):
+        return 0, "", None
+
+    try:
+        phase = int(tbs_round[4:])
+    except (TypeError, ValueError):
+        return 1, "Round ROTE invalide: " + str(tbs_round), None
+
+    if phase < 1 or phase > 6:
+        return 1, "Phase ROTE invalide: " + str(phase), None
+
+    query = """
+        SELECT p.platoon_name, p.unit_name, p.player_name
+        FROM tb_platoons AS p
+        INNER JOIN tb_history AS h ON h.id = p.tb_id
+        WHERE h.guild_id = %s
+          AND h.stars_final IS NULL
+          AND p.round = %s
+        ORDER BY p.platoon_name, p.unit_name, p.player_name
+    """
+    golog.log("DBG", query.replace("%s", "{}").format(str(guild_id), str(phase)))
+    db_data = await get_table_async(query, (guild_id, phase))
+
+    if not db_data:
+        return 0, "", None
+
+    dict_platoons_allocation = {}
+    for platoon_name, unit_name, player_name in db_data:
+        if not platoon_name or not unit_name or not player_name:
+            continue
+        dict_platoons_allocation.setdefault(platoon_name, {}).setdefault(unit_name, [])
+        if player_name not in dict_platoons_allocation[platoon_name][unit_name]:
+            dict_platoons_allocation[platoon_name][unit_name].append(player_name)
+
+    if not dict_platoons_allocation:
+        return 0, "", None
+
+    return 0, "", {"dict_platoons_allocation": dict_platoons_allocation}
+
+
+########################################
 # Get guild ID, allyCode and player name for the
 #  warbot linked to this discord server
 ########################################
