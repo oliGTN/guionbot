@@ -684,7 +684,7 @@ async def process_rotecodex_message(message):
 
     for attachment in message.attachments:
         filename_match = re.fullmatch(
-            r"rote_phase([1-6])_([A-Za-z0-9_-]+)\\.json",
+            r"rote_phase([1-6])_([A-Za-z0-9_-]+)\.json",
             attachment.filename or "",
             re.IGNORECASE
         )
@@ -730,7 +730,7 @@ async def process_rotecodex_message(message):
                 errors.append(attachment.filename + ": " + err_txt)
                 golog.log(
                     "ERR",
-                    "ROTEC0DEX import failed for '" + attachment.filename
+                    "ROTECODEX import failed for '" + attachment.filename
                     + "': " + err_txt
                 )
             else:
@@ -1276,7 +1276,7 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
     eb_phase = ret["phase"]
     dict_platoons_allocation = ret["dict_platoons_allocation"]
     tbs_name = tbs_round[:-1]
-    ec, et = go.store_eb_allocations(guild_id, tbs_name, eb_phase, dict_platoons_allocation)
+    ec, et = await go.store_eb_allocations(guild_id, tbs_name, eb_phase, dict_platoons_allocation)
     return ec, et
 
 #####################
