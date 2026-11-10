@@ -1371,7 +1371,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
     tb_id = dict_tb[tb_name]["id"]
 
     # Read platoon allocations
-    if tbChannel_id!=0 and not free_platoons:
+    if (tbChannel_id != 0 or tb_name == "ROTE") and not free_platoons:
         # For ROTE, prefer the ROTECODEX plan imported into tb_platoons.
         # This makes go.vdp and /bt pose-pelotons use the same assignments
         # as go.laeb, while retaining EchoBot as the fallback source.
@@ -1389,11 +1389,13 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
                 "INFO",
                 "Using ROTECODEX allocations stored in tb_platoons for " + tbs_round
             )
-        else:
+        elif tbChannel_id != 0:
             ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
             if ec != 0:
                 return ec, et
             dict_platoons_allocation = ret["dict_platoons_allocation"]
+        else:
+            dict_platoons_allocation = {}
 
         for platoon in dict_platoons_allocation:
             golog.log("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
