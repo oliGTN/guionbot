@@ -663,6 +663,119 @@ async def get_wb_allocation(tbChannel_id, tbs_round):
 #          l'affectation des pelotons par Echobot
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
+
+def is_rotecodex_author(message):
+    rotecodex_discord_id = getattr(config, "ROTECODEX_DISCORD_ID", None)
+    if rotecodex_discord_id is None:
+        return False
+    try:
+        return message.author.id == int(rotecodex_discord_id)
+    except (TypeError, ValueError):
+        return False
+
+
+async def process_rotecodex_message(message):
+    """
+    Read every valid ROTECODEX JSON attachment in one Discord message.
+    Returns (valid_attachment_found, errors).
+    """
+    valid_attachment_found = False
+    errors = []
+
+    for attachment in message.attachments:
+        filename_match = re.fullmatch(
+            r"rote_phase([1-6])_([A-Za-z0-9_-]+)\\.json",
+            attachment.filename or "",
+            re.IGNORECASE
+        )
+        if filename_match is None:
+            continue
+
+        try:
+            file_content = await attachment.read()
+            plan_data = json_loads(file_content.decode("utf-8-sig"))
+        except Exception as error:
+            golog.log(
+                "ERR",
+                "Unable to read ROTECODEX attachment '" + attachment.filename
+                + "': " + str(error)
+            )
+            continue
+
+        # Check the identifying fields here so go.laeb can continue searching
+        # older messages when an attachment is not a valid plan.
+        if (
+            not isinstance(plan_data, dict)
+            or type(plan_data.get("phase")) is not int
+            or plan_data.get("phase") != int(filename_match.group(1))
+            or plan_data.get("plan_id") != filename_match.group(2)
+            or not isinstance(plan_data.get("guild"), str)
+            or not isinstance(plan_data.get("planets"), dict)
+        ):
+            golog.log(
+                "ERR",
+                "Invalid ROTECODEX JSON attachment '" + attachment.filename + "'"
+            )
+            continue
+
+        valid_attachment_found = True
+        try:
+            err_code, err_txt, imported_count = (
+                await update_mysql.import_rotecodex_tb_platoons(
+                    plan_data,
+                    attachment.filename
+                )
+            )
+            if err_code != 0:
+                errors.append(attachment.filename + ": " + err_txt)
+                golog.log(
+                    "ERR",
+                    "ROTEC0DEX import failed for '" + attachment.filename
+                    + "': " + err_txt
+                )
+            else:
+                golog.log(
+                    "INFO",
+                    "Imported " + str(imported_count)
+                    + " platoon assignments from '" + attachment.filename + "'"
+                )
+        except Exception:
+            errors.append(attachment.filename + ": database/import exception")
+            golog.log("ERR", traceback.format_exc())
+
+    return valid_attachment_found, errors
+
+
+async def get_rotecodex_platoons(tb_channel_id):
+    """
+    Search the configured TB channel from newest to oldest. Process all valid
+    JSON attachments from the first matching ROTECODEX message, then stop.
+    """
+    tb_channel = bot.get_channel(tb_channel_id)
+    if tb_channel is None:
+        golog.log("ERR", "Cannot find TB reading channel " + str(tb_channel_id))
+        return False, 1, "Impossible de trouver le salon de lecture du BT"
+
+    try:
+        async for message in tb_channel.history(limit=500):
+            if not is_rotecodex_author(message):
+                continue
+
+            valid_attachment_found, errors = await process_rotecodex_message(message)
+            if not valid_attachment_found:
+                continue
+
+            if errors:
+                return True, 1, "; ".join(errors)
+            return True, 0, ""
+
+    except discorderrors.Forbidden:
+        golog.log("WAR", "Cannot read history of messages in " + str(tb_channel_id))
+        return False, 1, "Impossible de lire <#" + str(tb_channel_id) + ">"
+
+    return False, 0, ""
+
+
 async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
     dict_tb = data.get("tb_definition.json")
     dict_units = data.get("unitsList_dict.json")
@@ -1147,6 +1260,14 @@ async def replace_territory_name_in_platoons(territory_name, territory_position,
 # OUT - full_txt
 #####################
 async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
+
+    # ROTECODEX plans are JSON attachments. Read the newest matching message
+    # and process all its valid attachments before stopping the history scan.
+    rote_found, rote_ec, rote_et = await get_rotecodex_platoons(tbChannel_id)
+    if rote_found:
+        return rote_ec, rote_et
+    elif rote_ec != 0:
+        return rote_ec, rote_et
 
     ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
     if ec != 0:
@@ -2264,6 +2385,10 @@ async def on_message(message):
         if not bot_on_message:
             return
 
+        # Import ROTECODEX plan attachments as soon as they arrive.
+        if is_rotecodex_author(message):
+            await process_rotecodex_message(message)
+
         ### forwarded messages to the bot in a DM
         if isinstance(message.channel, DMChannel):
             if message.reference!=None \
@@ -3171,8 +3296,8 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
     @commands.check(admin_command)
     @commands.command(name='laeb',
-                 brief="Lit des Allocations de EchoBot",
-                 help="Lit des Allocations de BT de EchoBot dans le salon dédié\n\n"\
+                 brief="Lit les allocations EchoBot ou ROTECODEX",
+                 help="Lit les allocations de BT dans le salon dédié (EchoBot ou pièces jointes ROTECODEX)\n\n"\
                       "Exemple : go.laeb")
     @golog.with_operation_context("admin.laeb")
     async def laeb(self, ctx, *args):
