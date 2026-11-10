@@ -729,9 +729,11 @@ async def process_rotecodex_message(message):
                     "guild": plan_data["guild"],
                     "planets": {}
                 },
-                "filename": attachment.filename
+                "filename": attachment.filename,
+                "attachment_count": 0
             }
 
+        plans_by_guild_phase[group_key]["attachment_count"] += 1
         combined_planets = plans_by_guild_phase[group_key]["plan_data"]["planets"]
         for planet_name, planet_data in plan_data["planets"].items():
             if not isinstance(planet_data, dict):
@@ -789,12 +791,9 @@ async def process_rotecodex_message(message):
                 golog.log(
                     "INFO",
                     "Imported " + str(imported_count)
-                    + " platoon assignments from " + str(
-                        sum(
-                            1 for key in plans_by_guild_phase
-                            if key == (plan_data["guild"], plan_data["phase"])
-                        )
-                    ) + " combined plan attachment(s), starting with '"
+                    + " platoon assignments from "
+                    + str(group["attachment_count"])
+                    + " combined plan attachment(s), starting with '"
                     + filename + "'"
                 )
         except Exception:
