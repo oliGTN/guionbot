@@ -4,6 +4,7 @@ import sys
 from urllib.parse import uses_netloc, urlparse
 import datetime
 import time
+import re
 from wcwidth import wcswidth
 import asyncio
 from decimal import Decimal
@@ -1504,6 +1505,222 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
         golog.log("INFO", "Row count="+str(rowcount), identifier=guild_id)
 
     return
+
+
+async def import_rotecodex_tb_platoons(plan_data, filename):
+    """
+    Replace the stored platoon assignments for one ROTE TB phase with the
+    assignments from a ROTECODEX plan JSON file.
+
+    tb_platoons.tb_id references the internal tb_history.id, not the external
+    Comlink instance ID.
+    """
+    filename_match = re.fullmatch(
+        r"rote_phase([1-6])_([A-Za-z0-9_-]+)\\.json",
+        filename or "",
+        re.IGNORECASE
+    )
+    if filename_match is None:
+        return 1, "Invalid ROTECODEX filename", 0
+
+    if not isinstance(plan_data, dict):
+        return 1, "ROTEC0DEX JSON root must be an object", 0
+
+    phase = plan_data.get("phase")
+    plan_id = plan_data.get("plan_id")
+    guild_name = plan_data.get("guild")
+    planets = plan_data.get("planets")
+
+    if type(phase) is not int or phase not in range(1, 7):
+        return 1, "Invalid phase in ROTECODEX JSON", 0
+    if phase != int(filename_match.group(1)):
+        return 1, "Filename phase does not match JSON phase", 0
+    if not isinstance(plan_id, str) or plan_id != filename_match.group(2):
+        return 1, "Filename plan ID does not match JSON plan_id", 0
+    if not isinstance(guild_name, str) or not guild_name.strip():
+        return 1, "Missing guild name in ROTECODEX JSON", 0
+    if not isinstance(planets, dict) or not planets:
+        return 1, "Missing or empty planets object in ROTECODEX JSON", 0
+
+    # Find the internal tb_history row for the ongoing TB of this guild.
+    query = """
+        SELECT tb_history.id, tb_history.guild_id
+        FROM tb_history
+        JOIN guilds ON guilds.id = tb_history.guild_id
+        WHERE guilds.name = %s
+          AND tb_history.stars_final IS NULL
+        ORDER BY tb_history.start_date DESC
+        LIMIT 1
+    """
+    tb_row = await get_table_async(query, (guild_name,))
+    if not tb_row:
+        golog.log(
+            "ERR",
+            "ROTEC0DEX import rejected: no ongoing TB found in tb_history "
+            "for guild '" + guild_name + "'"
+        )
+        return 1, "No ongoing TB found for guild '" + guild_name + "'", 0
+
+    tb_db_id, guild_id = tb_row[0]
+
+    # Build the current guild's allyCode -> player name lookup once.
+    query = "SELECT allyCode, name FROM players WHERE guildId = %s"
+    player_rows = await get_table_async(query, (guild_id,))
+    players_by_ally_code = {
+        str(row[0]): row[1]
+        for row in (player_rows or [])
+    }
+
+    dict_tb = data.get("tb_definition.json")
+    dict_units = data.get("unitsList_dict.json")
+    if not isinstance(dict_tb, dict) or not isinstance(dict_units, dict):
+        return 1, "Unable to load TB or unit definitions", 0
+
+    values = []
+    seen_rows = set()
+    skipped_players = 0
+
+    # Resolve every planet and assignment before touching the existing rows.
+    for planet_name, planet in planets.items():
+        if not isinstance(planet, dict):
+            return 1, "Invalid planet entry in ROTECODEX JSON", 0
+
+        zone_id_input = planet.get("zone_id")
+        zone_match = (
+            re.fullmatch(r"P([0-9]{1,2})-C([0-9]{1,2})(-B)?", zone_id_input)
+            if isinstance(zone_id_input, str) else None
+        )
+        if zone_match is None:
+            return 1, "Invalid zone_id for planet '" + str(planet_name) + "'", 0
+
+        phase_number, conflict_number = map(int, zone_match.groups()[:2])
+        if not (1 <= phase_number <= 99 and 1 <= conflict_number <= 99):
+            return 1, "zone_id out of range for planet '" + str(planet_name) + "'", 0
+
+        # Keep the same Comlink zone-ID construction as
+        # web_commands_server.handle_deploy_tb_platoons().
+        zone_suffix = (
+            "bonus_recon01" if zone_match.group(3) == "-B" else "recon01"
+        )
+        comlink_zone_id = "tb3_mixed_phase{:02d}_conflict{:02d}_{}".format(
+            phase_number, conflict_number, zone_suffix
+        )
+
+        # connect_rpc.get_actual_tb_platoons_from_dict() removes the final
+        # recon identifier before looking up the display name.
+        zone_definition_id = "_".join(comlink_zone_id.split("_")[:-1])
+        zone_definition = dict_tb.get(zone_definition_id)
+        if not isinstance(zone_definition, dict) or not zone_definition.get("name"):
+            return 1, "Unknown TB zone definition '" + zone_definition_id + "'", 0
+        zone_name = zone_definition["name"]
+
+        platoons = planet.get("platoons")
+        if not isinstance(platoons, dict):
+            return 1, "Missing platoons object for planet '" + str(planet_name) + "'", 0
+
+        for platoon_number, assignments in platoons.items():
+            if not re.fullmatch(r"[1-6]", str(platoon_number)):
+                return 1, "Invalid platoon number for planet '" + str(planet_name) + "'", 0
+            if not isinstance(assignments, list):
+                return 1, "Invalid platoon assignment list for planet '" + str(planet_name) + "'", 0
+
+            # ROTE Comlink platoons are numbered in the opposite direction
+            # from the display names stored in tb_platoons.
+            platoon_name = zone_name + "-" + str(7 - int(platoon_number))
+
+            for assignment in assignments:
+                if not isinstance(assignment, dict):
+                    return 1, "Invalid assignment in planet '" + str(planet_name) + "'", 0
+
+                unit_id = assignment.get("unit_id")
+                if not isinstance(unit_id, str) or unit_id not in dict_units:
+                    return 1, "Unknown unit_id in ROTECODEX assignment: " + str(unit_id), 0
+
+                unit_definition = dict_units[unit_id]
+                if not isinstance(unit_definition, dict) or not unit_definition.get("name"):
+                    return 1, "Missing unit name for unit_id " + unit_id, 0
+                unit_name = unit_definition["name"]
+
+                ally_code_value = assignment.get("ally_code")
+                if isinstance(ally_code_value, bool) or ally_code_value is None:
+                    return 1, "Invalid ally_code for unit_id " + unit_id, 0
+                ally_code = str(ally_code_value)
+                if not re.fullmatch(r"[0-9]{9}", ally_code):
+                    return 1, "Invalid ally_code for unit_id " + unit_id, 0
+
+                player_name = players_by_ally_code.get(ally_code)
+                if not player_name:
+                    skipped_players += 1
+                    continue
+
+                row = (
+                    tb_db_id,
+                    phase,
+                    platoon_name,
+                    unit_name,
+                    player_name
+                )
+                if row not in seen_rows:
+                    values.append(row)
+                    seen_rows.add(row)
+
+    # Delete + insert in one transaction: a failed import preserves the
+    # previous phase data.
+    connection = await adb_connect()
+    cursor = None
+    try:
+        await connection.start_transaction()
+        cursor = await connection.cursor()
+
+        await cursor.execute(
+            "DELETE FROM tb_platoons WHERE tb_id = %s AND round = %s",
+            (tb_db_id, phase)
+        )
+
+        if values:
+            insert_query = """
+                INSERT INTO tb_platoons
+                    (tb_id, round, platoon_name, unit_name, player_name)
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            await cursor.executemany(insert_query, values)
+
+        await connection.commit()
+
+    except Exception:
+        try:
+            await connection.rollback()
+        except Exception:
+            pass
+        raise
+
+    finally:
+        if cursor is not None:
+            try:
+                await cursor.close()
+            except Exception:
+                pass
+        await release_async_connection(connection)
+
+    golog.log(
+        "INFO",
+        "ROTEC0DEX import completed for guild '" + guild_name
+        + "', phase " + str(phase)
+        + ": inserted " + str(len(values))
+        + ", skipped unknown players " + str(skipped_players),
+        identifier=str(guild_id)
+    )
+    if skipped_players:
+        golog.log(
+            "WAR",
+            "ROTEC0DEX import skipped " + str(skipped_players)
+            + " assignments because allyCode was not found in guild '"
+            + guild_name + "'",
+            identifier=str(guild_id)
+        )
+
+    return 0, "", len(values)
+
 
 #################################
 # update TW in DB
