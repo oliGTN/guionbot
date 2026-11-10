@@ -677,9 +677,11 @@ def is_rotecodex_author(message):
 async def process_rotecodex_message(message):
     """
     Read every valid ROTECODEX JSON attachment in one Discord message.
+    Attachments for the same guild and phase are combined and imported as
+    one replacement, so one attachment cannot erase another from the message.
     Returns (valid_attachment_found, errors).
     """
-    valid_attachment_found = False
+    plans_by_guild_phase = {}
     errors = []
 
     for attachment in message.attachments:
@@ -702,15 +704,15 @@ async def process_rotecodex_message(message):
             )
             continue
 
-        # Check the identifying fields here so go.laeb can continue searching
-        # older messages when an attachment is not a valid plan.
         if (
             not isinstance(plan_data, dict)
             or type(plan_data.get("phase")) is not int
             or plan_data.get("phase") != int(filename_match.group(1))
             or plan_data.get("plan_id") != filename_match.group(2)
             or not isinstance(plan_data.get("guild"), str)
+            or not plan_data.get("guild").strip()
             or not isinstance(plan_data.get("planets"), dict)
+            or not plan_data.get("planets")
         ):
             golog.log(
                 "ERR",
@@ -718,29 +720,85 @@ async def process_rotecodex_message(message):
             )
             continue
 
-        valid_attachment_found = True
+        group_key = (plan_data["guild"], plan_data["phase"])
+        if group_key not in plans_by_guild_phase:
+            plans_by_guild_phase[group_key] = {
+                "plan_data": {
+                    "plan_id": plan_data["plan_id"],
+                    "phase": plan_data["phase"],
+                    "guild": plan_data["guild"],
+                    "planets": {}
+                },
+                "filename": attachment.filename
+            }
+
+        combined_planets = plans_by_guild_phase[group_key]["plan_data"]["planets"]
+        for planet_name, planet_data in plan_data["planets"].items():
+            if not isinstance(planet_data, dict):
+                errors.append(attachment.filename + ": invalid planet entry")
+                continue
+
+            if planet_name not in combined_planets:
+                combined_planets[planet_name] = {
+                    "zone_id": planet_data.get("zone_id"),
+                    "platoons": {}
+                }
+            elif combined_planets[planet_name].get("zone_id") != planet_data.get("zone_id"):
+                errors.append(
+                    attachment.filename + ": conflicting zone_id for " + str(planet_name)
+                )
+                continue
+
+            platoons = planet_data.get("platoons")
+            if not isinstance(platoons, dict):
+                errors.append(
+                    attachment.filename + ": missing platoons for " + str(planet_name)
+                )
+                continue
+
+            combined_platoons = combined_planets[planet_name]["platoons"]
+            for platoon_number, assignments in platoons.items():
+                if not isinstance(assignments, list):
+                    errors.append(
+                        attachment.filename + ": invalid assignments for "
+                        + str(planet_name) + " platoon " + str(platoon_number)
+                    )
+                    continue
+                combined_platoons.setdefault(str(platoon_number), []).extend(assignments)
+
+    valid_attachment_found = bool(plans_by_guild_phase)
+
+    for group in plans_by_guild_phase.values():
+        plan_data = group["plan_data"]
+        filename = group["filename"]
         try:
             err_code, err_txt, imported_count = (
                 await update_mysql.import_rotecodex_tb_platoons(
                     plan_data,
-                    attachment.filename
+                    filename
                 )
             )
             if err_code != 0:
-                errors.append(attachment.filename + ": " + err_txt)
+                errors.append(filename + ": " + err_txt)
                 golog.log(
                     "ERR",
-                    "ROTECODEX import failed for '" + attachment.filename
+                    "ROTECODEX import failed for '" + filename
                     + "': " + err_txt
                 )
             else:
                 golog.log(
                     "INFO",
                     "Imported " + str(imported_count)
-                    + " platoon assignments from '" + attachment.filename + "'"
+                    + " platoon assignments from " + str(
+                        sum(
+                            1 for key in plans_by_guild_phase
+                            if key == (plan_data["guild"], plan_data["phase"])
+                        )
+                    ) + " combined plan attachment(s), starting with '"
+                    + filename + "'"
                 )
         except Exception:
-            errors.append(attachment.filename + ": database/import exception")
+            errors.append(filename + ": database/import exception")
             golog.log("ERR", traceback.format_exc())
 
     return valid_attachment_found, errors
