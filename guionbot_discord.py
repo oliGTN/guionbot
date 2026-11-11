@@ -745,6 +745,8 @@ async def process_rotecodex_message(message):
             if planet_name not in combined_planets:
                 combined_planets[planet_name] = {
                     "zone_id": planet_data.get("zone_id"),
+                    "planet_strategy": planet_data.get("planet_strategy"),
+                    "platoon_strategies": dict(planet_data.get("platoon_strategies") or {}),
                     "platoons": {}
                 }
             elif combined_planets[planet_name].get("zone_id") != planet_data.get("zone_id"):
@@ -752,6 +754,35 @@ async def process_rotecodex_message(message):
                     attachment.filename + ": conflicting zone_id for " + str(planet_name)
                 )
                 continue
+            else:
+                # Keep strategy data when the same planet is spread across
+                # multiple attachments. Reject conflicting explicit values.
+                existing_planet = combined_planets[planet_name]
+                incoming_strategy = planet_data.get("planet_strategy")
+                if incoming_strategy is not None:
+                    if (
+                        existing_planet.get("planet_strategy") is not None
+                        and existing_planet["planet_strategy"] != incoming_strategy
+                    ):
+                        errors.append(
+                            attachment.filename + ": conflicting planet_strategy for "
+                            + str(planet_name)
+                        )
+                        continue
+                    existing_planet["planet_strategy"] = incoming_strategy
+
+                incoming_strategies = planet_data.get("platoon_strategies")
+                if isinstance(incoming_strategies, dict):
+                    for number, strategy in incoming_strategies.items():
+                        number = str(number)
+                        current_strategy = existing_planet["platoon_strategies"].get(number)
+                        if current_strategy is not None and current_strategy != strategy:
+                            errors.append(
+                                attachment.filename + ": conflicting strategy for "
+                                + str(planet_name) + " platoon " + number
+                            )
+                            continue
+                        existing_planet["platoon_strategies"][number] = strategy
 
             platoons = planet_data.get("platoons")
             if not isinstance(platoons, dict):
