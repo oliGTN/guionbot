@@ -1509,11 +1509,8 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
 
 async def import_rotecodex_tb_platoons(plan_data, filename):
     """
-    Replace the stored platoon assignments for one ROTE TB phase with the
-    assignments from a ROTECODEX plan JSON file.
-
-    tb_platoons.tb_id references the internal tb_history.id, not the external
-    Comlink instance ID.
+    Replace one ROTE phase in platoon_config/platoon_allocations using a
+    ROTECODEX plan JSON file, preserving assignment priorities.
     """
     filename_match = re.fullmatch(
         r"rote_phase([1-6])_([A-Za-z0-9_-]+)\.json",
@@ -1658,11 +1655,8 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             if not isinstance(assignments, list):
                 return 1, "Invalid platoon assignment list for planet '" + str(planet_name) + "'", 0
 
-            # The JSON dictionary key is the display platoon number.
-            # squad_id carries the reversed Comlink identifier (e.g. key "1"
-            # corresponds to squad_id "tb3-platoon-6").
-            platoon_name = zone_name + "-" + str(platoon_number)
-
+            # squad_id is the Comlink platoon identifier; the generic
+            # allocation reader converts it back to the display number.
             for assignment in assignments:
                 if not isinstance(assignment, dict):
                     return 1, "Invalid assignment in planet '" + str(planet_name) + "'", 0
@@ -1677,7 +1671,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                 unit_name = unit_definition["name"]
 
                 ally_code_value = assignment.get("ally_code")
-                if not isinstance(ally_code_value, str) or ally_code_value is None:
+                if isinstance(ally_code_value, bool) or ally_code_value is None:
                     return 1, "Invalid ally_code for unit_id " + unit_id, 0
                 ally_code = str(ally_code_value)
                 if not re.fullmatch(r"[0-9]{9}", ally_code):
@@ -1689,9 +1683,9 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                     continue
 
                 priority_value = assignment.get("priority")
-                if not isinstance(priority_value, int) or priority_value is None:
+                if type(priority_value) is not int:
                     return 1, "Invalid priority for unit_id " + unit_id, 0
-                if not priority_value in range (1, 16): #values are from A to 15
+                if priority_value not in range(1, 16):  # Values are from A to 15
                     return 1, "Invalid priority for unit_id " + unit_id, 0
                 priority = priority_value
 
@@ -1879,7 +1873,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             identifier=str(guild_id)
         )
 
-    return 0, "", len(values)
+    return 0, "", len(allocation_values)
 
 
 #################################
