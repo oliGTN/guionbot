@@ -1631,10 +1631,21 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             1 if platoon_strategies.get(str(n)) == "FULL" else 0
             for n in range(1, 7)
         ]
+        zone_name = zone_definition["name"]
+        zone_phase_match = re.fullmatch(r"ROTE([0-9]+)[_-](?:DS|LS|MS)b?", zone_name)
+        if zone_phase_match is None:
+            return 1, "Unable to determine zone_phase from zone_name '" + zone_name + "'", 0
+        zone_phase = int(zone_phase_match.group(1))
+        is_bonus = 1 if zone_definition_id.endswith("_bonus") else 0
+
         zone_strategy_updates.append((
             *strategy_values,
             tb_db_id,
-            zone_definition_id
+            zone_definition_id,
+            phase,
+            zone_name,
+            zone_phase,
+            is_bonus
         ))
 
         platoons = planet.get("platoons")
@@ -1710,7 +1721,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             await cursor.executemany(insert_query, values)
 
         if zone_strategy_updates:
-            strategy_query = """
+            strategy_update_query = """
                 UPDATE tb_zones
                 SET zone_strategy_full = %s,
                     recon1_strategy_full = %s,
@@ -1721,23 +1732,65 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                     recon6_strategy_full = %s
                 WHERE tb_id = %s
                   AND zone_id = %s
+                  AND round = %s
+            """
+            strategy_insert_query = """
+                INSERT INTO tb_zones
+                    (tb_id, zone_id, zone_name, zone_phase, round, is_bonus,
+                     zone_strategy_full, recon1_strategy_full,
+                     recon2_strategy_full, recon3_strategy_full,
+                     recon4_strategy_full, recon5_strategy_full,
+                     recon6_strategy_full)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             strategy_rows_updated = 0
+            strategy_rows_inserted = 0
+
             for strategy_update in zone_strategy_updates:
-                await cursor.execute(strategy_query, strategy_update)
-                strategy_rows_updated += max(cursor.rowcount, 0)
-                if cursor.rowcount == 0:
-                    golog.log(
-                        "WAR",
-                        "ROTECODEX strategy update matched no tb_zones row: "
-                        "tb_id=" + str(strategy_update[7])
-                        + ", zone_id=" + str(strategy_update[8])
+                strategy_values_only = strategy_update[:7]
+                strategy_tb_id = strategy_update[7]
+                strategy_zone_id = strategy_update[8]
+                strategy_round = strategy_update[9]
+                strategy_zone_name = strategy_update[10]
+                strategy_zone_phase = strategy_update[11]
+                strategy_is_bonus = strategy_update[12]
+
+                await cursor.execute(
+                    """
+                    SELECT id FROM tb_zones
+                    WHERE tb_id = %s AND zone_id = %s AND round = %s
+                    LIMIT 1
+                    """,
+                    (strategy_tb_id, strategy_zone_id, strategy_round)
+                )
+                existing_zone = await cursor.fetchone()
+
+                if existing_zone:
+                    await cursor.execute(
+                        strategy_update_query,
+                        (*strategy_values_only, strategy_tb_id, strategy_zone_id, strategy_round)
                     )
+                    strategy_rows_updated += 1
+                else:
+                    await cursor.execute(
+                        strategy_insert_query,
+                        (
+                            strategy_tb_id,
+                            strategy_zone_id,
+                            strategy_zone_name,
+                            strategy_zone_phase,
+                            strategy_round,
+                            strategy_is_bonus,
+                            *strategy_values_only
+                        )
+                    )
+                    strategy_rows_inserted += 1
+
             golog.log(
                 "INFO",
-                "ROTECODEX strategy updates affected "
-                + str(strategy_rows_updated) + " tb_zones row(s) for "
-                + str(len(zone_strategy_updates)) + " zones"
+                "ROTECODEX strategy rows: "
+                + str(strategy_rows_updated) + " updated, "
+                + str(strategy_rows_inserted) + " inserted"
             )
 
         await connection.commit()
