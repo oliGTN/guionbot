@@ -1616,8 +1616,8 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         zone_name = zone_definition["name"]
 
         # ROTECODEX stores the planet-level and individual platoon strategies.
-        # tb_zones.zone_id uses the parent zone definition ID (without the
-        # trailing recon01 / bonus_recon01 identifier).
+        # tb_zones.zone_id stores the full Comlink recon zone ID, whereas
+        # tb_definition.json uses the parent zone definition ID.
         planet_strategy = planet.get("planet_strategy")
         platoon_strategies = planet.get("platoon_strategies")
         if not isinstance(planet_strategy, str):
@@ -1634,7 +1634,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         zone_strategy_updates.append((
             *strategy_values,
             tb_db_id,
-            zone_definition_id
+            comlink_zone_id
         ))
 
         platoons = planet.get("platoons")
