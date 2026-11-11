@@ -1576,7 +1576,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
     if not isinstance(dict_tb, dict) or not isinstance(dict_units, dict):
         return 1, "Unable to load TB or unit definitions", 0
 
-    values = []
+    allocation_values = []
     zone_strategy_updates = []
     seen_rows = set()
     skipped_players = 0
@@ -1695,39 +1695,82 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                     return 1, "Invalid priority for unit_id " + unit_id, 0
                 priority = priority_value
 
+                squad_id = assignment.get("squad_id")
+                if not isinstance(squad_id, str) or not re.fullmatch(r"tb3-platoon-[1-6]", squad_id):
+                    return 1, "Invalid squad_id for unit_id " + unit_id, 0
+
                 row = (
-                    tb_db_id,
-                    phase,
-                    platoon_name,
-                    unit_name,
-                    player_name,
+                    int(ally_code),
+                    unit_id,
+                    comlink_zone_id,
+                    squad_id,
                     priority
                 )
                 if row not in seen_rows:
-                    values.append(row)
+                    allocation_values.append(row)
                     seen_rows.add(row)
 
-    # Delete + insert in one transaction: a failed import preserves the
-    # previous phase data.
+    # Replace the stored allocation config for this ROTE phase and update
+    # zone strategies atomically. Phase 1 starts a new TB and clears older
+    # guild configs, matching the existing EchoBot storage convention.
     connection = await adb_connect()
     cursor = None
     try:
         await connection.start_transaction()
         cursor = await connection.cursor()
 
-        await cursor.execute(
-            "DELETE FROM tb_platoons WHERE tb_id = %s AND round = %s",
-            (tb_db_id, phase)
-        )
+        if phase == 1:
+            await cursor.execute(
+                """
+                DELETE FROM platoon_allocations
+                WHERE config_id IN (
+                    SELECT id FROM platoon_config WHERE guild_id = %s
+                )
+                """,
+                (guild_id,)
+            )
+            await cursor.execute(
+                "DELETE FROM platoon_config WHERE guild_id = %s",
+                (guild_id,)
+            )
+        else:
+            await cursor.execute(
+                """
+                DELETE FROM platoon_allocations
+                WHERE config_id IN (
+                    SELECT id FROM platoon_config
+                    WHERE guild_id = %s AND tb_name = 'ROTE' AND phases = %s
+                )
+                """,
+                (guild_id, str(phase))
+            )
+            await cursor.execute(
+                """
+                DELETE FROM platoon_config
+                WHERE guild_id = %s AND tb_name = 'ROTE' AND phases = %s
+                """,
+                (guild_id, str(phase))
+            )
 
-        if values:
-            insert_query = """
-                INSERT INTO tb_platoons
-                    (tb_id, round, platoon_name, unit_name, player_name, priority)
+        await cursor.execute(
+            """
+            INSERT INTO platoon_config (guild_id, tb_name, phases)
+            VALUES (%s, 'ROTE', %s)
+            """,
+            (guild_id, str(phase))
+        )
+        config_id = cursor.lastrowid
+
+        if allocation_values:
+            allocation_insert_query = """
+                INSERT INTO platoon_allocations
+                    (config_id, allyCode, unit_id, zone_id, platoon_id, priority)
                 VALUES (%s, %s, %s, %s, %s, %s)
             """
-            golog.log("DBG",  (insert_query, values))
-            await cursor.executemany(insert_query, values)
+            await cursor.executemany(
+                allocation_insert_query,
+                [(config_id, *allocation) for allocation in allocation_values]
+            )
 
         if zone_strategy_updates:
             strategy_update_query = """
@@ -1823,7 +1866,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         "INFO",
         "ROTECODEX import completed for guild '" + guild_name
         + "', phase " + str(phase)
-        + ": inserted " + str(len(values))
+        + ": inserted " + str(len(allocation_values))
         + ", skipped unknown players " + str(skipped_players),
         identifier=str(guild_id)
     )
