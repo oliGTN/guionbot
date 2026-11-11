@@ -1594,6 +1594,8 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         phase_number, conflict_number = map(int, zone_match.groups()[:2])
         if not (1 <= phase_number <= 99 and 1 <= conflict_number <= 99):
             return 1, "zone_id out of range for planet '" + str(planet_name) + "'", 0
+        if phase_number != phase:
+            return 1, "zone_id phase does not match plan phase for planet '" + str(planet_name) + "'", 0
 
         # Keep the same Comlink zone-ID construction as
         # web_commands_server.handle_deploy_tb_platoons().
@@ -1692,6 +1694,9 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                 squad_id = assignment.get("squad_id")
                 if not isinstance(squad_id, str) or not re.fullmatch(r"tb3-platoon-[1-6]", squad_id):
                     return 1, "Invalid squad_id for unit_id " + unit_id, 0
+                expected_squad_id = "tb3-platoon-" + str(7 - int(platoon_number))
+                if squad_id != expected_squad_id:
+                    return 1, "squad_id does not match platoon number for unit_id " + unit_id, 0
 
                 row = (
                     int(ally_code),
