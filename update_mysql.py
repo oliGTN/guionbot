@@ -1577,6 +1577,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         return 1, "Unable to load TB or unit definitions", 0
 
     values = []
+    zone_strategy_updates = []
     seen_rows = set()
     skipped_players = 0
 
@@ -1613,6 +1614,28 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         if not isinstance(zone_definition, dict) or not zone_definition.get("name"):
             return 1, "Unknown TB zone definition '" + zone_definition_id + "'", 0
         zone_name = zone_definition["name"]
+
+        # ROTECODEX stores the planet-level and individual platoon strategies.
+        # tb_zones.zone_id uses the parent zone definition ID (without the
+        # trailing recon01 / bonus_recon01 identifier).
+        planet_strategy = planet.get("planet_strategy")
+        platoon_strategies = planet.get("platoon_strategies")
+        if not isinstance(planet_strategy, str):
+            return 1, "Missing planet_strategy for planet '" + str(planet_name) + "'", 0
+        if not isinstance(platoon_strategies, dict):
+            return 1, "Missing platoon_strategies for planet '" + str(planet_name) + "'", 0
+
+        strategy_values = [
+            1 if planet_strategy == "FULL" else 0
+        ] + [
+            1 if platoon_strategies.get(str(n)) == "FULL" else 0
+            for n in range(1, 7)
+        ]
+        zone_strategy_updates.append((
+            *strategy_values,
+            tb_db_id,
+            zone_definition_id
+        ))
 
         platoons = planet.get("platoons")
         if not isinstance(platoons, dict):
@@ -1685,6 +1708,21 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                 VALUES (%s, %s, %s, %s, %s)
             """
             await cursor.executemany(insert_query, values)
+
+        if zone_strategy_updates:
+            strategy_query = """
+                UPDATE tb_zones
+                SET zone_strategy_full = %s,
+                    recon1_strategy_full = %s,
+                    recon2_strategy_full = %s,
+                    recon3_strategy_full = %s,
+                    recon4_strategy_full = %s,
+                    recon5_strategy_full = %s,
+                    recon6_strategy_full = %s
+                WHERE tb_id = %s
+                  AND zone_id = %s
+            """
+            await cursor.executemany(strategy_query, zone_strategy_updates)
 
         await connection.commit()
 
