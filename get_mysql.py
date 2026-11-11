@@ -122,8 +122,9 @@ async def get_rotecodex_tb_platoon_allocations(guild_id, tbs_round):
         if player_name and player_name not in dict_platoons_allocation[platoon_name][unit_name]:
             dict_platoons_allocation[platoon_name][unit_name].append(player_name)
 
-        dict_platoons_priority.setdefault(platoon_name, {}).setdefault(unit_name, [])
-        dict_platoons_priority[platoon_name][unit_name].append(priority)
+        if player_name:
+            dict_platoons_priority.setdefault(platoon_name, {}).setdefault(unit_name, {})
+            dict_platoons_priority[platoon_name][unit_name][player_name] = priority
 
     if not dict_platoons_allocation:
         return 0, "", None
