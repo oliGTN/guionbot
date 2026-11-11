@@ -1634,7 +1634,8 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         zone_strategy_updates.append((
             *strategy_values,
             tb_db_id,
-            comlink_zone_id
+            comlink_zone_id,
+            zone_definition_id
         ))
 
         platoons = planet.get("platoons")
@@ -1720,10 +1721,25 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                     recon5_strategy_full = %s,
                     recon6_strategy_full = %s
                 WHERE tb_id = %s
-                  AND zone_id = %s
+                  AND zone_id IN (%s, %s)
             """
-            golog.log("INFO", (strategy_query, zone_strategy_updates))
-            await cursor.executemany(strategy_query, zone_strategy_updates)
+            strategy_rows_updated = 0
+            for strategy_update in zone_strategy_updates:
+                await cursor.execute(strategy_query, strategy_update)
+                strategy_rows_updated += max(cursor.rowcount, 0)
+                if cursor.rowcount == 0:
+                    golog.log(
+                        "WAR",
+                        "ROTECODEX strategy update matched no tb_zones row: "
+                        "tb_id=" + str(strategy_update[7])
+                        + ", zone IDs=" + str(strategy_update[8:])
+                    )
+            golog.log(
+                "INFO",
+                "ROTECODEX strategy updates affected "
+                + str(strategy_rows_updated) + " tb_zones row(s) for "
+                + str(len(zone_strategy_updates)) + " zones"
+            )
 
         await connection.commit()
 
