@@ -667,8 +667,10 @@ async def get_wb_allocation(tbChannel_id, tbs_round):
 def is_rotecodex_author(message):
     rotecodex_discord_id = getattr(config, "ROTECODEX_DISCORD_ID", None)
     if rotecodex_discord_id is None:
+        golog.log("WAR", "ROTECODEX_DISCORD_ID is not defined")
         return False
     try:
+        golog.log("DBG", (message.author.id, int(rotecodex_discord_id)))
         return message.author.id == int(rotecodex_discord_id)
     except (TypeError, ValueError):
         return False
@@ -804,6 +806,8 @@ async def process_rotecodex_message(message):
 
 
 async def get_rotecodex_platoons(tb_channel_id):
+    golog.log("INFO", "START "+str(tb_channel_id))
+
     """
     Search the configured TB channel from newest to oldest. Process all valid
     JSON attachments from the first matching ROTECODEX message, then stop.
@@ -820,6 +824,7 @@ async def get_rotecodex_platoons(tb_channel_id):
 
             valid_attachment_found, errors = await process_rotecodex_message(message)
             if not valid_attachment_found:
+                golog.log("WAR", "No valid attachment")
                 continue
 
             if errors:
@@ -1317,6 +1322,7 @@ async def replace_territory_name_in_platoons(territory_name, territory_position,
 # OUT - full_txt
 #####################
 async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
+    golog.log("INFO", "START "+str((guild_id, tbs_round, tbChannel_id, echostation_id)))
 
     # ROTECODEX plans are JSON attachments. Read the newest matching message
     # and process all its valid attachments before stopping the history scan.
