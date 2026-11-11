@@ -1137,6 +1137,78 @@ async def join_tw(guild_id):
     return 0, "Le bot a rejoint la GT"
 
 ##################################################
+# OUT: platoons_actual_strategy = {"GLS1-mid-2": {"filled": 14, strategy_full: True}...}
+##################################################
+async def get_platoon_actual_strategy(guild_id, force_update, allyCode=None):
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+
+    if err_code != 0:
+        golog.log("ERR", err_txt)
+        return '', None, None
+
+    err_code, err_txt, ret_data = await get_platoon_actual_strategy_from_dict(dict_guild)
+    return err_code, err_txt, ret_data
+
+async def get_platoon_actual_strategy_from_dict(dict_guild):
+    dict_tb = godata.get("tb_definition.json")
+
+    guildId = dict_guild["profile"]["id"]
+    guildName = dict_guild["profile"]["name"]
+
+    if not "territoryBattleStatus" in dict_guild:
+        golog.log("WAR", "["+guildName+"] no TB in progress")
+        return 2, "["+guildName+"] no TB in progress", {}
+
+    open_zone_count = 0
+    for battleStatus in dict_guild["territoryBattleStatus"]:
+        if battleStatus["selected"]:
+            tb_defId = battleStatus["definitionId"]
+            if not tb_defId in dict_tb:
+                golog.log("WAR", "["+guildName+"] TB inconnue du bot")
+                return 1, "["+guildName+"] TB inconnue du bot", {}
+
+            tb_name = dict_tb[tb_defId]["shortname"]
+            tb_id = battleStatus["instanceId"]
+            active_round = battleStatus["currentRound"]
+
+            if active_round == 0:
+                return 2, "TB in preparation phase", {}
+
+    query = "SELECT zone_name, " \
+          + "recon1_filled, recon2_filled, recon3_filled, " \
+          + "recon4_filled, recon5_filled, recon6_filled, " \
+          + "recon1_strategy_full, recon2_strategy_full, recon3_strategy_full, " \
+          + "recon4_strategy_full, recon5_strategy_full, recon6_strategy_full " \
+          + "FROM tb_zones " \
+          + "JOIN tb_history ON tb_history.id=tb_zones.tb_id " \
+          + "WHERE tb_history.tb_id='"+str(tb_id)+"' " \
+          + "AND guild_id='"+guildId+"' " \
+          + "AND round="+str(active_round)
+    golog.log("INFO", query)
+    db_data = await connect_mysql.get_table_async(query)
+
+    if db_data is None or len(db_data)==0:
+        return 1, "["+guildName+"] aucune donnée de peloton", {}
+
+    platoon_actual_strategy = {}
+    for line in db_data:
+        platoon_actual_strategy[line[0]+"-1"] = {"filled": line[1], 
+                                                 "strategy": bool(line[7])}
+        platoon_actual_strategy[line[0]+"-2"] = {"filled": line[2], 
+                                                 "strategy": bool(line[8])}
+        platoon_actual_strategy[line[0]+"-3"] = {"filled": line[3], 
+                                                 "strategy": bool(line[9])}
+        platoon_actual_strategy[line[0]+"-4"] = {"filled": line[4], 
+                                                 "strategy": bool(line[10])}
+        platoon_actual_strategy[line[0]+"-5"] = {"filled": line[5], 
+                                                 "strategy": bool(line[11])}
+        platoon_actual_strategy[line[0]+"-6"] = {"filled": line[6], 
+                                                 "strategy": bool(line[12])}
+
+    return 0, "", platoon_actual_strategy
+
+
+##################################################
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
 ##################################################
 async def get_actual_tb_platoons(guild_id, force_update, allyCode=None):
@@ -2619,71 +2691,15 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     # Get platoon remaining scores
     if compute_estimated_platoons:
-        #Get actual platoons
-        err_code, err_txt, ret_data = await get_actual_tb_platoons_from_dict(dict_guild)
+        #Get actual platoon
+        err_code, err_txt, ret_data = await get_platoon_actual_strategy_from_dict(dict_guild)
         if err_code != 0:
-            dict_platoons_done = {}
+            platoon_actual_strategy = {}
         else:
-            dict_platoons_done = ret_data["platoons"]
+            platoon_actual_strategy = ret_data
 
-        # check for done platoons, unless they are hard given:
-        if targets_platoons==None:
-            #Get allocations
-            tbs_round = tb_name + str(tb_round)
-            err_code, err_txt, ret_dict = await get_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
-
-            if ret_dict == None:
-                dict_platoons_allocation = {}
-            else:
-                dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
-
-            #Compare
-            for zone_name in list_open_zones:
-                recon_zoneId = zone_name+"_recon01"
-                zone_shortname = dict_tb[zone_name]["name"]
-
-
-                # Fill done platoons with allocations
-                zone_done_count=0
-                zone_target_count=0
-                for platoon in dict_platoons_done:
-                    if platoon[:-2] == zone_shortname:
-                        current_platoon_count=0
-                        future_platoon_count=0
-                        for unit in dict_platoons_done[platoon]:
-                            empty_players = dict_platoons_done[platoon][unit].count('')
-                            current_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
-                            future_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
-
-                            if platoon in dict_platoons_allocation:
-                                dict_platoon_allocations = dict_platoons_allocation[platoon]
-                                if unit in dict_platoon_allocations:
-                                    #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
-                                    for i in range(empty_players):
-                                        target_players = dict_platoon_allocations[unit]
-                                        for player in target_players:
-                                            if not player in dict_platoons_done[platoon][unit]:
-                                                dict_platoons_done[platoon][unit].remove('')
-                                                dict_platoons_done[platoon][unit].append(player)
-                                                dict_platoon_allocations[unit].remove(player)
-                                                future_platoon_count += 1
-                                                break
-
-                                    #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
-                        #print(current_platoon_count, future_platoon_count)
-                        zone_done_count += (current_platoon_count==15)
-                        zone_target_count += (future_platoon_count==15)
-
-                                    
-                # Compute remaining platoons score
-                remaining_score = 0
-                if zone_target_count > zone_done_count:
-                    platoon_score = dict_tb[zone_name]["platoonScore"]
-                    remaining_score = (zone_target_count-zone_done_count) * platoon_score
-
-                dict_zones[zone_name]["remainingPlatoonScore"] = remaining_score
-
-        else:
+        if not targets_platoons is None:
+            dict_target_platoons = {}
             for target_platoon in targets_platoons.split("/"):
                 if not ":" in target_platoon:
                     return 1, target_platoon + " --> chaque objectif de peloton doit être de la forme <zone>:<pelotons> (ex: MS:4)", None
@@ -2703,25 +2719,41 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 if not zone_found:
                     return 1, target_platoon+" --> zone inconnue: " + target_zone_shortname + " " + str(list_zone_names), None
 
-                #define platoon target score
-                zone_done_count = 0
-                for platoon in dict_platoons_done:
-                    if platoon.startswith(target_zone_name):
-                        platoon_done_count=0
-                        for char_name in dict_platoons_done[platoon]:
-                            for player_name in dict_platoons_done[platoon][char_name]:
-                                if player_name != '':
-                                    platoon_done_count += 1
-                        if platoon_done_count==15:
-                            zone_done_count+=1
+                target_amount = target_platoon.split(":")[1]
+                if not target_amount.isnumeric():
+                    return 1, target_platoon+" --> nombre incorrect "+target_amount, None
 
-                zone_target_count = int(target_platoon.split(":")[1])
-                remaining_score = 0
-                if zone_target_count > zone_done_count:
-                    platoon_score = dict_tb[zone_name]["platoonScore"]
-                    remaining_score = (zone_target_count-zone_done_count) * platoon_score
+                dict_target_platoons[target_zone_name] = int(target_amount)
 
-                dict_zones[zone_name]["remainingPlatoonScore"] = remaining_score
+
+        # check for done platoons, unless they are hard given:
+        for zone_name in list_open_zones:
+            zone_shortname = dict_tb[zone_name]["name"]
+
+            # Fill done platoons with allocations
+            zone_done_count=0
+            zone_target_count=0
+            for platoon in platoon_actual_strategy:
+                if platoon[:-2] == zone_shortname:
+                    zone_done_count += (platoon_actual_strategy[platoon]["filled"]==15)
+
+                    if targets_platoons==None:
+                        zone_target_count += platoon_actual_strategy[platoon]["strategy"]
+                    elif zone_shortname in dict_target_platoons:
+                        zone_target_count += dict_target_platoons[zone_shortname]
+                    else: #target_platoons is defined but zone not in it
+                        #target considered 0
+                        pass
+
+            golog.log("INFO", "Platoon estimation: "+str((zone_name, zone_done_count, zone_target_count)))
+            # Compute remaining platoons score
+            remaining_score = 0
+            if zone_target_count > zone_done_count:
+                platoon_score = dict_tb[zone_name]["platoonScore"]
+                remaining_score = (zone_target_count-zone_done_count) * platoon_score
+
+            dict_zones[zone_name]["remainingPlatoonScore"] = remaining_score
+            golog.log("INFO", dict_zones[zone_name]["remainingPlatoonScore"])
 
     #####################################################
     # Start filling the graph with scores
