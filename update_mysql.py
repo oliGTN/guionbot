@@ -1677,7 +1677,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                 unit_name = unit_definition["name"]
 
                 ally_code_value = assignment.get("ally_code")
-                if isinstance(ally_code_value, bool) or ally_code_value is None:
+                if not isinstance(ally_code_value, str) or ally_code_value is None:
                     return 1, "Invalid ally_code for unit_id " + unit_id, 0
                 ally_code = str(ally_code_value)
                 if not re.fullmatch(r"[0-9]{9}", ally_code):
@@ -1688,12 +1688,20 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                     skipped_players += 1
                     continue
 
+                priority_value = assignment.get("priority")
+                if not isinstance(priority_value, int) or priority_value is None:
+                    return 1, "Invalid priority for unit_id " + unit_id, 0
+                if not priority_value in range (1, 16): #values are from A to 15
+                    return 1, "Invalid priority for unit_id " + unit_id, 0
+                priority = priority_value
+
                 row = (
                     tb_db_id,
                     phase,
                     platoon_name,
                     unit_name,
-                    player_name
+                    player_name,
+                    priority
                 )
                 if row not in seen_rows:
                     values.append(row)
@@ -1715,9 +1723,10 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         if values:
             insert_query = """
                 INSERT INTO tb_platoons
-                    (tb_id, round, platoon_name, unit_name, player_name)
-                VALUES (%s, %s, %s, %s, %s)
+                    (tb_id, round, platoon_name, unit_name, player_name, priority)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """
+            golog.log("DBG",  (insert_query, values))
             await cursor.executemany(insert_query, values)
 
         if zone_strategy_updates:
