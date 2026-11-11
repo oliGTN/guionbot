@@ -5453,7 +5453,7 @@ def update_raid_estimates_from_wookiebot(raid_name, file_content):
 
     return 0, ""
 
-def update_gl_progress_from_wookiebot(gl_name, file_content):
+async def update_gl_progress_from_wookiebot(gl_name, file_content):
     #print(file_content[:100])
     for line in file_content.split("\n")[1:]:
         fields = line.split(',')
@@ -5462,7 +5462,7 @@ def update_gl_progress_from_wookiebot(gl_name, file_content):
         allyCode_txt = fields[1][1:-1] #removing the " at both ends
         progress = float(fields[2])
         completed = (fields[3] != '"-"')
-        update_mysql.update_gv_history(allyCode_txt, None, gl_name, True, progress, completed, "wookiebot")
+        await update_mysql.update_gv_history(allyCode_txt, None, gl_name, True, progress, completed, "wookiebot")
 
     return 0, ""
 
@@ -6548,12 +6548,25 @@ async def print_tb_stats(guild_id, round=None, allyCode=None):
 
     return 0, t.draw()
 
-# Details about special missions in TB
-async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
+def decode_tb_special_mission_name(zone_shortname):
     dict_tb = godata.get("tb_definition.json")
 
-    #zone name check not useful now, yet important to check before 
-    #  launching long operation like get_tb_status
+    #extract the mission ID from the zone_shortname
+    # shortname could be ROTE3-MS > zone only, all missions
+    # shortname could be ROTE3-MS-1 > zone and mission, one mission only
+    zone_shortname_split = zone_shortname.split("-")
+    if len(zone_shortname_split) == 3:
+        #assumed ROTE3-MS-1 format
+        mission_id = zone_shortname_split[2]
+        zone_shortname = "-".join(zone_shortname_split[:2])
+    elif len(zone_shortname_split) == 2:
+        #assumed ROTE3-MS format
+        mission_id = None
+        zone_shortname = "-".join(zone_shortname_split[:2])
+    else:
+        return None, None, None
+    print(zone_shortname, mission_id)
+
     zone_name = None
     for x in dict_tb:
         x_item = dict_tb[x]
@@ -6561,8 +6574,16 @@ async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
             zone_name = x
             break
 
+    return zone_shortname, zone_name, mission_id
+
+# Details about special missions in TB
+async def print_tb_special_results(guild_id, mission_shortname, allyCode=None):
+    #zone name check not useful now, yet important to check before 
+    #  launching long operation like get_tb_status
+    zone_shortname, zone_name, mission_id = decode_tb_special_mission_name(mission_shortname)
+
     if zone_name==None:
-        return 1, "Zone inconnue: "+zone_shortname, None
+        return 1, "Zone inconnue: "+mission_shortname, None
 
     #Get TB data
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", 0, allyCode=allyCode)
@@ -6572,23 +6593,22 @@ async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
     guild = tb_data["guild"]
     mapstats = tb_data["mapstats"]
 
-    return await print_tb_special_results_from_rpc(guild, mapstats, zone_shortname)
+    return await print_tb_special_results_from_rpc(guild, mapstats, mission_shortname)
 
-async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dict_ready_players={}):
+async def print_tb_special_results_from_rpc(guild, mapstats, mission_shortname, dict_ready_players={}):
     dict_tb = godata.get("tb_definition.json")
 
-    zone_name = None
-    for x in dict_tb:
-        x_item = dict_tb[x]
-        if "name" in x_item and x_item["name"]==zone_shortname:
-            zone_name = x
-            break
+    zone_shortname, zone_name, mission_id = decode_tb_special_mission_name(mission_shortname)
 
     if zone_name==None:
         return 1, "Zone inconnue: "+zone_shortname, None
 
     tb = guild["territoryBattleStatus"][0]
-    list_covert_zones = [x["zoneStatus"]["zoneId"] for x in tb["covertZoneStatus"] if x["zoneStatus"]["zoneId"].startswith(zone_name)]
+    list_covert_zones = [x["zoneStatus"]["zoneId"] for x in tb["covertZoneStatus"] \
+                            if x["zoneStatus"]["zoneId"].startswith(zone_name) \
+                                and (mission_id is None \
+                                    or x["zoneStatus"]["zoneId"][-1]==mission_id) \
+                        ]
 
     dict_members = {}
     for m in guild["member"]:

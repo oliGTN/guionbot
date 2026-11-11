@@ -2820,7 +2820,7 @@ async def store_wookiebot_raid_estimates(message):
             golog.log("INFO", "Storing GV progress from WookieBot for GL "+gl_name)
             file_content = await attachment.read()
             file_txt = file_content.decode('utf-8')
-            ec, et = go.update_gl_progress_from_wookiebot(gl_name, file_txt)
+            ec, et = await go.update_gl_progress_from_wookiebot(gl_name, file_txt)
             if ec != 0:
                 golog.log("ERR", et)
 
@@ -6325,12 +6325,20 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         try:
             await ctx.message.add_reaction(emojis.thumb)
 
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
             # Manage command options
             options = list(args)
             output_channel = ctx.message.channel
+            display_mentions=False
             for arg in args:
                 if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                     output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
+                    display_mentions=True
                     if output_channel == None:
                         await ctx.send('**ERR**: '+err_msg)
                         output_channel = ctx.message.channel
@@ -6342,13 +6350,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            zone_shortname = options[0]
-
-            #Ensure command is launched from a server, not a DM
-            if ctx.guild == None:
-                await ctx.send('ERR: commande non autorisée depuis un DM')
-                await ctx.message.add_reaction(emojis.redcross)
-                return
+            mission_shortname = options[0]
+            golog.log("INFO", "START "+str((mission_shortname, display_mentions, output_channel.name)))
 
             #get bot config from DB
             ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
@@ -6361,7 +6364,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
 
             # launch actual command
-            ec, ret_txt, image = await go.print_tb_special_results(guild_id, zone_shortname, allyCode=connected_allyCode)
+            ec, ret_txt, image = await go.print_tb_special_results(guild_id, mission_shortname, allyCode=connected_allyCode)
             if ec != 0:
                 await ctx.send("ERR: "+ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -6370,10 +6373,41 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             if image==None:
                 await ctx.send(ret_txt)
             else:
+                msg_content = ""
+                if display_mentions:
+                    #Look for Discord Pseudo if in guild
+                    db_data = await get_mysql.load_config_players(guild_id=guild_id)
+                    dict_players_by_IG = db_data[0]
+
+                    mission_name = ""
+                    player_list = []
+                    for line in ret_txt.split("\n"):
+                        golog.log("DBG", line)
+                        if line.startswith("Mission"):
+                            #check if a previous mission was detected
+                            if len(player_list) > 0:
+                                msg_content += "\n"+mission_name + " : "+" ".join(player_list)
+                                golog.log("DBG", msg_content)
+                            mission_name = line
+                            player_list = []
+
+                        elif line.endswith("> pas joué"):
+                            p = line.split(">")[0].strip()
+                            if p in dict_players_by_IG:
+                                p_name = dict_players_by_IG[p][1]
+                            else:
+                                p_name= "**" + p + "**"
+                            player_list.append(p_name)
+
+                    #end of all lines, display mission if detected
+                    if len(player_list) > 0:
+                        msg_content += "\n"+mission_name + " : "+" ".join(player_list)
+                        golog.log("DBG", msg_content)
+
                 with BytesIO() as image_binary:
                     image.save(image_binary, 'PNG')
                     image_binary.seek(0)
-                    await output_channel.send(content = "",
+                    await output_channel.send(content = msg_content,
                         file=File(fp=image_binary, filename='image.png'))
 
             await ctx.message.add_reaction(emojis.check)
