@@ -1722,6 +1722,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                 WHERE tb_id = %s
                   AND zone_id = %s
             """
+            golog.log("INFO", (strategy_query, zone_strategy_updates))
             await cursor.executemany(strategy_query, zone_strategy_updates)
 
         await connection.commit()
