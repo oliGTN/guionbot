@@ -1536,13 +1536,9 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
                   ' en ' + platoon_name
         elif allocated_player == None:
             # No player allocated
-            #joueur non-enregistré ou mentions non autorisées,
-            # on l'affiche quand même
-            line_txt = 'Aucun joueur n\'a posé ' + perso + \
-                  ' en ' + platoon_name
-
-            if platoon_locked:
-                line_txt = "~~" + line_txt + "~~ ("+platoon_name+" est verrouillé)"
+            # probablement pas alloué par le bot, donc normal de ne pas avoir de joueur
+            # Rien à afficher
+            pass
         else:
             #joueur non-enregistré ou mentions non autorisées,
             # on l'affiche quand même
