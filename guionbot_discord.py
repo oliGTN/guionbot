@@ -1420,7 +1420,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         # platoon_config/platoon_allocations. Keep EchoBot as fallback.
         ret_rote = None
         if tb_name == "ROTE":
-            ec_rote, et_rote, ret_rote = await get_mysql.get_rotecodex_tb_platoon_allocations(
+            ec_rote, et_rote, ret_rote = await get_mysql.get_tb_platoon_allocations(
                 guild_id, tbs_round
             )
             if ec_rote != 0:
@@ -1436,7 +1436,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             ec, et, ret = await read_eb_allocation(tbChannel_id, echostation_id, tb_name)
             if ec != 0:
                 return ec, et
-            dict_platoons_allocation = ret
+            dict_platoons_allocation = ret[0]
         else:
             dict_platoons_allocation = {}
 
