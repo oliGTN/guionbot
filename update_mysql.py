@@ -1509,11 +1509,8 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
 
 async def import_rotecodex_tb_platoons(plan_data, filename):
     """
-    Replace the stored platoon assignments for one ROTE TB phase with the
-    assignments from a ROTECODEX plan JSON file.
-
-    tb_platoons.tb_id references the internal tb_history.id, not the external
-    Comlink instance ID.
+    Replace one ROTE phase in platoon_config/platoon_allocations using a
+    ROTECODEX plan JSON file, preserving assignment priorities.
     """
     filename_match = re.fullmatch(
         r"rote_phase([1-6])_([A-Za-z0-9_-]+)\.json",
@@ -1576,7 +1573,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
     if not isinstance(dict_tb, dict) or not isinstance(dict_units, dict):
         return 1, "Unable to load TB or unit definitions", 0
 
-    values = []
+    allocation_values = []
     zone_strategy_updates = []
     seen_rows = set()
     skipped_players = 0
@@ -1597,6 +1594,8 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         phase_number, conflict_number = map(int, zone_match.groups()[:2])
         if not (1 <= phase_number <= 99 and 1 <= conflict_number <= 99):
             return 1, "zone_id out of range for planet '" + str(planet_name) + "'", 0
+        if phase_number != phase:
+            return 1, "zone_id phase does not match plan phase for planet '" + str(planet_name) + "'", 0
 
         # Keep the same Comlink zone-ID construction as
         # web_commands_server.handle_deploy_tb_platoons().
@@ -1658,11 +1657,8 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             if not isinstance(assignments, list):
                 return 1, "Invalid platoon assignment list for planet '" + str(planet_name) + "'", 0
 
-            # The JSON dictionary key is the display platoon number.
-            # squad_id carries the reversed Comlink identifier (e.g. key "1"
-            # corresponds to squad_id "tb3-platoon-6").
-            platoon_name = zone_name + "-" + str(platoon_number)
-
+            # squad_id is the Comlink platoon identifier; the generic
+            # allocation reader converts it back to the display number.
             for assignment in assignments:
                 if not isinstance(assignment, dict):
                     return 1, "Invalid assignment in planet '" + str(planet_name) + "'", 0
@@ -1677,7 +1673,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                 unit_name = unit_definition["name"]
 
                 ally_code_value = assignment.get("ally_code")
-                if not isinstance(ally_code_value, str) or ally_code_value is None:
+                if isinstance(ally_code_value, bool) or ally_code_value is None:
                     return 1, "Invalid ally_code for unit_id " + unit_id, 0
                 ally_code = str(ally_code_value)
                 if not re.fullmatch(r"[0-9]{9}", ally_code):
@@ -1689,45 +1685,91 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                     continue
 
                 priority_value = assignment.get("priority")
-                if not isinstance(priority_value, int) or priority_value is None:
+                if type(priority_value) is not int:
                     return 1, "Invalid priority for unit_id " + unit_id, 0
-                if not priority_value in range (1, 16): #values are from A to 15
+                if priority_value not in range(1, 16):  # Values are from A to 15
                     return 1, "Invalid priority for unit_id " + unit_id, 0
                 priority = priority_value
 
+                squad_id = assignment.get("squad_id")
+                if not isinstance(squad_id, str) or not re.fullmatch(r"tb3-platoon-[1-6]", squad_id):
+                    return 1, "Invalid squad_id for unit_id " + unit_id, 0
+                expected_squad_id = "tb3-platoon-" + str(7 - int(platoon_number))
+                if squad_id != expected_squad_id:
+                    return 1, "squad_id does not match platoon number for unit_id " + unit_id, 0
+
                 row = (
-                    tb_db_id,
-                    phase,
-                    platoon_name,
-                    unit_name,
-                    player_name,
+                    int(ally_code),
+                    unit_id,
+                    comlink_zone_id,
+                    squad_id,
                     priority
                 )
                 if row not in seen_rows:
-                    values.append(row)
+                    allocation_values.append(row)
                     seen_rows.add(row)
 
-    # Delete + insert in one transaction: a failed import preserves the
-    # previous phase data.
+    # Replace the stored allocation config for this ROTE phase and update
+    # zone strategies atomically. Phase 1 starts a new TB and clears older
+    # guild configs, matching the existing EchoBot storage convention.
     connection = await adb_connect()
     cursor = None
     try:
         await connection.start_transaction()
         cursor = await connection.cursor()
 
-        await cursor.execute(
-            "DELETE FROM tb_platoons WHERE tb_id = %s AND round = %s",
-            (tb_db_id, phase)
-        )
+        if phase == 1:
+            await cursor.execute(
+                """
+                DELETE FROM platoon_allocations
+                WHERE config_id IN (
+                    SELECT id FROM platoon_config WHERE guild_id = %s
+                )
+                """,
+                (guild_id,)
+            )
+            await cursor.execute(
+                "DELETE FROM platoon_config WHERE guild_id = %s",
+                (guild_id,)
+            )
+        else:
+            await cursor.execute(
+                """
+                DELETE FROM platoon_allocations
+                WHERE config_id IN (
+                    SELECT id FROM platoon_config
+                    WHERE guild_id = %s AND tb_name = 'ROTE' AND phases = %s
+                )
+                """,
+                (guild_id, str(phase))
+            )
+            await cursor.execute(
+                """
+                DELETE FROM platoon_config
+                WHERE guild_id = %s AND tb_name = 'ROTE' AND phases = %s
+                """,
+                (guild_id, str(phase))
+            )
 
-        if values:
-            insert_query = """
-                INSERT INTO tb_platoons
-                    (tb_id, round, platoon_name, unit_name, player_name, priority)
+        await cursor.execute(
+            """
+            INSERT INTO platoon_config (guild_id, tb_name, phases)
+            VALUES (%s, 'ROTE', %s)
+            """,
+            (guild_id, str(phase))
+        )
+        config_id = cursor.lastrowid
+
+        if allocation_values:
+            allocation_insert_query = """
+                INSERT INTO platoon_allocations
+                    (config_id, allyCode, unit_id, zone_id, platoon_id, priority)
                 VALUES (%s, %s, %s, %s, %s, %s)
             """
-            golog.log("DBG",  (insert_query, values))
-            await cursor.executemany(insert_query, values)
+            await cursor.executemany(
+                allocation_insert_query,
+                [(config_id, *allocation) for allocation in allocation_values]
+            )
 
         if zone_strategy_updates:
             strategy_update_query = """
@@ -1823,7 +1865,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         "INFO",
         "ROTECODEX import completed for guild '" + guild_name
         + "', phase " + str(phase)
-        + ": inserted " + str(len(values))
+        + ": inserted " + str(len(allocation_values))
         + ", skipped unknown players " + str(skipped_players),
         identifier=str(guild_id)
     )
@@ -1836,7 +1878,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             identifier=str(guild_id)
         )
 
-    return 0, "", len(values)
+    return 0, "", len(allocation_values)
 
 
 #################################

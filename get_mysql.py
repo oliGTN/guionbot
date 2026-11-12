@@ -57,9 +57,9 @@ async def load_config_players(guild_id=None):
 ########################################
 async def get_rotecodex_tb_platoon_allocations(guild_id, tbs_round):
     """
-    Return the imported ROTE plan as the same allocation dictionary used by
-    EchoBot: {platoon_name: {unit_name: [player_name, ...]}}.
-    tb_platoons.tb_id is the internal tb_history.id.
+    Read ROTECODEX allocations from platoon_config/platoon_allocations.
+    Return the deployment-compatible allocation dictionary and preserve each
+    assignment priority in a parallel dictionary.
     """
     if not isinstance(tbs_round, str) or not tbs_round.startswith("ROTE"):
         return 0, "", None
@@ -73,33 +73,66 @@ async def get_rotecodex_tb_platoon_allocations(guild_id, tbs_round):
         return 1, "Phase ROTE invalide: " + str(phase), None
 
     query = """
-        SELECT p.platoon_name, p.unit_name, p.player_name
-        FROM tb_platoons AS p
-        INNER JOIN tb_history AS h ON h.id = p.tb_id
-        WHERE h.guild_id = %s
-          AND h.stars_final IS NULL
-          AND p.round = %s
-        ORDER BY p.platoon_name, p.unit_name, p.player_name
+        SELECT pa.zone_id, pa.platoon_id, pa.unit_id, p.name, pa.priority
+        FROM platoon_allocations AS pa
+        INNER JOIN platoon_config AS pc ON pc.id = pa.config_id
+        LEFT JOIN players AS p ON p.allyCode = pa.allyCode
+        WHERE pc.guild_id = %s
+          AND pc.tb_name = 'ROTE'
+          AND pc.phases = %s
+        ORDER BY pa.priority, pa.zone_id, pa.platoon_id, pa.unit_id
     """
-    golog.log("DBG", query.replace("%s", "{}").format(str(guild_id), str(phase)))
-    db_data = await get_table_async(query, (guild_id, phase))
+    golog.log(
+        "DBG",
+        query.replace("%s", "{}").format(str(guild_id), str(phase))
+    )
+    db_data = await get_table_async(query, (guild_id, str(phase)))
 
     if not db_data:
         return 0, "", None
 
+    dict_tb = data.get("tb_definition.json")
+    dict_units = data.get("unitsList_dict.json")
     dict_platoons_allocation = {}
-    for platoon_name, unit_name, player_name in db_data:
-        if not platoon_name or not unit_name or not player_name:
+    dict_platoons_priority = {}
+
+    for zone_id, platoon_id, unit_id, player_name, priority in db_data:
+        if not zone_id or not platoon_id or not unit_id:
             continue
+
+        zone_definition_id = "_".join(zone_id.split("_")[:-1])
+        zone_definition = dict_tb.get(zone_definition_id) if isinstance(dict_tb, dict) else None
+        unit_definition = dict_units.get(unit_id) if isinstance(dict_units, dict) else None
+        if not isinstance(zone_definition, dict) or not zone_definition.get("name"):
+            golog.log("ERR", "Unknown ROTECODEX allocation zone_id: " + str(zone_id))
+            continue
+        if not isinstance(unit_definition, dict) or not unit_definition.get("name"):
+            golog.log("ERR", "Unknown ROTECODEX allocation unit_id: " + str(unit_id))
+            continue
+
+        try:
+            display_platoon_number = str(7 - int(platoon_id.rsplit("-", 1)[1]))
+        except (ValueError, IndexError):
+            golog.log("ERR", "Invalid ROTECODEX platoon_id: " + str(platoon_id))
+            continue
+
+        platoon_name = zone_definition["name"] + "-" + display_platoon_number
+        unit_name = unit_definition["name"]
         dict_platoons_allocation.setdefault(platoon_name, {}).setdefault(unit_name, [])
-        if player_name not in dict_platoons_allocation[platoon_name][unit_name]:
+        if player_name and player_name not in dict_platoons_allocation[platoon_name][unit_name]:
             dict_platoons_allocation[platoon_name][unit_name].append(player_name)
+
+        if player_name:
+            dict_platoons_priority.setdefault(platoon_name, {}).setdefault(unit_name, {})
+            dict_platoons_priority[platoon_name][unit_name][player_name] = priority
 
     if not dict_platoons_allocation:
         return 0, "", None
 
-    return 0, "", {"dict_platoons_allocation": dict_platoons_allocation}
-
+    return 0, "", {
+        "dict_platoons_allocation": dict_platoons_allocation,
+        "dict_platoons_priority": dict_platoons_priority
+    }
 
 ########################################
 # Get guild ID, allyCode and player name for the
