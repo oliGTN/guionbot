@@ -665,7 +665,7 @@ async def read_wb_allocation(tbChannel_id, tbs_round):
         golog.log("WAR", "Cannot read history of messages in "+str(tbChannel_id))
         return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+")", None
 
-    return 0, "", format_platoon_allocations(dict_platoons_allocation), eb_phase
+    return 0, "", format_platoon_allocations(dict_platoons_allocation), int(tbs_round[-1])
 
 
 def is_rotecodex_author(message):
@@ -1376,7 +1376,7 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
     if ec != 0:
         return ec, et
 
-    dict_platoons_allocation = ret
+    dict_platoons_allocation, eb_phase = ret
     ec, et = await go.store_eb_allocations(guild_id, tbs_name, eb_phase, dict_platoons_allocation)
     return ec, et
 
