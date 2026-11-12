@@ -234,7 +234,7 @@ async def get_tb_platoon_allocations(guild_id, tbs_round):
     golog.log("DBG", query + " -- " + str(params))
     db_data = await get_table_async(query, tuple(params))
     if db_data is None:
-        return 1, "Aucune allocation de peloton connue", None
+        return 0, "", None
     if not db_data:
         return 0, "", None
 
@@ -266,20 +266,22 @@ async def get_tb_platoon_allocations(guild_id, tbs_round):
 
         platoon_name = zone_definition["name"] + "-" + platoon_position
         unit_name = unit_definition["name"]
-        unit_allocation = allocations.setdefault(platoon_name, {}).setdefault(
-            unit_name, {"priority": 1, "players": []}
-        )
-
         try:
             allocation_priority = int(priority) if priority is not None else 1
         except (TypeError, ValueError):
             allocation_priority = 1
-        if not unit_allocation["players"]:
-            unit_allocation["priority"] = allocation_priority
+
+        unit_allocations = allocations.setdefault(platoon_name, {})
+        if unit_name not in unit_allocations:
+            unit_allocations[unit_name] = {
+                "priority": allocation_priority,
+                "players": []
+            }
         else:
-            unit_allocation["priority"] = min(
-                unit_allocation["priority"], allocation_priority
+            unit_allocations[unit_name]["priority"] = min(
+                unit_allocations[unit_name]["priority"], allocation_priority
             )
+        unit_allocation = unit_allocations[unit_name]
 
         if player_name and player_name not in unit_allocation["players"]:
             unit_allocation["players"].append(player_name)
