@@ -4814,7 +4814,7 @@ async def deploy_def_tw(guild_id, txt_allyCode, zone_shortname, characters, data
 
 ############################################################
 # transforms aliases into defID and platoon_name into zone Id
-async def deploy_platoons_tb(txt_allyCode, platoon_name, characters):
+async def deploy_platoons_tb(txt_allyCode, platoon_name, characters, preload=False):
     dict_tb = godata.get("tb_definition.json")
     dict_units = godata.get("unitsList_dict.json")
 
@@ -4852,7 +4852,13 @@ async def deploy_platoons_tb(txt_allyCode, platoon_name, characters):
     else:
         platoon_id = "hoth-platoon-"+platoon_position
 
-    ec, txt, ret_data = await connect_rpc.platoon_tb(txt_allyCode, zone_name, platoon_id, list_character_ids)
+    ec, txt, ret_data = await connect_rpc.platoon_tb(
+        txt_allyCode,
+        zone_name,
+        platoon_id,
+        list_character_ids,
+        preload=preload
+    )
 
     if ec != 0:
         return ec, txt, None
