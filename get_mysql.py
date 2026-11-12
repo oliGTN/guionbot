@@ -218,11 +218,15 @@ async def get_tb_platoon_allocations(guild_id, tbs_round):
         params.append(str(tb_phase))
     else:
         query += """
-          AND pc.timestamp = (
-              SELECT MAX(timestamp)
-              FROM platoon_config
-              WHERE guild_id = %s AND tb_name = %s
-          )
+          AND ABS(TIMESTAMPDIFF(
+              SECOND,
+              pc.timestamp,
+              (
+                  SELECT MAX(timestamp)
+                  FROM platoon_config
+                  WHERE guild_id = %s AND tb_name = %s
+              )
+          )) < 5
         """
         params.extend([guild_id, tb_name])
     query += " ORDER BY pa.priority, pa.zone_id, pa.platoon_id, pa.unit_id"
