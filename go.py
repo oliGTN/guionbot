@@ -5226,10 +5226,9 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open
                                                                       "locked": platoon_locked, 
                                                                       "character_name": perso})
                     else:
-                        err_msg = perso + " existe dans la zone "+platoon_name+" mais n\'a pas été affecté par le bot"
-                        list_err.append('ERR: ' + err_msg)
-                        golog.log("ERR", err_msg)
-                        golog.log("ERR", dict_platoons_allocation[platoon_name].keys())
+                        unallocated_msg = platoon_name + ": " + perso + " n'a pas été affecté par le bot"
+                        list_err.append(unallocated_msg)
+                        golog.log("WAR", unallocated_msg)
 
                         # Still need to display it as not filled
                         list_missing_platoons.append({"player_name": None,
