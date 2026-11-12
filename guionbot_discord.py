@@ -1594,6 +1594,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             INNER JOIN tb_history AS h ON h.id = z.tb_id
                                       AND h.current_round = z.round
             WHERE h.guild_id = %s
+              AND h.stars_final IS NULL
         """
         db_data = await connect_mysql.get_table_async(query, (guild_id,))
         if db_data:
