@@ -55,85 +55,6 @@ async def load_config_players(guild_id=None):
 ########################################
 # Read ROTECODEX allocations imported into tb_platoons
 ########################################
-async def get_rotecodex_tb_platoon_allocations(guild_id, tbs_round):
-    """
-    Read ROTECODEX allocations from platoon_config/platoon_allocations.
-    Return the deployment-compatible allocation dictionary and preserve each
-    assignment priority in a parallel dictionary.
-    """
-    if not isinstance(tbs_round, str) or not tbs_round.startswith("ROTE"):
-        return 0, "", None
-
-    try:
-        phase = int(tbs_round[4:])
-    except (TypeError, ValueError):
-        return 1, "Round ROTE invalide: " + str(tbs_round), None
-
-    if phase < 1 or phase > 6:
-        return 1, "Phase ROTE invalide: " + str(phase), None
-
-    query = """
-        SELECT pa.zone_id, pa.platoon_id, pa.unit_id, p.name, pa.priority
-        FROM platoon_allocations AS pa
-        INNER JOIN platoon_config AS pc ON pc.id = pa.config_id
-        LEFT JOIN players AS p ON p.allyCode = pa.allyCode
-        WHERE pc.guild_id = %s
-          AND pc.tb_name = 'ROTE'
-          AND pc.phases = %s
-        ORDER BY pa.priority, pa.zone_id, pa.platoon_id, pa.unit_id
-    """
-    golog.log(
-        "DBG",
-        query.replace("%s", "{}").format(str(guild_id), str(phase))
-    )
-    db_data = await get_table_async(query, (guild_id, str(phase)))
-
-    if not db_data:
-        return 0, "", None
-
-    dict_tb = data.get("tb_definition.json")
-    dict_units = data.get("unitsList_dict.json")
-    dict_platoons_allocation = {}
-    dict_platoons_priority = {}
-
-    for zone_id, platoon_id, unit_id, player_name, priority in db_data:
-        if not zone_id or not platoon_id or not unit_id:
-            continue
-
-        zone_definition_id = "_".join(zone_id.split("_")[:-1])
-        zone_definition = dict_tb.get(zone_definition_id) if isinstance(dict_tb, dict) else None
-        unit_definition = dict_units.get(unit_id) if isinstance(dict_units, dict) else None
-        if not isinstance(zone_definition, dict) or not zone_definition.get("name"):
-            golog.log("ERR", "Unknown ROTECODEX allocation zone_id: " + str(zone_id))
-            continue
-        if not isinstance(unit_definition, dict) or not unit_definition.get("name"):
-            golog.log("ERR", "Unknown ROTECODEX allocation unit_id: " + str(unit_id))
-            continue
-
-        try:
-            display_platoon_number = str(7 - int(platoon_id.rsplit("-", 1)[1]))
-        except (ValueError, IndexError):
-            golog.log("ERR", "Invalid ROTECODEX platoon_id: " + str(platoon_id))
-            continue
-
-        platoon_name = zone_definition["name"] + "-" + display_platoon_number
-        unit_name = unit_definition["name"]
-        dict_platoons_allocation.setdefault(platoon_name, {}).setdefault(unit_name, [])
-        if player_name and player_name not in dict_platoons_allocation[platoon_name][unit_name]:
-            dict_platoons_allocation[platoon_name][unit_name].append(player_name)
-
-        if player_name:
-            dict_platoons_priority.setdefault(platoon_name, {}).setdefault(unit_name, {})
-            dict_platoons_priority[platoon_name][unit_name][player_name] = priority
-
-    if not dict_platoons_allocation:
-        return 0, "", None
-
-    return 0, "", {
-        "dict_platoons_allocation": dict_platoons_allocation,
-        "dict_platoons_priority": dict_platoons_priority
-    }
-
 ########################################
 # Get guild ID, allyCode and player name for the
 #  warbot linked to this discord server
@@ -259,57 +180,107 @@ async def get_google_player_info(channel_id):
 
 # IN: tbs_round > ROTE1 to ROTE6, or ROTE0 to get the latest data
 async def get_tb_platoon_allocations(guild_id, tbs_round):
-    dict_unitsList = data.get("unitsList_dict.json")
-    dict_tb = data.get("tb_definition.json")
+    """
+    Read the saved platoon allocations for the requested TB round.
+
+    Each unit contains its lowest allocation priority and the assigned players:
+    {platoon_name: {unit_name: {"priority": int, "players": [player_name, ...]}}}
+
+    ROTE0 reads the most recently saved ROTE configuration.
+    """
+    if not isinstance(tbs_round, str) or len(tbs_round) < 4:
+        return 1, "Round de BT invalide: " + str(tbs_round), None
 
     tb_name = tbs_round[:-1]
-    tb_phase = int(tbs_round[-1])
-    if tb_name == "ROTE":
-        terr_pos = ["LS", "DS", "MS"]
-    else:
-        terr_pos = ["top", "mid", "bot"]
+    try:
+        tb_phase = int(tbs_round[-1])
+    except (TypeError, ValueError):
+        return 1, "Phase de BT invalide: " + str(tbs_round), None
 
-    query = "SELECT zone_id, platoon_id, unit_id, name FROM platoon_allocations " \
-            "JOIN platoon_config ON platoon_config.id=config_id " \
-            "JOIN players ON players.allyCode=platoon_allocations.allyCode " \
-            "WHERE guild_id='"+guild_id+"' "
-    if tb_phase>0:
-        # Get the data for specific phase
-        query += "AND phases="+str(tb_phase) 
-    else:
-        # Get the data for latest stored data of this guild
-        query += "AND ABS(timestampdiff(SECOND, timestamp, (select max(timestamp) from platoon_config WHERE guild_id='"+guild_id+"')))<5"
+    if tb_phase < 0 or tb_phase > 6:
+        return 1, "Phase de BT invalide: " + str(tb_phase), None
 
-    golog.log("DBG", query)
-    db_data = await get_table_async(query)
-    if db_data == None:
+    dict_units = data.get("unitsList_dict.json")
+    dict_tb = data.get("tb_definition.json")
+
+    query = """
+        SELECT pa.zone_id, pa.platoon_id, pa.unit_id, p.name,
+               COALESCE(pa.priority, 1)
+        FROM platoon_allocations AS pa
+        INNER JOIN platoon_config AS pc ON pc.id = pa.config_id
+        LEFT JOIN players AS p ON p.allyCode = pa.allyCode
+        WHERE pc.guild_id = %s
+          AND pc.tb_name = %s
+    """
+    params = [guild_id, tb_name]
+    if tb_phase > 0:
+        query += " AND pc.phases = %s"
+        params.append(str(tb_phase))
+    else:
+        query += """
+          AND pc.timestamp = (
+              SELECT MAX(timestamp)
+              FROM platoon_config
+              WHERE guild_id = %s AND tb_name = %s
+          )
+        """
+        params.extend([guild_id, tb_name])
+    query += " ORDER BY pa.priority, pa.zone_id, pa.platoon_id, pa.unit_id"
+
+    golog.log("DBG", query + " -- " + str(params))
+    db_data = await get_table_async(query, tuple(params))
+    if db_data is None:
         return 1, "Aucune allocation de peloton connue", None
+    if not db_data:
+        return 0, "", None
 
-    dict_platoons_allocation = {}
-    for line in db_data:
-        zone_id = line[0]
-        platoon_id = line[1]
-        unit_id = line[2]
-        player_name = line[3]
+    allocations = {}
+    for zone_id, platoon_id, unit_id, player_name, priority in db_data:
+        if not zone_id or not platoon_id or not unit_id:
+            continue
 
-        conflict_id = "_".join(zone_id.split('_')[:-1])
-        conflict_name = dict_tb[conflict_id]["name"] # "ROTE1-DS"
+        conflict_id = "_".join(zone_id.split("_")[:-1])
+        zone_definition = dict_tb.get(conflict_id) if isinstance(dict_tb, dict) else None
+        unit_definition = dict_units.get(unit_id) if isinstance(dict_units, dict) else None
+        if not isinstance(zone_definition, dict) or not zone_definition.get("name"):
+            golog.log("ERR", "Unknown platoon allocation zone_id: " + str(zone_id))
+            continue
+        if not isinstance(unit_definition, dict) or not unit_definition.get("name"):
+            golog.log("ERR", "Unknown platoon allocation unit_id: " + str(unit_id))
+            continue
 
         if tb_name == "ROTE":
-            platoon_position = str(7-int(platoon_id[-1]))
+            try:
+                platoon_position = str(7 - int(platoon_id.rsplit("-", 1)[1]))
+            except (ValueError, IndexError):
+                golog.log("ERR", "Invalid ROTE platoon_id: " + str(platoon_id))
+                continue
         else:
-            platoon_position = "hoth-platoon-"+platoon_id[-1]
+            platoon_position = platoon_id.rsplit("-", 1)[-1]
+            if not platoon_position.startswith("hoth-platoon-"):
+                platoon_position = "hoth-platoon-" + platoon_position
 
-        platoon_name = conflict_name+"-"+platoon_position
+        platoon_name = zone_definition["name"] + "-" + platoon_position
+        unit_name = unit_definition["name"]
+        unit_allocation = allocations.setdefault(platoon_name, {}).setdefault(
+            unit_name, {"priority": 1, "players": []}
+        )
 
-        if not platoon_name in dict_platoons_allocation:
-            dict_platoons_allocation[platoon_name] = {}
-        
-        unit_name = dict_unitsList[unit_id]["name"]
-        if not unit_name in dict_platoons_allocation[platoon_name]:
-            dict_platoons_allocation[platoon_name][unit_name] = []
+        try:
+            allocation_priority = int(priority) if priority is not None else 1
+        except (TypeError, ValueError):
+            allocation_priority = 1
+        if not unit_allocation["players"]:
+            unit_allocation["priority"] = allocation_priority
+        else:
+            unit_allocation["priority"] = min(
+                unit_allocation["priority"], allocation_priority
+            )
 
-        if player_name != None:
-            dict_platoons_allocation[platoon_name][unit_name].append(player_name)
+        if player_name and player_name not in unit_allocation["players"]:
+            unit_allocation["players"].append(player_name)
 
-    return 0, "", {"dict_platoons_allocation": dict_platoons_allocation}
+    if not allocations:
+        return 0, "", None
+    return 0, "", allocations
+
