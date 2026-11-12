@@ -5211,8 +5211,13 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open
                 if platoon_name in dict_platoons_allocation:
                     #print(dict_platoons_allocation[platoon_name])
                     if perso in dict_platoons_allocation[platoon_name]:
-                        for allocated_player in dict_platoons_allocation[
-                                platoon_name][perso]:
+                        unit_allocation = dict_platoons_allocation[platoon_name][perso]
+                        allocated_players = (
+                            unit_allocation.get("players", [])
+                            if isinstance(unit_allocation, dict)
+                            else unit_allocation
+                        )
+                        for allocated_player in allocated_players:
                             if not allocated_player in dict_platoons_done[
                                     platoon_name][perso] and allocated_player \
                                     != "Filled in another phase":
@@ -5543,7 +5548,17 @@ async def store_eb_allocations(guild_id, tb_name, phase, allocations):
 
         for unit_name in allocation:
             unit_id = dict_names[unit_name]
-            players = allocation[unit_name]
+            unit_allocation = allocation[unit_name]
+            players = (
+                unit_allocation.get("players", [])
+                if isinstance(unit_allocation, dict)
+                else unit_allocation
+            )
+            priority = (
+                unit_allocation.get("priority", 1)
+                if isinstance(unit_allocation, dict)
+                else 1
+            )
 
             for p_name in players:
                 if p_name=='':
@@ -5555,8 +5570,8 @@ async def store_eb_allocations(guild_id, tb_name, phase, allocations):
                 else:
                     #player has left the guild
                     ac = "999999999"
-                query = "INSERT INTO platoon_allocations(config_id, allyCode, unit_id, zone_id, platoon_id) \n"
-                query+= "VALUES("+str(conf_id)+", "+ac+", '"+unit_id+"', '"+zone_id+"', '"+platoon_id+"')"
+                query = "INSERT INTO platoon_allocations(config_id, allyCode, unit_id, zone_id, platoon_id, priority) \n"
+                query+= "VALUES("+str(conf_id)+", "+ac+", "+unit_id+", '"+zone_id+"', '"+platoon_id+"', "+str(int(priority or 1))+")"
                 golog.log("INFO", query)
                 connect_mysql.simple_execute(query)
 
