@@ -1538,7 +1538,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             # No player allocated
             # probablement pas alloué par le bot, donc normal de ne pas avoir de joueur
             # Rien à afficher
-            pass
+            continue
         else:
             #joueur non-enregistré ou mentions non autorisées,
             # on l'affiche quand même
