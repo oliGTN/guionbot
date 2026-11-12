@@ -5571,7 +5571,7 @@ async def store_eb_allocations(guild_id, tb_name, phase, allocations):
                     #player has left the guild
                     ac = "999999999"
                 query = "INSERT INTO platoon_allocations(config_id, allyCode, unit_id, zone_id, platoon_id, priority) \n"
-                query+= "VALUES("+str(conf_id)+", "+ac+", "+unit_id+", '"+zone_id+"', '"+platoon_id+"', "+str(int(priority or 1))+")"
+                query+= "VALUES("+str(conf_id)+", "+ac+", '"+unit_id+"', '"+zone_id+"', '"+platoon_id+"', "+str(int(priority or 1))+")"
                 golog.log("INFO", query)
                 connect_mysql.simple_execute(query)
 
