@@ -1584,13 +1584,34 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         if not bot_line:
             full_txt += line_txt
 
+    # Read the recon platoon deployment strategy for the current TB round.
+    # A non-full strategy means the bot must preload the platoon (up to 14 units).
+    dict_reconx_strategy_full = {}
+    if deploy_allyCode is not None and required_bot_deployments:
+        query = """
+            SELECT z.zone_name, z.reconx_strategy_full
+            FROM tb_zones AS z
+            INNER JOIN tb_history AS h ON h.id = z.tb_id
+                                      AND h.current_round = z.round
+            WHERE h.guild_id = %s
+        """
+        db_data = await connect_mysql.get_table_async(query, (guild_id,))
+        if db_data:
+            dict_reconx_strategy_full = {
+                zone_name: strategy_full
+                for zone_name, strategy_full in db_data
+            }
+
     # Deploy the bot required units
     # They are grouped by platoon to be more efficient
     for platoon_name in required_bot_deployments:
+        zone_name = platoon_name[:-2]
+        preload = dict_reconx_strategy_full.get(zone_name, 1) == 0
         ec, et, ret_data = await go.deploy_platoons_tb(
-                                        deploy_allyCode, 
-                                        platoon_name, 
-                                        required_bot_deployments[platoon_name])
+                                        deploy_allyCode,
+                                        platoon_name,
+                                        required_bot_deployments[platoon_name],
+                                        preload=preload)
         if ec == 0:
             deployed_names = ret_data[0]
             undeployed_names = ret_data[1]
