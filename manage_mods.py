@@ -678,7 +678,7 @@ async def get_modopti_export(txt_allyCode, prev_modopti_content=None, return_ini
     ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
     if ec!=0:
         golog.log("WAR", "cannot get initialdata for "+txt_allyCode+" > assume empty")
-        initialdata = None
+        return (ec, et, None, None) if return_initialdata else (ec, et, None)
 
     #Add stats
     ec, et, dict_player = connect_crinolo.add_base_stats(dict_player)
