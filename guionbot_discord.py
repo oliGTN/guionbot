@@ -624,7 +624,7 @@ def format_platoon_allocations(allocations):
 # Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
 # Purpose: lit le channel #batailles de territoire pour retouver
 #          l'affectation des pelotons par WookieBot
-# Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
+# Output: {platoon: {unit: {"priority": int, "players": [player, ...]}}}
 ##############################################################
 async def read_wb_allocation(tbChannel_id, tbs_round):
     dict_tb = data.get("tb_definition.json")
@@ -878,7 +878,7 @@ async def read_rotecodex_allocations(tb_channel_id):
 # Parameters: tbs_name (string) > nom de TB, sous la forme "GDS" ou "ROTE"
 # Purpose: lit le channel #batailles de territoire pour retouver
 #          l'affectation des pelotons par Echobot
-# Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
+# Output: {platoon: {unit: {"priority": int, "players": [player, ...]}}}
 ##############################################################
 async def read_eb_allocation(tbChannel_id, echostation_id, tbs_name):
     dict_tb = data.get("tb_definition.json")
@@ -1443,16 +1443,6 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         for platoon in dict_platoons_allocation:
             golog.log("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
     
-        # Read DB platoon allocations
-        #ec, et, ret = get_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
-        #if ec != 0:
-        #    return ec, et
-
-        #dict_platoons_allocation_db = ret["dict_platoons_allocation"]
-
-        #for platoon in dict_platoons_allocation_db:
-        #    golog.log("DBG", "dict_platoons_allocation_db["+platoon+"]="+str(dict_platoons_allocation_db[platoon]))
-
     else:
         dict_platoons_allocation = {}
 
