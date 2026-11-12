@@ -607,13 +607,13 @@ async def send_alert_to_echocommanders(guild_id, message):
                                 golog.log("WAR", "["+guild_name+"] Cannot send DM to "+member.name)
 
 ##############################################################
-# Function: get_wb_allocation
+# Function: read_wb_allocation
 # Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
 # Purpose: lit le channel #batailles de territoire pour retouver
 #          l'affectation des pelotons par WookieBot
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
-async def get_wb_allocation(tbChannel_id, tbs_round):
+async def read_wb_allocation(tbChannel_id, tbs_round):
     dict_tb = data.get("tb_definition.json")
     dict_units = data.get("unitsList_dict.json")
     ENG_US = data.get("ENG_US.json")
@@ -655,14 +655,6 @@ async def get_wb_allocation(tbChannel_id, tbs_round):
     return 0, "", {"phase": eb_phase,
                    "dict_platoons_allocation": dict_platoons_allocation}
 
-
-##############################################################
-# Function: get_eb_allocation
-# Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
-# Purpose: lit le channel #batailles de territoire pour retouver
-#          l'affectation des pelotons par Echobot
-# Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
-##############################################################
 
 def is_rotecodex_author(message):
     rotecodex_discord_id = getattr(config, "ROTECODEX_DISCORD_ID", None)
@@ -836,7 +828,7 @@ async def process_rotecodex_message(message):
     return valid_attachment_found, errors
 
 
-async def get_rotecodex_platoons(tb_channel_id):
+async def read_rotecodex_allocations(tb_channel_id):
     golog.log("INFO", "START "+str(tb_channel_id))
 
     """
@@ -869,7 +861,14 @@ async def get_rotecodex_platoons(tb_channel_id):
     return False, 0, ""
 
 
-async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
+##############################################################
+# Function: read_eb_allocation
+# Parameters: tbs_name (string) > nom de TB, sous la forme "GDS" ou "ROTE"
+# Purpose: lit le channel #batailles de territoire pour retouver
+#          l'affectation des pelotons par Echobot
+# Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
+##############################################################
+async def read_eb_allocation(tbChannel_id, echostation_id, tbs_name):
     dict_tb = data.get("tb_definition.json")
     dict_units = data.get("unitsList_dict.json")
     ENG_US = data.get("ENG_US.json")
@@ -888,8 +887,6 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
     eb_missions_full = []
     eb_missions_tmp = []
     
-    tbs_name = tbs_round[:-1]
-
     current_tb_phase = {} # key = DS/MS/LS or top/mid/bot, value = number [1,6] of the phase
     detect_previous_BT = False
 
@@ -1357,19 +1354,19 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
 
     # ROTECODEX plans are JSON attachments. Read the newest matching message
     # and process all its valid attachments before stopping the history scan.
-    rote_found, rote_ec, rote_et = await get_rotecodex_platoons(tbChannel_id)
+    rote_found, rote_ec, rote_et = await read_rotecodex_allocations(tbChannel_id)
     if rote_found:
         return rote_ec, rote_et
     elif rote_ec != 0:
         return rote_ec, rote_et
 
-    ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
+    tbs_name = tbs_round[:-1] #ROTE, GDS...
+    ec, et, ret = await read_eb_allocation(tbChannel_id, echostation_id, tbs_name)
     if ec != 0:
         return ec, et
 
     eb_phase = ret["phase"]
     dict_platoons_allocation = ret["dict_platoons_allocation"]
-    tbs_name = tbs_round[:-1]
     ec, et = await go.store_eb_allocations(guild_id, tbs_name, eb_phase, dict_platoons_allocation)
     return ec, et
 
@@ -1427,7 +1424,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
                 "Using ROTECODEX allocations stored in tb_platoons for " + tbs_round
             )
         elif tbChannel_id != 0:
-            ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
+            ec, et, ret = await read_eb_allocation(tbChannel_id, echostation_id, tb_name)
             if ec != 0:
                 return ec, et
             dict_platoons_allocation = ret["dict_platoons_allocation"]
