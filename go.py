@@ -30,6 +30,7 @@ import get_mysql
 import connect_crinolo
 import connect_rpc
 import goutils
+import player_cache
 import golog
 import guionbot_discord
 import portraits
@@ -230,23 +231,14 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
             else:
                 recent_player = 0
 
-            json_file = "PLAYERS/"+playerId+".json"
-            golog.log("DBG", 'reading file ' + json_file + '...')
-            if os.path.isfile(json_file):
-                if os.path.getsize(json_file) == 0:
-                    golog.log("DBG", "... empty file, delete it")
-                    #empty file, delete it
-                    os.remove(json_file)
-                    prev_dict_player = None
-                    prev_dict_player_list = None
-                else:
-                    golog.log("DBG", "... correct file")
-                    prev_dict_player = json.load(open(json_file, 'r'))
-                    prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
-                    prev_dict_player_list = goutils.roster_from_dict_to_list(prev_dict_player)
+            golog.log("DBG", 'reading player cache for ' + playerId + '...')
+            prev_dict_player = player_cache.load_player_cache(playerId)
+            if prev_dict_player is not None:
+                golog.log("DBG", "... correct file")
+                prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
+                prev_dict_player_list = goutils.roster_from_dict_to_list(prev_dict_player)
             else:
-                golog.log("DBG", "... the file does not exist")
-                prev_dict_player = None
+                golog.log("DBG", "... the file does not exist or is empty")
                 prev_dict_player_list = None
         else:
             golog.log("DBG", "Player "+ac_or_id+" unknown. Need to get whole data")
@@ -336,11 +328,8 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
                 if prev_datacron!=None:
                     dict_player["datacron"] = prev_datacron
 
-            # Actually write the file
-            json_file = "PLAYERS/"+playerId+".json"
-            fjson = open(json_file, 'w')
-            fjson.write(json.dumps(dict_player, indent=4))
-            fjson.close()
+            # Actually write the compressed player cache
+            player_cache.save_player_cache(playerId, dict_player)
 
             # update DB
             ec, et = await update_mysql.update_player(delta_dict_player)
@@ -5781,8 +5770,9 @@ async def print_guild_dtc(txt_allyCode, filter_txt, with_mentions=False):
     dict_dtc = {}
     for member in dict_guild["member"]:
         player_id = member["playerId"]
-        player_file = "PLAYERS/"+player_id+".json"
-        player = json.load(open(player_file))
+        player = player_cache.load_player_cache(player_id)
+        if player is None:
+            continue
         player_name = player["name"]
 
         if not "datacron" in player:
