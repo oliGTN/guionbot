@@ -1260,16 +1260,16 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                 return 2, "TB in preparation phase", {}
 
             #Get strategy from DB
-            query = "SELECT s.zone_id, s.zone_full " +
-                    ", s.recon1_full " +
-                    ", s.recon2_full " +
-                    ", s.recon3_full " +
-                    ", s.recon4_full " +
-                    ", s.recon5_full " +
-                    ", s.recon6_full " +
-                    "FROM tb_strategy AS s " +
-                    "JOIN tb_history AS h ON h.id = s.tb_id " +
-                    "WHERE h.guild_id='"+guild_id+"-BqbAs0UZA' " +
+            query = "SELECT s.zone_id, s.zone_full " + \
+                    ", s.recon1_full " + \
+                    ", s.recon2_full " + \
+                    ", s.recon3_full " + \
+                    ", s.recon4_full " + \
+                    ", s.recon5_full " + \
+                    ", s.recon6_full " + \
+                    "FROM tb_strategy AS s " + \
+                    "JOIN tb_history AS h ON h.id = s.tb_id " + \
+                    "WHERE h.guild_id='"+guild_id+"-BqbAs0UZA' " + \
                     "AND h.tb_id='"+tb_id+"' "
             golog.log("INFO", query)
             db_data = await connect_mysql.get_table_async(query)
@@ -1873,6 +1873,15 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         update_db=False):
     global prev_dict_guild
     global prev_mapstats
+
+    calling_func = inspect.stack()[1][3]
+    golog.log(
+            "INFO", 
+            "START ("+str(guild_id) \
+            +", "+str(list_target_zone_steps) \
+            +", "+str(simulated_tb) \
+            +", "+str(update_db) \
+            +") from "+str(calling_func))
 
     dict_tb = godata.get("tb_definition.json")
 

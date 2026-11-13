@@ -1911,7 +1911,7 @@ async def send_tb_summary(guild_name, tb_summary, channel_id):
 # Purpose: crée ou met à jour le statut de GT
 ##############################################################
 async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
-    golog.log("DBG", (guild_id, allyCode))
+    golog.log("START", (guild_id, allyCode))
 
     #Get guild infos from warbot or player
     if guild_bots==None:
