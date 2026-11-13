@@ -52,7 +52,19 @@ def load_player_cache(player_id):
             return None
 
     with opener(cache_path, "rt", encoding="utf-8") as cache_file:
-        return json.load(cache_file)
+        player_data = json.load(cache_file)
+
+    # Migrate legacy JSON lazily when it is read. The save helper validates
+    # the compressed file before removing the original JSON. If migration
+    # fails (for example, because the disk is full), keep using the valid
+    # legacy data and leave the original file in place.
+    if cache_path == legacy_path:
+        try:
+            save_player_cache(player_id, player_data)
+        except Exception:
+            pass
+
+    return player_data
 
 
 def save_player_cache(player_id, player_data):
