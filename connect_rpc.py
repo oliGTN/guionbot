@@ -1231,6 +1231,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
     list_open_territories = [] # [{"phase":4, "cmdMsg": "3 étoiles", "cmdState":"FOCUSED"}, ...]
 
+    guild_id = dict_guild["profile"]["id"]
     guildName = dict_guild["profile"]["name"]
 
     dict_member_by_id = {}
@@ -1258,6 +1259,34 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
             if active_round == 0:
                 return 2, "TB in preparation phase", {}
 
+            #Get strategy from DB
+            query = "SELECT s.zone_id, s.zone_full " +
+                    ", s.recon1_full " +
+                    ", s.recon2_full " +
+                    ", s.recon3_full " +
+                    ", s.recon4_full " +
+                    ", s.recon5_full " +
+                    ", s.recon6_full " +
+                    "FROM tb_strategy AS s " +
+                    "JOIN tb_history AS h ON h.id = s.tb_id " +
+                    "WHERE h.guild_id='"+guild_id+"-BqbAs0UZA' " +
+                    "AND h.tb_id='"+tb_id+"' "
+            golog.log("INFO", query)
+            db_data = await connect_mysql.get_table_async(query)
+            dict_strategy = {}
+            if not db_data is None and len(db_data)>0:
+                for line in db_data:
+                    dict_strategy[line[0]] = {"zone": line[1],
+                                              "platoons": [
+                                                  line[2],
+                                                  line[3],
+                                                  line[4],
+                                                  line[5],
+                                                  line[6],
+                                                  line[7],
+                                                  ]
+                                             }
+
             for zone in battleStatus["reconZoneStatus"]:
                 recon_name = zone["zoneStatus"]["zoneId"]
                 zone_name = "_".join(recon_name.split("_")[:-1])
@@ -1271,6 +1300,10 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                         list_open_territories[-1]["cmdMsg"] = zone["zoneStatus"]["commandMessage"]
                     if "commandState" in zone["zoneStatus"]:
                         list_open_territories[-1]["cmdState"] = zone["zoneStatus"]["commandState"]
+
+                    if recon_name in dict_strategy:
+                        pass
+
                     open_zone_count += 1
 
                 if not "platoon" in zone:
