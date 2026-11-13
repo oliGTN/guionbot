@@ -1592,10 +1592,8 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             return 1, "Invalid zone_id for planet '" + str(planet_name) + "'", 0
 
         phase_number, conflict_number = map(int, zone_match.groups()[:2])
-        if not (1 <= phase_number <= 99 and 1 <= conflict_number <= 99):
+        if not (1 <= phase_number <= 6 and 1 <= conflict_number <= 3):
             return 1, "zone_id out of range for planet '" + str(planet_name) + "'", 0
-        if phase_number != phase:
-            return 1, "zone_id phase does not match plan phase for planet '" + str(planet_name) + "'", 0
 
         # Keep the same Comlink zone-ID construction as
         # web_commands_server.handle_deploy_tb_platoons().

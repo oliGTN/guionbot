@@ -2508,6 +2508,10 @@ async def on_message(message):
         else:
             channel_name = message.guild.name+"/"+message.channel.name
 
+        golog.log("DBG", "New message by "+
+                         message.author.display_name + 
+                         " in "+channel_name)
+
         ### basic command management
         lower_msg = message.content.lower().strip()
         if lower_msg.startswith("go."):
@@ -2526,6 +2530,9 @@ async def on_message(message):
 
         # Import ROTECODEX plan attachments as soon as they arrive.
         if is_rotecodex_author(message):
+            golog.log("INFO", "New message by "+
+                              message.author.display_name + 
+                              " in "+channel_name)
             await process_rotecodex_message(message)
 
         ### forwarded messages to the bot in a DM
@@ -2579,6 +2586,9 @@ async def on_message(message):
 
         #Read messages from Juke's bot
         if message.author.id == config.JBOT_DISCORD_ID:
+            golog.log("INFO", "New message by "+
+                              message.author.display_name + 
+                              " in "+channel_name)
             player_name = None
             for embed in message.embeds:
                 dict_embed = embed.to_dict()
@@ -2607,13 +2617,16 @@ async def on_message(message):
 
         #Read messages from WookieBoot
         if message.author.id == config.WOOKIEBOT_DISCORD_ID:
-            golog.log("DBG", "Detecting WookieBot message...")
+            golog.log("INFO", "New message by "+
+                              message.author.display_name + 
+                              " in "+channel_name)
             await store_wookiebot_raid_estimates(message)
 
         #Read messages from Echobot
         if message.author.id == config.EB_DISCORD_ID:
-            golog.log("INFO", "Detect message "+str(message.id)+" from Echobot, with "+str(len(message.embeds))+" embeds")
-            golog.log("INFO", "message="+str(message))
+            golog.log("INFO", "New message by "+
+                              message.author.display_name + 
+                              " in "+channel_name)
             for embed in message.embeds:
                 dict_embed = embed.to_dict()
                 if "author" in dict_embed:
