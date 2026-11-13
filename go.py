@@ -660,7 +660,7 @@ async def load_shard(shard_id, shard_type, cmd_request):
     allyCodes_in_DB = await connect_mysql.get_column_async(query)
 
     if allyCodes_in_DB == None or len(allyCodes_in_DB) == 0:
-        golog.log("WAR", 'No player found for shard "+shard_type+" of ID '+str(shard_id))
+        golog.log("WAR", "No player found for shard "+shard_type+" of ID "+str(shard_id))
         return 1, "No player found for shard "+shard_type+" of ID "+str(shard_id)
 
     delta_lastUpdated = datetime.datetime.now() - lastUpdated
