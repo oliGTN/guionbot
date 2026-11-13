@@ -1613,30 +1613,35 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
         zone_name = zone_definition["name"]
 
         # ROTECODEX strategies are stored separately from tb_zones.
-        # Missing strategy fields retain the tb_strategy default (FULL).
+        # An omitted strategy stays NULL; only explicitly supplied strategies
+        # are stored as FULL (1) or PRELOAD (0).
         planet_strategy = planet.get("planet_strategy")
         platoon_strategies = planet.get("platoon_strategies")
 
-        if "planet_strategy" in planet and not isinstance(planet_strategy, str):
+        if "planet_strategy" in planet and planet_strategy is not None and not isinstance(planet_strategy, str):
             return 1, "Invalid planet_strategy for planet '" + str(planet_name) + "'", 0
         if "platoon_strategies" in planet and not isinstance(platoon_strategies, dict):
             return 1, "Invalid platoon_strategies for planet '" + str(planet_name) + "'", 0
 
-        strategy_defined = (
-            isinstance(planet_strategy, str) and planet_strategy != ""
-        ) or (
-            isinstance(platoon_strategies, dict) and bool(platoon_strategies)
-        )
-        if strategy_defined:
-            strategy_values = [
-                1 if planet_strategy is None or planet_strategy == "FULL" else 0
-            ] + [
-                1 if not isinstance(platoon_strategies, dict)
-                     or str(n) not in platoon_strategies
-                     or platoon_strategies[str(n)] == "FULL"
-                else 0
-                for n in range(1, 7)
-            ]
+        zone_full = (
+            1 if planet_strategy == "FULL" else 0
+        ) if isinstance(planet_strategy, str) and planet_strategy else None
+
+        recon_full_values = []
+        for n in range(1, 7):
+            strategy = (
+                platoon_strategies.get(str(n))
+                if isinstance(platoon_strategies, dict)
+                else None
+            )
+            recon_full_values.append(
+                (1 if strategy == "FULL" else 0)
+                if isinstance(strategy, str) and strategy
+                else None
+            )
+
+        strategy_values = [zone_full] + recon_full_values
+        if any(value is not None for value in strategy_values):
             zone_strategy_updates.append((
                 *strategy_values,
                 tb_db_id,
