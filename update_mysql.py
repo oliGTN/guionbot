@@ -1612,38 +1612,36 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             return 1, "Unknown TB zone definition '" + zone_definition_id + "'", 0
         zone_name = zone_definition["name"]
 
-        # ROTECODEX stores the planet-level and individual platoon strategies.
-        # tb_zones.zone_id stores the parent zone definition ID, without
-        # the trailing recon01 / bonus_recon01 suffix.
+        # ROTECODEX strategies are stored separately from tb_zones.
+        # Missing strategy fields retain the tb_strategy default (FULL).
         planet_strategy = planet.get("planet_strategy")
         platoon_strategies = planet.get("platoon_strategies")
-        if not isinstance(planet_strategy, str):
-            return 1, "Missing planet_strategy for planet '" + str(planet_name) + "'", 0
-        if not isinstance(platoon_strategies, dict):
-            return 1, "Missing platoon_strategies for planet '" + str(planet_name) + "'", 0
 
-        strategy_values = [
-            1 if planet_strategy == "FULL" else 0
-        ] + [
-            1 if platoon_strategies.get(str(n)) == "FULL" else 0
-            for n in range(1, 7)
-        ]
-        zone_name = zone_definition["name"]
-        zone_phase_match = re.fullmatch(r"ROTE([0-9]+)[_-](?:DS|LS|MS)b?", zone_name)
-        if zone_phase_match is None:
-            return 1, "Unable to determine zone_phase from zone_name '" + zone_name + "'", 0
-        zone_phase = int(zone_phase_match.group(1))
-        is_bonus = 1 if zone_definition_id.endswith("_bonus") else 0
+        if "planet_strategy" in planet and not isinstance(planet_strategy, str):
+            return 1, "Invalid planet_strategy for planet '" + str(planet_name) + "'", 0
+        if "platoon_strategies" in planet and not isinstance(platoon_strategies, dict):
+            return 1, "Invalid platoon_strategies for planet '" + str(planet_name) + "'", 0
 
-        zone_strategy_updates.append((
-            *strategy_values,
-            tb_db_id,
-            zone_definition_id,
-            phase,
-            zone_name,
-            zone_phase,
-            is_bonus
-        ))
+        strategy_defined = (
+            isinstance(planet_strategy, str)
+            or isinstance(platoon_strategies, dict)
+        )
+        if strategy_defined:
+            strategy_values = [
+                1 if planet_strategy is None or planet_strategy == "FULL" else 0
+            ] + [
+                1 if not isinstance(platoon_strategies, dict)
+                     or str(n) not in platoon_strategies
+                     or platoon_strategies[str(n)] == "FULL"
+                else 0
+                for n in range(1, 7)
+            ]
+            zone_strategy_updates.append((
+                *strategy_values,
+                tb_db_id,
+                zone_definition_id,
+                phase
+            ))
 
         platoons = planet.get("platoons")
         if not isinstance(platoons, dict):
@@ -1771,26 +1769,24 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
 
         if zone_strategy_updates:
             strategy_update_query = """
-                UPDATE tb_zones
-                SET zone_strategy_full = %s,
-                    recon1_strategy_full = %s,
-                    recon2_strategy_full = %s,
-                    recon3_strategy_full = %s,
-                    recon4_strategy_full = %s,
-                    recon5_strategy_full = %s,
-                    recon6_strategy_full = %s
+                UPDATE tb_strategy
+                SET zone_full = %s,
+                    recon1_full = %s,
+                    recon2_full = %s,
+                    recon3_full = %s,
+                    recon4_full = %s,
+                    recon5_full = %s,
+                    recon6_full = %s
                 WHERE tb_id = %s
                   AND zone_id = %s
                   AND round = %s
             """
             strategy_insert_query = """
-                INSERT INTO tb_zones
-                    (tb_id, zone_id, zone_name, zone_phase, round, is_bonus,
-                     zone_strategy_full, recon1_strategy_full,
-                     recon2_strategy_full, recon3_strategy_full,
-                     recon4_strategy_full, recon5_strategy_full,
-                     recon6_strategy_full)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO tb_strategy
+                    (tb_id, zone_id, round, zone_full,
+                     recon1_full, recon2_full, recon3_full,
+                     recon4_full, recon5_full, recon6_full)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             strategy_rows_updated = 0
             strategy_rows_inserted = 0
@@ -1800,21 +1796,18 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                 strategy_tb_id = strategy_update[7]
                 strategy_zone_id = strategy_update[8]
                 strategy_round = strategy_update[9]
-                strategy_zone_name = strategy_update[10]
-                strategy_zone_phase = strategy_update[11]
-                strategy_is_bonus = strategy_update[12]
 
                 await cursor.execute(
                     """
-                    SELECT id FROM tb_zones
+                    SELECT id FROM tb_strategy
                     WHERE tb_id = %s AND zone_id = %s AND round = %s
                     LIMIT 1
                     """,
                     (strategy_tb_id, strategy_zone_id, strategy_round)
                 )
-                existing_zone = await cursor.fetchone()
+                existing_strategy = await cursor.fetchone()
 
-                if existing_zone:
+                if existing_strategy:
                     await cursor.execute(
                         strategy_update_query,
                         (*strategy_values_only, strategy_tb_id, strategy_zone_id, strategy_round)
@@ -1826,10 +1819,7 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
                         (
                             strategy_tb_id,
                             strategy_zone_id,
-                            strategy_zone_name,
-                            strategy_zone_phase,
                             strategy_round,
-                            strategy_is_bonus,
                             *strategy_values_only
                         )
                     )
