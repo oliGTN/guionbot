@@ -73,8 +73,12 @@ def save_player_cache(player_id, player_data):
                 separators=(",", ":"),
             )
 
-        # The previous cache remains intact unless the compressed file is
-        # completely written and can be atomically installed.
+        # Verify that the temporary gzip stream is readable JSON before
+        # replacing the current cache or deleting the legacy file.
+        with gzip.open(temporary_path, "rt", encoding="utf-8") as check_file:
+            json.load(check_file)
+
+        # Install atomically only after successful verification.
         os.replace(temporary_path, compressed_path)
 
         if os.path.exists(legacy_path):
