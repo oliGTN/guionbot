@@ -1623,8 +1623,9 @@ async def import_rotecodex_tb_platoons(plan_data, filename):
             return 1, "Invalid platoon_strategies for planet '" + str(planet_name) + "'", 0
 
         strategy_defined = (
-            isinstance(planet_strategy, str)
-            or isinstance(platoon_strategies, dict)
+            isinstance(planet_strategy, str) and planet_strategy != ""
+        ) or (
+            isinstance(platoon_strategies, dict) and bool(platoon_strategies)
         )
         if strategy_defined:
             strategy_values = [
