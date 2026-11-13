@@ -42,8 +42,14 @@ def load_player_cache(player_id):
         return None
 
     if os.path.getsize(cache_path) == 0:
-        delete_player_cache(player_id)
-        return None
+        # Do not delete a valid legacy cache just because a compressed file
+        # is empty or incomplete.
+        os.remove(cache_path)
+        if cache_path == compressed_path and os.path.isfile(legacy_path):
+            cache_path = legacy_path
+            opener = open
+        else:
+            return None
 
     with opener(cache_path, "rt", encoding="utf-8") as cache_file:
         return json.load(cache_file)
