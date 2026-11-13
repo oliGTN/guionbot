@@ -31,6 +31,7 @@ import config
 import bot_commands
 import go
 import goutils
+import player_cache
 import golog
 import connect_gsheets
 import connect_mysql
@@ -3286,9 +3287,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
             player_id = player_before["playerId"]
             if clear_cache:
-                json_file = "PLAYERS/"+player_id+".json"
-                if os.path.isfile(json_file):
-                    os.remove(json_file)
+                player_cache.delete_player_cache(player_id)
 
             e, t, player_now = await go.load_player(allyCode, 1, False)
             if e!=0:
