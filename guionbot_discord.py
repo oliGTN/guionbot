@@ -1589,7 +1589,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
     dict_reconx_strategy_full = {}
     if deploy_allyCode is not None and required_bot_deployments:
         query = """
-            SELECT z.zone_name,
+            SELECT s.zone_id,
                    COALESCE(s.recon1_full, 1),
                    COALESCE(s.recon2_full, 1),
                    COALESCE(s.recon3_full, 1),
@@ -1597,34 +1597,19 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
                    COALESCE(s.recon5_full, 1),
                    COALESCE(s.recon6_full, 1)
             FROM tb_strategy AS s
-            INNER JOIN tb_zones AS z
-                    ON z.tb_id = s.tb_id
-                   AND z.zone_id = s.zone_id
-                   AND z.round = s.round
             INNER JOIN tb_history AS h
                     ON h.id = s.tb_id
                    AND h.current_round = s.round
             WHERE h.guild_id = %s
               AND h.stars_final IS NULL
-
-            UNION ALL
-
-            SELECT z.zone_name, 1, 1, 1, 1, 1, 1
-            FROM tb_zones AS z
-            INNER JOIN tb_history AS h ON h.id = z.tb_id
-                                      AND h.current_round = z.round
-            LEFT JOIN tb_strategy AS s
-                   ON s.tb_id = z.tb_id
-                  AND s.zone_id = z.zone_id
-                  AND s.round = z.round
-            WHERE h.guild_id = %s
-              AND h.stars_final IS NULL
-              AND s.id IS NULL
         """
-        db_data = await connect_mysql.get_table_async(query, (guild_id, guild_id))
+        db_data = await connect_mysql.get_table_async(query, (guild_id,))
         if db_data:
             for row in db_data:
-                zone_name = row[0]
+                zone_definition = dict_tb.get(row[0])
+                if not isinstance(zone_definition, dict) or not zone_definition.get("name"):
+                    continue
+                zone_name = zone_definition["name"]
                 for platoon_position in range(1, 7):
                     dict_reconx_strategy_full[
                         (zone_name, platoon_position)
