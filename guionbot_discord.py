@@ -1584,25 +1584,44 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         if not bot_line:
             full_txt += line_txt
 
-    # Read all recon platoon strategies for the active TB round.
-    # reconX_strategy_full applies to platoon position X (1 to 6).
+    # Read recon platoon strategies from tb_strategy for the active TB round.
+    # A missing strategy row or NULL value means FULL (no preload).
     dict_reconx_strategy_full = {}
     if deploy_allyCode is not None and required_bot_deployments:
         query = """
             SELECT z.zone_name,
-                   z.recon1_strategy_full,
-                   z.recon2_strategy_full,
-                   z.recon3_strategy_full,
-                   z.recon4_strategy_full,
-                   z.recon5_strategy_full,
-                   z.recon6_strategy_full
+                   COALESCE(s.recon1_full, 1),
+                   COALESCE(s.recon2_full, 1),
+                   COALESCE(s.recon3_full, 1),
+                   COALESCE(s.recon4_full, 1),
+                   COALESCE(s.recon5_full, 1),
+                   COALESCE(s.recon6_full, 1)
+            FROM tb_strategy AS s
+            INNER JOIN tb_zones AS z
+                    ON z.tb_id = s.tb_id
+                   AND z.zone_id = s.zone_id
+                   AND z.round = s.round
+            INNER JOIN tb_history AS h
+                    ON h.id = s.tb_id
+                   AND h.current_round = s.round
+            WHERE h.guild_id = %s
+              AND h.stars_final IS NULL
+
+            UNION ALL
+
+            SELECT z.zone_name, 1, 1, 1, 1, 1, 1
             FROM tb_zones AS z
             INNER JOIN tb_history AS h ON h.id = z.tb_id
                                       AND h.current_round = z.round
+            LEFT JOIN tb_strategy AS s
+                   ON s.tb_id = z.tb_id
+                  AND s.zone_id = z.zone_id
+                  AND s.round = z.round
             WHERE h.guild_id = %s
               AND h.stars_final IS NULL
+              AND s.id IS NULL
         """
-        db_data = await connect_mysql.get_table_async(query, (guild_id,))
+        db_data = await connect_mysql.get_table_async(query, (guild_id, guild_id))
         if db_data:
             for row in db_data:
                 zone_name = row[0]
@@ -1619,7 +1638,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         strategy_full = dict_reconx_strategy_full.get(
             (zone_name, platoon_position), 1
         )
-        preload = strategy_full is not None and not bool(strategy_full)
+        preload = not bool(strategy_full)
         ec, et, ret_data = await go.deploy_platoons_tb(
                                         deploy_allyCode,
                                         platoon_name,
