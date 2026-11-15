@@ -1,9 +1,13 @@
 import sys
 import json
+try:
+    from SCRIPTS.game_data_utils import load_game_data
+except ModuleNotFoundError:  # Support direct execution: python SCRIPTS/script.py
+    from game_data_utils import load_game_data
 import golog
 
 #############################
-game_data = json.load(open(sys.argv[1], 'r'))
+game_data = dict(load_game_data(sys.argv[1]))
 
 dict_recipes = {}
 for recipe in game_data["recipe"]:

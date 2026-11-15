@@ -1,8 +1,12 @@
 import json
+try:
+    from SCRIPTS.game_data_utils import load_game_data
+except ModuleNotFoundError:  # Support direct execution: python SCRIPTS/script.py
+    from game_data_utils import load_game_data
 import sys
 
 gameData_name = sys.argv[1]
-gameData = json.load(open(gameData_name))
+gameData = dict(load_game_data(gameData_name))
 
 gameDataCrinolo = {}
 

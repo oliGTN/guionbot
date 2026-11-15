@@ -1,7 +1,11 @@
 import json
+try:
+    from SCRIPTS.game_data_utils import load_game_data
+except ModuleNotFoundError:  # Support direct execution: python SCRIPTS/script.py
+    from game_data_utils import load_game_data
 import sys
 
-game_data = json.load(open(sys.argv[1], 'r'))
+game_data = dict(load_game_data(sys.argv[1]))
 
 dict_rules = {}
 for rule in game_data["battleTargetingRule"]:

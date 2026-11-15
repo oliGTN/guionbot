@@ -1,24 +1,7 @@
 python SCRIPTS/update_localization_dict.py
 
-GAMEDATA_FILE=../warstats/GameData.json
-GAMEDATASEG2_FILE=../warstats/GameData_segment2.json
-
-echo "update units..."
-python -m SCRIPTS.update_unitsList_json $GAMEDATA_FILE
-echo "update mods..."
-python -m SCRIPTS.update_modList_json $GAMEDATASEG2_FILE
-echo "update capabilities..."
-python SCRIPTS/create_capa_list.py $GAMEDATA_FILE
-echo "update equipment..."
-python SCRIPTS/create_eqpt_dict.py $GAMEDATA_FILE
-echo "update targeting rules..."
-python SCRIPTS/create_targetrule_dict.py $GAMEDATA_FILE
-echo "update TB..."
-python SCRIPTS/create_tb_data.py $GAMEDATA_FILE
-echo "update relic promotion table..."
-python SCRIPTS/create_relic_promo_table.py $GAMEDATA_FILE
-echo "update crinolo data..."
-python SCRIPTS/create_crinolo_gameData.py $GAMEDATA_FILE
+# Run all generators in one process so each large GameData file is parsed only once.
+python -m SCRIPTS.update_local_data
 
 echo "clean..."
 rm -f CACHE/config_units.json
