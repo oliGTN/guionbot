@@ -1,8 +1,9 @@
 import json
+from SCRIPTS.game_data_utils import load_game_data
 import sys
 
 gameData_name = sys.argv[1]
-gameData = json.load(open(gameData_name))
+gameData = load_game_data(gameData_name)
 
 gameDataCrinolo = {}
 
