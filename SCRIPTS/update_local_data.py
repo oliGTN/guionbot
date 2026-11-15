@@ -16,13 +16,12 @@ def run_script(module_name, *args):
 
 def main():
     game_data_file = "../warstats/GameData.json"
-    game_data_segment2_file = "../warstats/GameData_segment2.json"
 
     print("update units...")
     run_script("SCRIPTS.update_unitsList_json", game_data_file)
 
     print("update mods...")
-    run_script("SCRIPTS.update_modList_json", game_data_segment2_file)
+    run_script("SCRIPTS.update_modList_json", game_data_file)
 
     print("update capabilities...")
     run_script("SCRIPTS.create_capa_list", game_data_file)
