@@ -1054,10 +1054,16 @@ async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_t
         await release_sem(txt_allyCode)
 
     if ec == 0:
+        # The cost gets a SUCCESS sign.
         txt = emojis.check+" "+cost_txt
+        if simulation:
+            txt = "[SIMULATION]"+txt
     else:
         txt = emojis.redcross+" "+et
-        if ec == 2 and cost_txt:
+
+        # An error during simulation does not display the cost.
+        # A completed simulation (ec == 2) does display it.
+        if (not simulation or ec == 2) and cost_txt:
             txt += "\n "+cost_txt
 
     if len(txt) > 1000:
