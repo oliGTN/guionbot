@@ -1393,7 +1393,7 @@ async def upgrade_tier_mods(
     mod_list = godata.get("modList_dict.json")
 
     if not target_rarity_tier in ["5D", "5C", "5B", "5A", "6E", "6D", "6C", "6B", "6A"]:
-        return 1, "Le tier souhaité n'est pas valable"
+        return 1, "Le tier souhaité n'est pas valable", None
 
     target_rarity = int(target_rarity_tier[0])
     target_tier = "EDCBA".index(target_rarity_tier[1])+1
@@ -1450,10 +1450,10 @@ async def upgrade_tier_mods(
                 #recipe_idx goes from 0 to 3, while mod_tier goes from 1 to 5
                 # and if mod_tier=5 then no need for tierUp
                 for recipe_idx in range(mod_tier-1, target_tier-1):
-                    for ingredient in mod_def["tierUpRecipeTable"][recipe_id]:
+                    for ingredient in mod_def["tierUpRecipeTable"][recipe_idx]:
                         if not ingredient in upgrade_cost:
                             upgrade_cost[ingredient] = 0
-                        upgrade_cost[ingredient] += mod_def["tierUpRecipeTable"][recipe_id][ingredient]
+                        upgrade_cost[ingredient] += mod_def["tierUpRecipeTable"][recipe_idx][ingredient]
 
             else: # rarity 5 to 6
                 # need to upgrade tiers, then promote then re-upgrade
@@ -1496,7 +1496,7 @@ async def upgrade_tier_mods(
 
 
     if len(list_mods)==0:
-        return 1, "Aucun mod à passer au tier "+target_rarity_tier
+        return 1, "Aucun mod à passer au tier "+target_rarity_tier, None
 
     err_code=0
     if not is_simu:
