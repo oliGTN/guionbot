@@ -1,7 +1,8 @@
 import json
+from SCRIPTS.game_data_utils import load_game_data
 import sys
 
-game_data = json.load(open(sys.argv[1], 'r'))
+game_data = load_game_data(sys.argv[1])
 FRE_FR = json.load(open("DATA/FRE_FR.json", 'r'))
 
 #Cost by mission node
@@ -48,6 +49,7 @@ dict_cost["C01SP"]["M05"] = {"NORMALDIFF": "10B", "HARDDIFF": "20B"}
 
 dict_eqpt = {}
 for material in game_data["material"]:
+    material = dict(material)  # Do not modify the shared source GameData.
     material_id = material["id"]
     #if not material_id.startswith("unitshard_"):
     #    continue
@@ -77,6 +79,7 @@ for recipe in game_data["recipe"]:
     dict_recipes[recipe["id"]] = recipe
 
 for equipment in game_data["equipment"]:
+    equipment = dict(equipment)  # Do not modify the shared source GameData.
     dict_eqpt[equipment["id"]] = equipment
     if "recipeId" in equipment and equipment["recipeId"] in dict_recipes:
         dict_eqpt[equipment["id"]]["recipe"] = dict_recipes[equipment["recipeId"]]["ingredients"]
