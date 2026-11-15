@@ -5152,6 +5152,34 @@ class ModsCog(commands.GroupCog, name="mods"):
             remove_command_from_queue(interaction)
 
 
+    @app_commands.command(name="slice-up")
+    @app_commands.rename(list_alias_txt="liste-persos")
+    @app_commands.choices(target=[
+        app_commands.Choice(name="5D", value="5D"),
+        app_commands.Choice(name="5C", value="5C"),
+        app_commands.Choice(name="5B", value="5B"),
+        app_commands.Choice(name="5A", value="5A"),
+        app_commands.Choice(name="6E", value="6E"),
+        app_commands.Choice(name="6D", value="6D"),
+        app_commands.Choice(name="6C", value="6C"),
+        app_commands.Choice(name="6B", value="6B"),
+        app_commands.Choice(name="6A", value="6A")])
+    @golog.with_operation_context("mods.slice-up")
+    async def upgrade_mod_slice_up(self, interaction: discord.Interaction,
+                                   target: str,
+                                   list_alias_txt: str=None,
+                                   simulation: bool=False):
+        try:
+            await bot_commands.upgrade_mod_slice_up(
+                        interaction,
+                        target,
+                        list_alias_txt,
+                        simulation)
+        except Exception as e:
+            golog.log("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            remove_command_from_queue(interaction)
+
     @app_commands.command(name="pose-inventaire")
     @golog.with_operation_context("mods.pose-inventaire")
     async def allocate_random_mods(self, interaction: discord.Interaction):
