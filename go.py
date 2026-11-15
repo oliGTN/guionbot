@@ -98,6 +98,9 @@ def manage_disk_usage():
 
     if used_percentage >= 95:
         golog.log('ERROR', 'Disk usage exceeds 95%!')
+        return 1, "Disk usage is above 95%"
+    else:
+        return 0, ""
 
 ##################################
 # Function: refresh_cache

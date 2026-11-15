@@ -8,6 +8,7 @@
 import string
 import sys
 import re
+import inspect
 import json
 from html.parser import HTMLParser
 import copy #deepcopy
@@ -76,7 +77,7 @@ def transform_mod_list_to_dict(dict_player):
 # IN (optional): initialdata (from connect_rpc.get_player_initialdata)
 # OUT: dict_player_mods = {mod_id: {"id":
 #                                   "definitionId":
-#                                   "unit_id":
+#                                   "unit_id": #None if mod is not allocated
 #                                   "slot":
 #                                   "rarity":
 #                                   ... and other mod attributes
@@ -1359,36 +1360,77 @@ async def sell_mods(
     return await connect_rpc.sell_mods(final_list_mods, txt_allyCode)
 
 ################
-# IN: targetTier = "5C" or "5A" or "6E"...
-async def upgrade_tier_mods(dict_player_mods, target_tier, allyCode, is_simu=False, only_speed_sec=False):
+# IN: dict_player_mods = {mod_id: {"id":
+#                                  "definitionId":
+#                                  "unit_id": #None if mod is not allocated
+#                                  "slot":
+#                                  "rarity":
+#                                  ... and other mod attributes
+# IN: target_rarity_tier = "5C" or "5A" or "6E"...
+async def upgrade_tier_mods(
+    dict_player_mods, 
+    target_rarity_tier, 
+    allyCode, 
+    list_unit_id=None,
+    is_simu=False, 
+    initialdata=None,
+    only_speed_sec=False):
+
+    calling_func = inspect.stack()[1][3]
+    golog.log(
+            "INFO", 
+            "START ("+str(len(dict_player_mods)) \
+            +", "+str(target_rarity_tier) \
+            +", "+str(allyCode) \
+            +", "+str(list_unit_id is None) \
+            +", "+str(is_simu)+")" \
+            +", "+str(only_speed_sec)+")" \
+            +" from "+str(calling_func))
+
+    if is_simu and initialdata is None:
+        return 1, "Cannot request a simulation without initialdata", None
 
     mod_list = godata.get("modList_dict.json")
 
-    if not target_tier in ["5D", "5C", "5B", "5A", "6E", "6D", "6C", "6B", "6A"]:
-        return 1, "Le tier souhaité n'est pas valable"
+    if not target_rarity_tier in ["5D", "5C", "5B", "5A", "6E", "6D", "6C", "6B", "6A"]:
+        return 1, "Le tier souhaité n'est pas valable", None
 
-    target_rarity = int(target_tier[0])
-    target_tier = "EDCBA".index(target_tier[1])+1
+    target_rarity = int(target_rarity_tier[0])
+    target_tier = "EDCBA".index(target_rarity_tier[1])+1
 
-    # list all mods below target_tier
+    # list all mods below target_rarity_tier
     list_mods = []
     upgrade_cost = {}
     for mod_id in dict_player_mods:
         mod = dict_player_mods[mod_id]
+        mod_defId=mod["definitionId"]
+        mod_unit = mod["unit_id"]
         mod_tier = mod["tier"]
-        mod_setId = mod["setId"]
-        mod_set = modList[mod_setId]
-        mod_rarity = mod_set["rarity"]
+        mod_def = mod_list[mod_defId]
+        mod_rarity = mod_def["rarity"]
+
+        #Check if the unit is part of specified units
+        if not list_unit_id is None and mod_unit is None:
+            golog.log("DBG", "mod "+mod_id+" ignored as unallocated and list_unit_id is defined")
+            continue
+        if not list_unit_id is None and not mod_unit in list_unit_id:
+            golog.log("DBG", "mod "+mod_id+" ignored as "+mod_unit+" not part of "+str(list_unit_id))
+            continue
+
+        if mod_rarity>target_rarity:
+            continue
 
         if mod_rarity<target_rarity or mod_tier<target_tier:
             if mod_rarity<5:
                 #no upgrade of 4 pip mods and lower
+                golog.log("DBG", "mod "+mod_id+" ignored as rarity "+str(mod_rarity)+"<5")
                 continue
 
             if only_speed_sec:
                 if not "secondaryStat" in mod:
                     # no secondary = no speed secondary
                     # exit loop and go to next mod
+                    golog.log("DBG", "mod "+mod_id+" ignored as no secondary stats")
                     continue
 
                 has_speed_sec = False
@@ -1398,83 +1440,149 @@ async def upgrade_tier_mods(dict_player_mods, target_tier, allyCode, is_simu=Fal
                 if not has_speed_sec:
                     # no speed secondary
                     # exit loop and go to next mod
+                    golog.log("DBG", "mod "+mod_id+" ignored as no speed in secondary stats")
                     continue
 
-            list_mods.append(mod_id)
+            list_mods.append(mod)
 
             #Compute cost for tier up
             if mod_rarity == target_rarity:
-                for recipe_id in range(mod_tier, target_tier):
-                    for ingredient in mod_set["tierUpRecipeTable"][recipe_id]:
+                #recipe_idx goes from 0 to 3, while mod_tier goes from 1 to 5
+                # and if mod_tier=5 then no need for tierUp
+                for recipe_idx in range(mod_tier-1, target_tier-1):
+                    for ingredient in mod_def["tierUpRecipeTable"][recipe_idx]:
                         if not ingredient in upgrade_cost:
                             upgrade_cost[ingredient] = 0
-                        upgrade_cost[ingredient] += mod_set["tierUpRecipeTable"][recipe_id][ingredient]
+                        upgrade_cost[ingredient] += mod_def["tierUpRecipeTable"][recipe_idx][ingredient]
 
-            else:
-                # neet to upgrade tiers, then promote then re-upgrade
-                # 1 upgrade to tier 5
-                for recipe_id in range(mod_tier, 5):
-                    for ingredient in mod_set["tierUpRecipeTable"][recipe_id]:
+            else: # rarity 5 to 6
+                # need to upgrade tiers, then promote then re-upgrade
+
+                ###########################################
+                # 1/ upgrade rarity 5 to tier 5
+                ###########################################
+
+                #recipe_idx goes from 0 to 3
+                # mod_tier goes from 1 to 5
+                # if mod_tier=5 then no need for tierUp
+                for recipe_id in range(mod_tier, 4):
+                    for ingredient in mod_def["tierUpRecipeTable"][recipe_id]:
                         if not ingredient in upgrade_cost:
                             upgrade_cost[ingredient] = 0
-                        upgrade_cost[ingredient] += mod_set["tierUpRecipeTable"][recipe_id][ingredient]
+                        upgrade_cost[ingredient] += mod_def["tierUpRecipeTable"][recipe_id][ingredient]
 
-                # 2 promote
-                for ingredient in mod_set["promotionRecipe"]:
+                ###########################################
+                # 2/ promote rarity 5 to 6
+                ###########################################
+                for ingredient in mod_def["promotionRecipe"]:
                     if not ingredient in upgrade_cost:
                         upgrade_cost[ingredient] = 0
-                    upgrade_cost[ingredient] += mod_set["tierUpRecipeTable"][recipe_id][ingredient]
+                    upgrade_cost[ingredient] += mod_def["promotionRecipe"][ingredient]
 
-                # 3 upgrade to tier 5
-                promoted_mod_set_id = mod_set["promotionId"]
-                promoted_mod_set = modList[promoted_mod_set_id]
-                for recipe_id in range(mod_tier, 5):
-                    for ingredient in promoted_mod_set["tierUpRecipeTable"][recipe_id]:
+                ###########################################
+                # 3/ upgrade rarity 6 to target tier
+                ###########################################
+                promoted_mod_def_id = mod_def["promotionId"]
+                promoted_mod_def = mod_list[promoted_mod_def_id]
+
+                #recipe_idx goes from 0 to 3#
+                # mod_tier=1 after promotion
+                # if mod_tier=target_tier=1 then no need for tierUp
+                for recipe_id in range(0, target_tier-1):
+                    for ingredient in promoted_mod_def["tierUpRecipeTable"][recipe_id]:
                         if not ingredient in upgrade_cost:
                             upgrade_cost[ingredient] = 0
-                        upgrade_cost[ingredient] += promoted_mod_set["tierUpRecipeTable"][recipe_id][ingredient]
+                        upgrade_cost[ingredient] += promoted_mod_def["tierUpRecipeTable"][recipe_id][ingredient]
 
 
     if len(list_mods)==0:
-        return 1, "Aucun mod à passer au tier "+target_tier
+        return 1, "Aucun mod à passer au tier "+target_rarity_tier, None
 
     err_code=0
     if not is_simu:
         # launch the request
         for mod in list_mods:
+            golog.log("INFO", "upgrade mod "+mod["id"])
+
+            mod_defId=mod["definitionId"]
+            mod_tier = mod["tier"]
+            mod_def = mod_list[mod_defId]
+            mod_rarity = mod_def["rarity"]
+
             if mod_rarity == target_rarity:
                 for tier_up_id in range(mod_tier, target_tier):
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
-                        return err_code, err_txt
+                        return err_code, err_txt, None
 
             else:
                 # neet to upgrade tiers, then promote then re-upgrade
-                # 1 upgrade to tier 5
+                # 1/ upgrade to tier 5
                 for tier_up_id in range(mod_tier, 5):
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
-                        return err_code, err_txt
+                        return err_code, err_txt, None
 
-                # 2 promote
+                # 2/ promote
                 err_code, err_txt = await connect_rpc.promote_mod(mod["id"], allyCode)
                 if err_code != 0:
-                    return err_code, err_txt
+                    return err_code, err_txt, None
 
-                # 3 upgrade to tier 5
+                # 3/ upgrade to tier 5
                 for tier_up_id in range(1, target_tier):
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
-                        return err_code, err_txt
+                        return err_code, err_txt, None
 
     if err_code == 0:
+        ret_code = 0
+        ret_txt = ""
+
         mod_count = len(list_mods)
         if is_simu:
-            cost_txt = "[SIMULATION] "+str(mod_count)+" mods à passer au niveau "+str(target_level)+" ("+str(int(upgrade_cost/100000)/10)+"M crédits nécessaires)"
-        else:
-            cost_txt = str(mod_count)+" mods passés au niveau "+str(target_level)+" ("+str(int(upgrade_cost/100000)/10)+"M crédits)"
+            #Build inventory
+            dict_inventory = {}
+            if not initialdata is None and \
+                    "inventory" in initialdata and \
+                    "material" in initialdata["inventory"]:
+                for item in initialdata["inventory"]["material"]:
+                    if "id" in item:
+                        dict_inventory[item["id"]] = int(item["quantity"])
 
-        return 0, cost_txt
+            if not initialdata is None and \
+                    "inventory" in initialdata and \
+                    "currencyItem" in initialdata["inventory"]:
+                for item in initialdata["inventory"]["currencyItem"]:
+                    if "currency" in item:
+                        dict_inventory[item["currency"]] = int(item["quantity"])
+
+            cost_txt = "[SIMULATION] "+str(mod_count)+" mods à passer au niveau "+str(target_rarity_tier)+":"
+            simu_success = True
+            for ingredient in upgrade_cost:
+                #Get inventory quantity
+                upgrade_quantity = upgrade_cost[ingredient]
+                if ingredient in dict_inventory:
+                    inventory_quantity = dict_inventory[ingredient]
+                else:
+                    inventory_quantity = 0
+
+                cost_txt += "\n\t"+ingredient+": "+str(upgrade_quantity) + "("+str(inventory_quantity)+" disponibles)"
+                if upgrade_quantity > inventory_quantity:
+                    simu_success = False
+
+            if not simu_success:
+                cost_txt += "\n ATTENTION : ça ne passe pas !"
+                ret_code = 2
+                ret_txt = "Simulation échouée"
+
+        else:
+            # At this step, the upgrade was fully a success
+            # display total cost
+            cost_txt = str(mod_count)+" mods passés au niveau "+str(target_rarity_tier)+":"
+            for ingredient in upgrade_cost:
+                cost_txt += "\n\t"+ingredient+": "+str(upgrade_cost[ingredient])
+
+        return ret_code, ret_txt, cost_txt
     else:
-        return err_code, err_txt
+        return err_code, err_txt, None
 
