@@ -1,6 +1,7 @@
 import json
+from SCRIPTS.game_data_utils import load_game_data
 import sys
-game_data = json.load(open(sys.argv[1], 'r'))
+game_data = load_game_data(sys.argv[1])
 FRE_FR = json.load(open('DATA/FRE_FR.json', 'r'))
 ENG_US = json.load(open('DATA/ENG_US.json', 'r'))
 
