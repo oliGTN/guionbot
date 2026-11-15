@@ -94,8 +94,8 @@ def manage_disk_usage():
     used_percentage = int(used/total*1000)/10
     golog.log('INFO', 'Disk usage = ' + str(used_percentage) + '%')
 
-    if used_percentage > 98:
-        return 1, "Disk usage is above 98%"
+    if used_percentage > 95:
+        return 1, "Disk usage is above 95%"
     else:
         return 0, ""
 
