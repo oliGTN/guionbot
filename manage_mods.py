@@ -1513,7 +1513,7 @@ async def upgrade_tier_mods(
                 for tier_up_id in range(mod_tier, target_tier):
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
-                        return err_code, err_txt
+                        return err_code, err_txt, None
 
             else:
                 # neet to upgrade tiers, then promote then re-upgrade
@@ -1521,18 +1521,18 @@ async def upgrade_tier_mods(
                 for tier_up_id in range(mod_tier, 5):
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
-                        return err_code, err_txt
+                        return err_code, err_txt, None
 
                 # 2/ promote
                 err_code, err_txt = await connect_rpc.promote_mod(mod["id"], allyCode)
                 if err_code != 0:
-                    return err_code, err_txt
+                    return err_code, err_txt, None
 
                 # 3/ upgrade to tier 5
                 for tier_up_id in range(1, target_tier):
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
-                        return err_code, err_txt
+                        return err_code, err_txt, None
 
     if err_code == 0:
         ret_code = 0
