@@ -4346,6 +4346,9 @@ async def generic_rpc_call(
         rpc_path, 
         params, 
         return_data=False):
+
+    golog.log("INFO", "START ("+rpc_path+", "+str(params)+", return_data="+str(return_data)+")")
+
     url = "http://localhost:8000/"+rpc_path
     req_data = json_dumps(params)
     try:

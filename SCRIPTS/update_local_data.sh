@@ -1,8 +1,12 @@
 python SCRIPTS/update_localization_dict.py
 
 GAMEDATA_FILE=../warstats/GameData.json
+GAMEDATASEG2_FILE=../warstats/GameData_segment2.json
+
 echo "update units..."
 python -m SCRIPTS.update_unitsList_json $GAMEDATA_FILE
+echo "update mods..."
+python -m SCRIPTS.update_modList_json $GAMEDATASEG2_FILE
 echo "update capabilities..."
 python SCRIPTS/create_capa_list.py $GAMEDATA_FILE
 echo "update equipment..."
