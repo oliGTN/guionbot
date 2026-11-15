@@ -1,5 +1,6 @@
 import sys
 import json
+from SCRIPTS.game_data_utils import load_game_data
 import os
 import requests
 from portraits import download_texture
@@ -24,7 +25,7 @@ def remove_format_from_desc(desc):
 # It transfoms the initial list into a dictionary, with the unit_id as key
 # Then it add farming information and links ships to crew
 #####################################
-game_data = json.load(open(sys.argv[1], 'r'))
+game_data = load_game_data(sys.argv[1])
 FRE_FR = json.load(open('DATA/FRE_FR.json', 'r'))
 ENG_US = json.load(open('DATA/ENG_US.json', 'r'))
 
@@ -69,6 +70,7 @@ with open('DATA/ENG_US.json', 'w') as f_loc:
 
 unitsList_dict = {}
 for unit in game_data["units"]:
+    unit = dict(unit)  # Do not modify the shared source GameData.
     if unit["rarity"] != unit["maxRarity"]:
         continue
 
@@ -255,6 +257,7 @@ fnew.close()
 
 categoryList_dict = {}
 for category in game_data["category"]:
+    category = dict(category)  # Do not modify the shared source GameData.
     if category['id'] in categoryList_dict:
         print('WAR: double definition of '+category['id'])
     if "descKey" in category:
