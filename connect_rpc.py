@@ -1177,13 +1177,14 @@ async def get_platoon_actual_strategy_from_dict(dict_guild):
     query = "SELECT zone_name, " \
           + "recon1_filled, recon2_filled, recon3_filled, " \
           + "recon4_filled, recon5_filled, recon6_filled, " \
-          + "recon1_strategy_full, recon2_strategy_full, recon3_strategy_full, " \
-          + "recon4_strategy_full, recon5_strategy_full, recon6_strategy_full " \
+          + "recon1_full, recon2_full, recon3_full, " \
+          + "recon4_full, recon5_full, recon6_full " \
           + "FROM tb_zones " \
           + "JOIN tb_history ON tb_history.id=tb_zones.tb_id " \
+          + "JOIN tb_strategy ON tb_strategy.tb_id=tb_zones.tb_id AND  tb_strategy.zone_id=tb_zones.zone_id AND  tb_strategy.round=tb_zones.round " \
           + "WHERE tb_history.tb_id='"+str(tb_id)+"' " \
           + "AND guild_id='"+guildId+"' " \
-          + "AND round="+str(active_round)
+          + "AND tb_zones.round="+str(active_round)
     golog.log("INFO", query)
     db_data = await connect_mysql.get_table_async(query)
 

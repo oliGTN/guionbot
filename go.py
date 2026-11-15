@@ -88,16 +88,16 @@ BOT_GFILE = None
 ##################################
 def manage_disk_usage():
     st = os.statvfs('/')
-    free = st.f_bavail * st.f_frsize
-    total = st.f_blocks * st.f_frsize
-    used = total - free
-    used_percentage = int(used/total*1000)/10
-    golog.log('INFO', 'Disk usage = ' + str(used_percentage) + '%')
 
-    if used_percentage > 98:
-        return 1, "Disk usage is above 98%"
-    else:
-        return 0, ""
+    total = st.f_blocks * st.f_frsize
+    free = st.f_bfree * st.f_frsize
+
+    used_percentage = (total - free) / total * 100
+
+    golog.log('INFO', f'Disk usage = {used_percentage:.1f}%')
+
+    if used_percentage >= 95:
+        golog.log('ERROR', 'Disk usage exceeds 95%!')
 
 ##################################
 # Function: refresh_cache
