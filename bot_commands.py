@@ -991,6 +991,82 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
     remove_command_from_queue(ctx_interaction)
 
 ###############################
+async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_txt=None, simulation=False):
+    ret_add, resp_msg = await add_command_to_queue(ctx_interaction)
+    if ret_add != 0:
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    channel_id = ctx_interaction.channel_id
+    ec, et, bot_infos = await get_mysql.get_google_player_info(channel_id)
+    if ec != 0:
+        await command_error(ctx_interaction, resp_msg, et)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    txt_allyCode = str(bot_infos["allyCode"])
+    golog.log("INFO", "mods.upgrade_mod_slice_up("+txt_allyCode+", target="+target_rarity_tier+")")
+
+    ec, et, dict_player = await go.load_player(txt_allyCode, 1, False)
+    if ec != 0:
+        await command_error(ctx_interaction, resp_msg, et)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    # Resolve aliases with the same syntax as enregistre-conf.
+    list_unit_id = None
+    if list_alias_txt is not None and list_alias_txt.strip() != "":
+        list_alias = list_alias_txt.split()
+        if "all" in [alias.lower() for alias in list_alias]:
+            list_unit_id = list(dict_player["rosterUnit"].keys())
+        else:
+            list_unit_id, dict_id_name, txt = await goutils.get_characters_from_alias(list_alias)
+            if txt != "":
+                await command_error(ctx_interaction, resp_msg, "ERR: impossible de reconnaître ce(s) nom(s) >> "+txt)
+                remove_command_from_queue(ctx_interaction)
+                return
+
+    # Initial data is needed for the complete mod inventory and for simulation.
+    ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
+    if ec != 0:
+        await command_error(ctx_interaction, resp_msg, et)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    dict_player_mods = manage_mods.get_dict_player_mods(dict_player, initialdata=initialdata)
+
+    ret = await acquire_sem(txt_allyCode, waiting=False)
+    if ret == 1:
+        txt = emojis.redcross+" ERR: ce joueur a déjà une commande bot en cours"
+        await command_error(ctx_interaction, resp_msg, txt)
+        remove_command_from_queue(ctx_interaction)
+        return
+
+    try:
+        ec, et, cost_txt = await manage_mods.upgrade_tier_mods(
+                                dict_player_mods,
+                                target_rarity_tier,
+                                txt_allyCode,
+                                list_unit_id=list_unit_id,
+                                is_simu=simulation,
+                                initialdata=initialdata)
+    finally:
+        await release_sem(txt_allyCode)
+
+    if ec == 0:
+        txt = emojis.check+" "+cost_txt
+    else:
+        txt = emojis.redcross+" "+et
+        if ec == 2 and cost_txt:
+            txt += "\n "+cost_txt
+
+    if len(txt) > 1000:
+        txt = txt[:1000]+"..."
+    await ctx_interaction.edit_original_response(content=txt)
+    remove_command_from_queue(ctx_interaction)
+
+###############################
+###############################
 async def deploy_tb(ctx_interaction, zone, list_alias_txt):
     # Add command to queue, check if bot is locked, check queue size
     ret_add, resp_msg = await add_command_to_queue(ctx_interaction)
