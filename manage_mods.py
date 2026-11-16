@@ -145,7 +145,16 @@ async def _start_reaction_cancellation(interaction, content):
         await message.add_reaction("✋")
     except Exception as e:
         listener.cancel()
+        try:
+            await listener
+        except asyncio.CancelledError:
+            pass
         listener = None
+        message = None
+        try:
+            await interaction.edit_original_response(content=content.split("\n")[0])
+        except Exception:
+            pass
         golog.log("WAR", "Unable to add cancellation reaction: " + str(e))
     return cancel_event, listener, message
 
@@ -1597,7 +1606,7 @@ async def upgrade_tier_mods(
                 progress_content = (
                     emojis.hourglass + " Perso " + str(unit_index[unit_id]) + "/"
                     + str(len(unit_ids)) + ": " + str(unit_id)
-                    + "\nCliquez sur ✋ pour interrompre"
+                    + ("\nCliquez sur ✋ pour interrompre" if cancel_listener is not None else "")
                 )
                 try:
                     await interaction.edit_original_response(content=progress_content)
