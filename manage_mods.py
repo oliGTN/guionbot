@@ -14,6 +14,7 @@ from html.parser import HTMLParser
 import copy #deepcopy
 import requests
 import time
+import asyncio
 from asyncio import sleep as asyncio_sleep
 
 import go
@@ -120,6 +121,49 @@ def get_dict_player_mods(dict_player, initialdata=None):
 
     return dict_player_mods
 
+async def _start_reaction_cancellation(interaction, content):
+    """Display progress and listen for the invoking user adding ✋."""
+    cancel_event = asyncio.Event()
+    message = await interaction.edit_original_response(content=content)
+    client = interaction.client
+    user_id = interaction.user.id
+
+    def check(reaction, user):
+        return (user.id == user_id
+                and reaction.message.id == message.id
+                and str(reaction.emoji) == "✋")
+
+    async def wait_for_cancel():
+        try:
+            await client.wait_for("reaction_add", check=check)
+            cancel_event.set()
+        except asyncio.CancelledError:
+            raise
+
+    listener = asyncio.create_task(wait_for_cancel())
+    try:
+        await message.add_reaction("✋")
+    except Exception as e:
+        listener.cancel()
+        listener = None
+        golog.log("WAR", "Unable to add cancellation reaction: " + str(e))
+    return cancel_event, listener, message
+
+
+async def _stop_reaction_cancellation(interaction, listener, message):
+    if listener is not None:
+        listener.cancel()
+        try:
+            await listener
+        except asyncio.CancelledError:
+            pass
+    if message is not None:
+        try:
+            await message.remove_reaction("✋", interaction.client.user)
+        except Exception:
+            pass
+
+
 ##########################
 # STEP3
 # Prepare list of modification commands
@@ -187,7 +231,22 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
     prev_display_time = 0
     original_unit_count = len(mod_allocations)
+    cancel_event = None
+    cancel_listener = None
+    cancel_message = None
+    if interaction is not None:
+        cancel_event, cancel_listener, cancel_message = await _start_reaction_cancellation(
+            interaction,
+            emojis.hourglass + " Préparation des déplacements...\nCliquez sur ✋ pour interrompre")
+
     while(len(mod_allocations)>0):
+        if cancel_event is not None and cancel_event.is_set():
+            await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
+            return 2, "Opération interrompue par l'utilisateur", {
+                "cost": str(mod_add_count) + " mods déplacés, sur " + str(unit_count) + " persos",
+                "missing": missing_mods,
+                "forbidden": forbidden_mods,
+            }
         #find best allocation (the one with most mods currently not allocated)
         min_delta_inventory = 7 # worst case is 6 added to the inventory
         best_a = None
@@ -388,6 +447,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         #Manage display to user
         if (time.time() - prev_display_time) > 5:
             new_msg_content = emojis.hourglass+" Reste "+str(len(mod_allocations)-count_no_move+1)+"/"+str(original_unit_count)+"..."
+            if cancel_message is not None:
+                new_msg_content += "\nCliquez sur ✋ pour interrompre"
             try:
                 if interaction != None:
                     await interaction.edit_original_response(content=new_msg_content)
@@ -399,6 +460,9 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
         #breathe
         await asyncio_sleep(0)
+
+    if cancel_listener is not None:
+        await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
 
     ret_code = 0
     ret_txt = ""
