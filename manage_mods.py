@@ -240,7 +240,6 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
     prev_display_time = 0
     original_unit_count = len(mod_allocations)
-    processed_unit_count = 0
     cancel_event = None
     cancel_listener = None
     cancel_message = None
@@ -327,6 +326,25 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         target_char_id = dict_player["rosterUnit"][target_char_defId]["id"]
         target_char_level = dict_player["rosterUnit"][target_char_defId]["currentLevel"]
         target_char_gear = dict_player["rosterUnit"][target_char_defId]["currentTier"]
+
+        # Keep the existing five-second update threshold, but display the unit
+        # currently being processed rather than the previous completed one.
+        if (time.time() - prev_display_time) > 5:
+            new_msg_content = (
+                emojis.hourglass + " Perso "
+                + str(original_unit_count - len(mod_allocations) + 1) + "/"
+                + str(original_unit_count) + ": " + target_char_defId
+            )
+            if cancel_message is not None:
+                new_msg_content += "\nCliquez sur ✋ pour interrompre"
+            try:
+                if interaction is not None:
+                    await interaction.edit_original_response(content=new_msg_content)
+                else:
+                    print(new_msg_content)
+            except Exception:
+                golog.log("WAR", "Unable to update discord msg to: " + new_msg_content)
+            prev_display_time = time.time()
 
         if target_char_level < 50:
             cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
@@ -459,24 +477,6 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
         #remove done allocation "a" from the list
         mod_allocations.remove(a)
-        processed_unit_count += 1
-
-        #Manage display to user
-        if (time.time() - prev_display_time) > 5:
-            new_msg_content = (
-                emojis.hourglass + " Perso " + str(processed_unit_count) + "/"
-                + str(original_unit_count) + ": " + target_char_defId
-            )
-            if cancel_message is not None:
-                new_msg_content += "\nCliquez sur ✋ pour interrompre"
-            try:
-                if interaction != None:
-                    await interaction.edit_original_response(content=new_msg_content)
-                else:
-                    print(new_msg_content)
-            except Exception as e:
-                golog.log("WAR", "Unable to update discord msg to: "+new_msg_content)
-            prev_display_time = time.time()
 
         #breathe
         await asyncio_sleep(0)
