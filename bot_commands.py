@@ -1049,7 +1049,8 @@ async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_t
                                 txt_allyCode,
                                 list_unit_id=list_unit_id,
                                 is_simu=simulation,
-                                initialdata=initialdata)
+                                initialdata=initialdata,
+                                interaction=ctx_interaction)
     finally:
         await release_sem(txt_allyCode)
 
