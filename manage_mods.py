@@ -321,6 +321,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
         if target_char_level < 50:
             cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
+            if cancel_listener is not None:
+                await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
             return 1, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
 
         mods_to_add = [] # list of mod IDs to be added to this unit
@@ -422,6 +424,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                         err_txt = "inventaire plein"
                     else:
                         err_txt = str([target_char_defId, mods_to_add, mods_to_remove])+": "+et
+                    if cancel_listener is not None:
+                        await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
                     return ec, err_txt, {
                         "cost": cost_txt,
                         "missing": missing_mods,
@@ -436,6 +440,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             else:
                 ret_data = {"missing": missing_mods, "forbidden": forbidden_mods}
             ret_data["needed_inventory"] = max(0, max_inventory - initial_inventory)
+            if cancel_listener is not None:
+                await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
 
         unit_count = new_unit_count
