@@ -231,6 +231,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
     prev_display_time = 0
     original_unit_count = len(mod_allocations)
+    processed_unit_count = 0
     cancel_event = None
     cancel_listener = None
     cancel_message = None
@@ -443,10 +444,14 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
         #remove done allocation "a" from the list
         mod_allocations.remove(a)
+        processed_unit_count += 1
 
         #Manage display to user
         if (time.time() - prev_display_time) > 5:
-            new_msg_content = emojis.hourglass+" Reste "+str(len(mod_allocations)-count_no_move+1)+"/"+str(original_unit_count)+"..."
+            new_msg_content = (
+                emojis.hourglass + " Perso " + str(processed_unit_count) + "/"
+                + str(original_unit_count) + ": " + target_char_defId
+            )
             if cancel_message is not None:
                 new_msg_content += "\nCliquez sur ✋ pour interrompre"
             try:
@@ -1438,7 +1443,8 @@ async def upgrade_tier_mods(
     list_unit_id=None,
     is_simu=False, 
     initialdata=None,
-    only_speed_sec=False):
+    only_speed_sec=False,
+    interaction=None):
 
     calling_func = inspect.stack()[1][3]
     golog.log(
@@ -1563,9 +1569,36 @@ async def upgrade_tier_mods(
         return 1, "Aucun mod à passer au tier "+target_rarity_tier, None
 
     err_code=0
+    cancel_event = None
+    cancel_listener = None
+    cancel_message = None
+    prev_display_time = 0
     if not is_simu:
+        if interaction is not None:
+            unit_ids = list(dict.fromkeys(mod.get("unit_id") or "Inventaire" for mod in list_mods))
+            unit_index = {unit_id: idx for idx, unit_id in enumerate(unit_ids, start=1)}
+            cancel_event, cancel_listener, cancel_message = await _start_reaction_cancellation(
+                interaction,
+                emojis.hourglass + " Préparation de l'amélioration des mods...\nCliquez sur ✋ pour interrompre")
         # launch the request
         for mod in list_mods:
+            if cancel_event is not None and cancel_event.is_set():
+                await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
+                return 2, "Opération interrompue par l'utilisateur", None
+
+            if interaction is not None and (time.time() - prev_display_time) > 5:
+                unit_id = mod.get("unit_id") or "Inventaire"
+                progress_content = (
+                    emojis.hourglass + " Perso " + str(unit_index[unit_id]) + "/"
+                    + str(len(unit_ids)) + ": " + str(unit_id)
+                    + "\nCliquez sur ✋ pour interrompre"
+                )
+                try:
+                    await interaction.edit_original_response(content=progress_content)
+                except Exception as e:
+                    golog.log("WAR", "Unable to update mod tier-up progress: " + str(e))
+                prev_display_time = time.time()
+
             golog.log("INFO", "upgrade mod "+mod["id"])
 
             mod_defId=mod["definitionId"]
@@ -1577,6 +1610,8 @@ async def upgrade_tier_mods(
                 for tier_up_id in range(mod_tier, target_tier):
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
+                        if cancel_listener is not None:
+                            await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
                         return err_code, err_txt, None
 
             else:
@@ -1585,18 +1620,27 @@ async def upgrade_tier_mods(
                 for tier_up_id in range(mod_tier, 5):
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
+                        if cancel_listener is not None:
+                            await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
                         return err_code, err_txt, None
 
                 # 2/ promote
                 err_code, err_txt = await connect_rpc.promote_mod(mod["id"], allyCode)
                 if err_code != 0:
+                    if cancel_listener is not None:
+                        await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
                     return err_code, err_txt, None
 
                 # 3/ upgrade to tier 5
                 for tier_up_id in range(1, target_tier):
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
+                        if cancel_listener is not None:
+                            await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
                         return err_code, err_txt, None
+
+    if cancel_listener is not None:
+        await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
 
     if err_code == 0:
         ret_code = 0
