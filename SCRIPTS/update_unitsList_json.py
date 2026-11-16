@@ -235,25 +235,43 @@ for x in game_data["category"]:
                     dict_tags_by_id[tag_id].append(tag_name)
             else:
                 dict_tags_by_id[tag_id] = [tag_name]
-            
+
+#special category
+dict_tags_by_id['crewmember'] = ["Crew member", "Membre de l'équipage"]
+
 dict_categories_by_name = {}
-for x in game_data["units"]:
-    if not "any_obtainable" in x["categoryId"]:
+for unit in game_data["units"]:
+    if not "any_obtainable" in unit["categoryId"]:
         continue
-    if x["rarity"] != 7:
+    if unit["rarity"] != 7:
         continue
-    if x["obtainableTime"] != "0":
+    if unit["obtainableTime"] != "0":
         continue
 
-    for tag in x["categoryId"]:
+    unit_id = unit["baseId"]
+    for tag in unit["categoryId"]:
         if tag in dict_tags_by_id:
             for tag_name in dict_tags_by_id[tag]:
-                id_name = x["baseId"]
                 if tag_name in dict_categories_by_name:
-                    if not id_name in dict_categories_by_name[tag_name]:
-                        dict_categories_by_name[tag_name].append(id_name)
+                    if not unit_id in dict_categories_by_name[tag_name]:
+                        dict_categories_by_name[tag_name].append(unit_id)
                 else:
-                    dict_categories_by_name[tag_name] = [id_name]
+                    dict_categories_by_name[tag_name] = [unit_id]
+
+    #attach ships to crew
+    print(unit_id, unit['combatType'] , 'crew' in unit)
+    if unit['combatType'] == 2 and 'crew' in unit:
+        for pilot in unit['crew']:
+            pilot_id = pilot['unitId']
+            print(pilot_id)
+            tag = 'crewmember'
+            for tag_name in dict_tags_by_id[tag]:
+                print(tag_name)
+                if tag_name in dict_categories_by_name:
+                    if not pilot_id in dict_categories_by_name[tag_name]:
+                        dict_categories_by_name[tag_name].append(pilot_id)
+                else:
+                    dict_categories_by_name[tag_name] = [pilot_id]
 
 fnew = open('DATA'+os.path.sep+'tagAlias_dict.json', 'w')
 fnew.write(json.dumps(dict_categories_by_name, sort_keys=True, indent=4))
