@@ -1623,6 +1623,9 @@ async def upgrade_tier_mods(
 
             if mod_rarity == target_rarity:
                 for tier_up_id in range(mod_tier, target_tier):
+                    if cancel_event is not None and cancel_event.is_set():
+                        await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
+                        return 2, "Opération interrompue par l'utilisateur", None
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
                         if cancel_listener is not None:
@@ -1633,6 +1636,9 @@ async def upgrade_tier_mods(
                 # neet to upgrade tiers, then promote then re-upgrade
                 # 1/ upgrade to tier 5
                 for tier_up_id in range(mod_tier, 5):
+                    if cancel_event is not None and cancel_event.is_set():
+                        await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
+                        return 2, "Opération interrompue par l'utilisateur", None
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
                         if cancel_listener is not None:
@@ -1640,6 +1646,9 @@ async def upgrade_tier_mods(
                         return err_code, err_txt, None
 
                 # 2/ promote
+                if cancel_event is not None and cancel_event.is_set():
+                    await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
+                    return 2, "Opération interrompue par l'utilisateur", None
                 err_code, err_txt = await connect_rpc.promote_mod(mod["id"], allyCode)
                 if err_code != 0:
                     if cancel_listener is not None:
@@ -1648,6 +1657,9 @@ async def upgrade_tier_mods(
 
                 # 3/ upgrade to tier 5
                 for tier_up_id in range(1, target_tier):
+                    if cancel_event is not None and cancel_event.is_set():
+                        await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
+                        return 2, "Opération interrompue par l'utilisateur", None
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
                         if cancel_listener is not None:
