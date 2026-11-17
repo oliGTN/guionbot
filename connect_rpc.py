@@ -3625,7 +3625,7 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
 ##################
 # IN: teams = [{"zone_id": zone_id, "requested_defIds": , "datacron_id": }, ...]
-async def deploy_tw(guild_id, txt_allyCode, teams):
+async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
     """
     Deploy a batch  of teams by using a list
     of team dictionaries. Each batch item contains zone_id,
@@ -3762,6 +3762,8 @@ async def deploy_tw(guild_id, txt_allyCode, teams):
 
         golog.log("INFO", "Deployed TW team for allyCode " + txt_allyCode +
                   " in zone " + team_zone_id + " (" + str(len(team["list_unit_ids"])) + " units)")
+        if progress_callback is not None:
+            await progress_callback(completed, len(prepared_teams), team_zone_id)
 
     return (0, 
             "Déploiement OK de " + str(completed) + " équipe(s) pour " + player_name,
