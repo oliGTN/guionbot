@@ -538,26 +538,57 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                 )
 
             async with guild_semaphore.guild_loading("guild:" + str(guild_id)):
-                i_player = 0
-                prev_display_time = 0
-                for playerId in list_playerId_to_update:
-                    i_player += 1
-                    golog.log("INFO", guild_name+" player #"+str(i_player))
+                # Another process may have completed this refresh while we
+                # were waiting for the per-guild lock. Re-check before doing
+                # the expensive player pass.
+                query = "SELECT MIN(lastUpdated) FROM players WHERE guildId='"+guild_id+"'"
+                current_last_player_updated = await connect_mysql.get_value_async(query)
 
-                    e, t, d = await load_player(str(playerId), 0, False, load_roster=load_rosters)
-                    golog.log("DBG", "after load_player...")
+                refresh_still_needed = force_update or is_new_guild
+                if current_last_player_updated is None:
+                    refresh_still_needed = True
+                elif not refresh_still_needed:
+                    delta_current = datetime.datetime.now() - current_last_player_updated
+                    refresh_still_needed = (
+                        (delta_current.days * 86400 + delta_current.seconds)
+                        > (3 * 86400 if cmd_request else 3600)
+                    )
 
-                    #update status to user
-                    if ctx_interaction is not None:
-                        if (time.time() - prev_display_time) > 10:
-                            await bot_commands.command_ok(
-                                ctx_interaction[0], ctx_interaction[1],
-                                "chargement du joueur "+str(i_player)+"/"+str(len(list_playerId_to_update))+"...",
-                                intermediate=True
-                            )
-                            prev_display_time = time.time()
+                # For a new-player-only refresh, another process may already
+                # have inserted the missing members while this call waited.
+                if not refresh_still_needed and need_to_add_players:
+                    query = "SELECT playerId FROM players WHERE guildId='"+guild_id+"'"
+                    current_player_ids = await connect_mysql.get_column_async(query) or []
+                    list_playerId_to_update = [
+                        player_id for player_id in list_playerId_to_update
+                        if player_id not in current_player_ids
+                    ]
+                    refresh_still_needed = len(list_playerId_to_update) > 0
 
-                    await asyncio.sleep(1)
+                if refresh_still_needed:
+                    i_player = 0
+                    prev_display_time = 0
+                    total_players = len(list_playerId_to_update)
+                    for playerId in list_playerId_to_update:
+                        i_player += 1
+                        golog.log("INFO", guild_name+" player #"+str(i_player))
+
+                        e, t, d = await load_player(str(playerId), 0, False, load_roster=load_rosters)
+                        golog.log("DBG", "after load_player...")
+
+                        #update status to user
+                        if ctx_interaction is not None:
+                            if (time.time() - prev_display_time) > 10:
+                                await bot_commands.command_ok(
+                                    ctx_interaction[0], ctx_interaction[1],
+                                    "chargement du joueur "+str(i_player)+"/"+str(total_players)+"...",
+                                    intermediate=True
+                                )
+                                prev_display_time = time.time()
+
+                        await asyncio.sleep(1)
+                else:
+                    golog.log("INFO", "Guild "+guild_name+" was refreshed by another process while waiting; skipping duplicate player load.")
 
         else:
             lastPlayerUpdated_txt = lastPlayerUpdated.strftime("%d/%m/%Y %H:%M:%S")
