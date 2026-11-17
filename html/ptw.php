@@ -40,7 +40,10 @@ $allycode = get_required_ally_code();
 include 'pdata.php';
 
 if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Type: application/x-ndjson; charset=utf-8');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('X-Accel-Buffering: no');
+    while (ob_get_level() > 0) { ob_end_flush(); }
     set_time_limit(300);
     $respond = function ($status, $payload) {
         http_response_code($status);
@@ -107,33 +110,28 @@ if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METH
         'teams' => $validatedTeams,
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     $ch = curl_init('http://127.0.0.1:9000/DeployTWTeams');
+    $streamed = false;
     curl_setopt_array($ch, [
-        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => false,
         CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $token],
         CURLOPT_POSTFIELDS => $requestPayload, CURLOPT_CONNECTTIMEOUT => 2, CURLOPT_TIMEOUT => 300,
+        CURLOPT_WRITEFUNCTION => function ($curl, $chunk) use (&$streamed) {
+            $streamed = true;
+            echo $chunk;
+            flush();
+            return strlen($chunk);
+        },
     ]);
-    $response = curl_exec($ch);
+    $curlResult = curl_exec($ch);
     $curlError = curl_error($ch);
-    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if ($response === false) {
+    if ($curlResult === false) {
         error_log('PTW push teams service connection error: ' . $curlError);
-        $respond(502, ['err_code' => 502, 'err_txt' => 'Web commands service unavailable.']);
+        if (!$streamed) {
+            echo json_encode(['type' => 'error', 'err_code' => 502, 'err_txt' => 'Web commands service unavailable.']) . "\n";
+            flush();
+        }
     }
-    $result = json_decode($response, true);
-    if (!is_array($result) || $httpCode < 200 || $httpCode >= 300 || (int)($result['err_code'] ?? 500) !== 0) {
-        $respond($httpCode >= 400 && $httpCode < 600 ? $httpCode : 502, [
-            'err_code' => (int)($result['err_code'] ?? 500),
-            'err_txt' => is_array($result) ? ($result['err_txt'] ?? 'Web commands service returned an invalid response.') : 'Web commands service returned an invalid response.',
-            'completed' => is_array($result) ? (int)($result['completed'] ?? 0) : 0,
-            'failed_zone' => is_array($result) ? ($result['failed_zone'] ?? null) : null,
-        ]);
-    }
-    $respond(200, [
-        'err_code' => 0,
-        'err_txt' => $result['err_txt'] ?? 'Proposed teams pushed to the game.',
-        'completed' => (int)($result['completed'] ?? count($validatedTeams)),
-    ]);
 }
 include 'portrait.php';
 
@@ -974,6 +972,13 @@ foreach ($import_squad_list as $cell) {
             font-weight: bold;
         }
     </style>
+<style>
+.tw-push-modal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:20px}
+.tw-push-modal.visible{display:flex}
+.tw-push-modal-content{width:min(440px,100%);background:var(--bs-body-bg,#fff);color:var(--bs-body-color,#222);border-radius:12px;padding:26px;box-shadow:0 12px 40px rgba(0,0,0,.35);text-align:center}
+.tw-push-progress-track{height:18px;background:#dedede;border-radius:10px;overflow:hidden;margin:18px 0 10px}
+.tw-push-progress-bar{height:100%;width:0;background:#28a745;transition:width .35s ease}
+</style>
 </head>
 <body>
 <div class="site-container">
@@ -1754,33 +1759,74 @@ if (zoneSelect) {
         const teamsToPush = proposedTeams.map((team) => ({ zone: team.zone, units: [...team.units], datacronId: team.datacronId || '' }));
         if (!window.confirm('Push ' + teamsToPush.length + ' proposed team(s) to the game? This will deploy their units and cannot be undone from this page.')) return;
 
+        const modal = document.getElementById('tw-push-progress-modal');
+        const message = document.getElementById('tw-push-progress-message');
+        const count = document.getElementById('tw-push-progress-count');
+        const bar = document.getElementById('tw-push-progress-bar');
+        const total = teamsToPush.length;
+        let completed = 0;
+        let finalResult = null;
+        const updateProgress = (value, text) => {
+            completed = Math.max(completed, Math.min(total, Number(value) || 0));
+            count.textContent = completed + ' / ' + total + ' teams';
+            bar.style.width = (completed / total * 100) + '%';
+            if (text) message.textContent = text;
+        };
+
         pushProposedButton.disabled = true;
         const originalText = pushProposedButton.textContent;
         pushProposedButton.textContent = 'Pushing teams...';
+        modal.classList.add('visible');
+        modal.setAttribute('aria-hidden', 'false');
+        updateProgress(0, 'Connecting to the game...');
         try {
             const requestUrl = new URL(window.location.href);
             requestUrl.searchParams.set('action', 'push_proposed_teams');
             const response = await fetch(requestUrl.toString(), {
-                method: 'POST',
-                credentials: 'same-origin',
+                method: 'POST', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ csrf: pushCsrfToken, teams: teamsToPush })
             });
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok || Number(result.err_code) !== 0) {
-                const completed = Number(result.completed || 0);
-                const partial = completed > 0 ? ' ' + completed + ' team(s) were already deployed before the error.' : '';
-                throw new Error((result.err_txt || 'Unable to push proposed teams.') + partial);
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                throw new Error(body.err_txt || 'Unable to start team deployment.');
             }
-            alert(result.err_txt || 'Proposed teams pushed to the game.');
+            if (!response.body || !response.body.getReader) throw new Error('Progress streaming is not supported by this browser.');
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            while (true) {
+                const part = await reader.read();
+                if (part.done) break;
+                buffer += decoder.decode(part.value, {stream:true});
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    const event = JSON.parse(line);
+                    if (event.type === 'progress') updateProgress(event.completed, 'Deploying team ' + event.completed + ' of ' + total + (event.zone ? ' (' + event.zone + ')' : '') + '...');
+                    if (event.type === 'stage') updateProgress(event.completed, event.message || 'Refreshing TW status...');
+                    if (event.type === 'complete' || event.type === 'error') finalResult = event;
+                }
+            }
+            if (buffer.trim()) {
+                const event = JSON.parse(buffer);
+                if (event.type === 'complete' || event.type === 'error') finalResult = event;
+            }
+            if (!finalResult || Number(finalResult.err_code) !== 0) {
+                const done = finalResult ? Number(finalResult.completed || completed) : completed;
+                throw new Error((finalResult && finalResult.err_txt) || 'Deployment ended without confirmation.' + (done ? ' ' + done + ' team(s) were deployed before the error.' : ''));
+            }
+            updateProgress(total, 'Teams confirmed. Refreshing the page...');
             window.location.reload();
         } catch (error) {
+            modal.classList.remove('visible');
+            modal.setAttribute('aria-hidden', 'true');
             alert('Could not push proposed teams: ' + (error && error.message ? error.message : 'Unknown error.'));
             pushProposedButton.disabled = false;
             pushProposedButton.textContent = originalText;
         }
     }
-
     function updateCreator(previousFleet) {
         const fleet = fleetZone();
         const fleetStatusChanged = previousFleet !== undefined && previousFleet !== fleet;
@@ -1900,6 +1946,10 @@ if (zoneSelect) {
     refreshImportTeamAvailability();
 }
 </script>
+<div id="tw-push-progress-modal" class="tw-push-modal" role="dialog" aria-modal="true" aria-hidden="true">
+<div class="tw-push-modal-content"><h3>Deploying TW teams</h3><p id="tw-push-progress-message">Preparing deployment...</p>
+<div class="tw-push-progress-track"><div id="tw-push-progress-bar" class="tw-push-progress-bar"></div></div>
+<p id="tw-push-progress-count">0 / 0 teams</p></div></div>
 </body>
 <?php include 'sitefooter.php'; ?>
 </html>
