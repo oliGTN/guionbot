@@ -21,6 +21,7 @@ import golog
 
 
 MAX_PARALLEL_LOADS = 2
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _SEM_PROJECT_ID = ord("G")
 _SEM_PERMISSIONS = 0o600
 _SEM_UNDO = 0x1000
@@ -51,7 +52,7 @@ def _get_semaphore_id():
     if key == -1:
         _raise_errno("ftok")
 
-    cache_dir = os.path.join(os.getcwd(), "CACHE")
+    cache_dir = os.path.join(_BASE_DIR, "CACHE")
     os.makedirs(cache_dir, exist_ok=True)
 
     # Serialize first-time creation/initialization. This file is only an
@@ -99,7 +100,7 @@ def _sem_change(operation):
 
 def _resource_lock_path(resource_key):
     digest = hashlib.sha256(str(resource_key).encode("utf-8")).hexdigest()
-    lock_dir = os.path.join(os.getcwd(), "CACHE", "resource_locks")
+    lock_dir = os.path.join(_BASE_DIR, "CACHE", "resource_locks")
     os.makedirs(lock_dir, exist_ok=True)
     return os.path.join(lock_dir, digest + ".lock")
 
