@@ -298,44 +298,81 @@ async def handle_deploy_tw_teams(request):
                 "datacron_id": datacron_id or None,
             })
 
-        err_code, err_txt, completed, latestTWstatus = await connect_rpc.deploy_tw(
-            guild_id, ally_code, validated_teams
+        response = web.StreamResponse(
+            status=200,
+            headers={
+                "Content-Type": "application/x-ndjson; charset=utf-8",
+                "Cache-Control": "no-cache, no-store",
+                "X-Accel-Buffering": "no",
+            },
         )
-        if err_code != 0:
-            return web.json_response({
-                "err_code": int(err_code), "err_txt": str(err_txt),
-                "completed": int(completed)
-            }, status=400)
+        await response.prepare(request)
 
-        #Update TW data in DB thanks to returned TW status
-        tw = latestTWstatus['territoryWarStatus'][0]
-        tw_id = tw['instanceId']
-        opp_guild_name = tw["awayGuild"]["profile"]["name"]
-        opp_guild_id = tw["awayGuild"]["profile"]["id"]
-        score = sum([int(x['zoneStatus']['score']) \
-                     for x in tw['homeGuild']['conflictStatus']])
-        opp_score = sum([int(x['zoneStatus']['score']) \
-                         for x in tw['awayGuild']['conflictStatus']])
-        currentRound = tw["currentRound"]
+        async def send_event(event):
+            await response.write((json_dumps(event) + "\\n").encode("utf-8"))
 
-        dict_guild = {'profile':{'id': guild_id}} | latestTWstatus
+        async def report_progress(completed_count, total_count, zone_name):
+            await send_event({
+                "type": "progress",
+                "completed": int(completed_count),
+                "total": int(total_count),
+                "zone": str(zone_name),
+            })
 
-        ret = await connect_rpc.get_tw_status(guild_id, 0, dict_guild=dict_guild)
+        try:
+            err_code, err_txt, completed, latestTWstatus = await connect_rpc.deploy_tw(
+                guild_id, ally_code, validated_teams,
+                progress_callback=report_progress,
+            )
+            if err_code != 0:
+                await send_event({
+                    "type": "error", "err_code": int(err_code),
+                    "err_txt": str(err_txt), "completed": int(completed),
+                })
+                await response.write_eof()
+                return response
 
-        homeGuild = ret['homeGuild']
-        awayGuild = ret['awayGuild']
+            await send_event({
+                "type": "stage",
+                "completed": int(completed),
+                "total": len(validated_teams),
+                "message": "Refreshing and saving confirmed TW teams...",
+            })
 
-        await update_mysql.update_tw(guild_id, tw_id, opp_guild_id,
-                                      opp_guild_name, score, opp_score,
-                                      currentRound,
-                                      homeGuild, awayGuild)
-
-
-        return web.json_response({
-            "err_code": 0,
-            "err_txt": "Successfully deployed " + str(completed) + " proposed team(s).",
-            "completed": int(completed)
-        })
+            tw = latestTWstatus['territoryWarStatus'][0]
+            tw_id = tw['instanceId']
+            opp_guild_name = tw["awayGuild"]["profile"]["name"]
+            opp_guild_id = tw["awayGuild"]["profile"]["id"]
+            score = sum([int(x['zoneStatus']['score']) for x in tw['homeGuild']['conflictStatus']])
+            opp_score = sum([int(x['zoneStatus']['score']) for x in tw['awayGuild']['conflictStatus']])
+            currentRound = tw["currentRound"]
+            dict_guild = {'profile':{'id': guild_id}} | latestTWstatus
+            ret = await connect_rpc.get_tw_status(guild_id, 0, dict_guild=dict_guild)
+            homeGuild = ret['homeGuild']
+            awayGuild = ret['awayGuild']
+            await update_mysql.update_tw(
+                guild_id, tw_id, opp_guild_id, opp_guild_name,
+                score, opp_score, currentRound, homeGuild, awayGuild
+            )
+            await send_event({
+                "type": "complete", "err_code": 0,
+                "err_txt": "Successfully deployed " + str(completed) + " proposed team(s).",
+                "completed": int(completed),
+            })
+            await response.write_eof()
+            return response
+        except Exception as error:
+            golog.log("ERR", "Deploy TW teams command error: " + str(error))
+            try:
+                await send_event({
+                    "type": "error", "err_code": 500,
+                    "err_txt": "Internal server error",
+                    "completed": int(locals().get("completed", 0)),
+                })
+                await response.write_eof()
+            except Exception:
+                pass
+            return response
     except Exception as error:
         golog.log("ERR", "Deploy TW teams command error: " + str(error))
         return web.json_response({"err_code": 500, "err_txt": "Internal server error"}, status=500)
