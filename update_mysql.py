@@ -266,6 +266,9 @@ async def update_player_general(cursor, dict_player):
     arena_ship_rank = None
 
     for arena in dict_player.get("pvpProfile", []):
+        if not "type" in arena:
+            #robustness
+            continue
         if arena["type"] == "SQUADARENA":
             arena_char_rank = arena["rank"]
         elif arena["type"] == "FLEETARENA":
