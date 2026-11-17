@@ -544,10 +544,12 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                 query = "SELECT MIN(lastUpdated) FROM players WHERE guildId='"+guild_id+"'"
                 current_last_player_updated = await connect_mysql.get_value_async(query)
 
-                refresh_still_needed = force_update or is_new_guild
+                refreshed_while_waiting = current_last_player_updated != lastPlayerUpdated
+                refresh_still_needed = force_update and not refreshed_while_waiting
+
                 if current_last_player_updated is None:
                     refresh_still_needed = True
-                elif not refresh_still_needed:
+                elif (is_new_guild or need_refresh_due_to_time) and not refreshed_while_waiting:
                     delta_current = datetime.datetime.now() - current_last_player_updated
                     refresh_still_needed = (
                         (delta_current.days * 86400 + delta_current.seconds)
