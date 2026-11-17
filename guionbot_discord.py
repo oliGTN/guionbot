@@ -40,7 +40,6 @@ import update_mysql
 import shard_mysql
 import statq
 import connect_rpc
-import parallel_work
 import portraits
 import data
 import manage_mods
@@ -9494,7 +9493,6 @@ async def main():
     for cache_file in list_cache_files:
         if cache_file.endswith(".tmp"):
             os.remove("CACHE/"+cache_file)
-    parallel_work.clean_cache()
 
     # Initialize MySQL async connection pool
     golog.log("INFO", "Initializing MySQL async pool...")
