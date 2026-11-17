@@ -699,19 +699,26 @@ async def load_shard(shard_id, shard_type, cmd_request):
         async with guild_semaphore.guild_loading(
             "shard:"+str(shard_type)+":"+str(shard_id)
         ):
-            i_player = 0
-            for allyCode in list_allyCodes_to_update:
-                i_player += 1
-                golog.log("INFO", shard_name+" player #"+str(i_player))
+            # A previous caller may have refreshed this shard while we waited.
+            current_last_updated = await connect_mysql.get_value_async(
+                "SELECT lastUpdated FROM shards WHERE id = "+str(shard_id)
+            )
+            if current_last_updated != lastUpdated:
+                golog.log("INFO", shard_name+" was refreshed by another process while waiting; skipping duplicate load.")
+            else:
+                i_player = 0
+                for allyCode in list_allyCodes_to_update:
+                    i_player += 1
+                    golog.log("INFO", shard_name+" player #"+str(i_player))
 
-                e, t, d = await load_player(str(allyCode), 0, False)
-                if e != 0:
-                    golog.log("WAR", "Error loading player "+str(allyCode)+" for "+shard_name+": "+str(t))
+                    e, t, d = await load_player(str(allyCode), 0, False)
+                    if e != 0:
+                        golog.log("WAR", "Error loading player "+str(allyCode)+" for "+shard_name+": "+str(t))
 
-            # Update the timestamp only after the complete shard pass.
-            query = "UPDATE shards SET lastUpdated = CURRENT_TIMESTAMP WHERE id = "+str(shard_id)
-            golog.log('DBG', query)
-            await connect_mysql.simple_execute_async(query)
+                # Update the timestamp only after the complete shard pass.
+                query = "UPDATE shards SET lastUpdated = CURRENT_TIMESTAMP WHERE id = "+str(shard_id)
+                golog.log('DBG', query)
+                await connect_mysql.simple_execute_async(query)
 
     else:
         lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
