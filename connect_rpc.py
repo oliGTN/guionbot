@@ -380,7 +380,7 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
 
 # This function is a helper for get_event_data
 async def _get_event_events(session, event_type, guild_id, bot_allyCode,
-                            list_channels, use_cache_data, retryAuth):
+                            list_channels, earliest_ts, use_cache_data, retryAuth):
     url = "http://localhost:8000/events"
 
     params = {
@@ -388,6 +388,7 @@ async def _get_event_events(session, event_type, guild_id, bot_allyCode,
         "eventType": event_type,
         "guild_id": guild_id,
         "list_channels": list_channels,
+        "earliest_ts": earliest_ts,
         "use_cache_data": use_cache_data,
         "retryAuth": retryAuth
     }
@@ -553,6 +554,10 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         connect_mysql.get_value_async(query)
     )
 
+    # The RPC server filters old events before decoding their activity
+    # payloads. Keep the timestamp in milliseconds, matching event.timestamp.
+    eventLatest_ts = await event_latest_task
+
     # ------------------------------------------------------------
     # RPC requests
     #
@@ -573,6 +578,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                         guild_id,
                         bot_allyCode,
                         tb_channels,
+                        eventLatest_ts,
                         use_cache_data,
                         retryAuth
                     )
@@ -589,6 +595,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                         guild_id,
                         bot_allyCode,
                         tw_channels,
+                        eventLatest_ts,
                         use_cache_data,
                         retryAuth
                     )
@@ -605,6 +612,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                         guild_id,
                         bot_allyCode,
                         chat_channels,
+                        eventLatest_ts,
                         use_cache_data,
                         retryAuth
                     )
@@ -672,15 +680,6 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
 
     if resp_events is not None:
         list_rpc_events.extend(resp_events["event"])
-
-    # ------------------------------------------------------------
-    # Get eventLatest_ts
-    #
-    # Usually the query has already completed while the RPC calls
-    # were running.
-    # ------------------------------------------------------------
-
-    eventLatest_ts = await event_latest_task
 
     # ------------------------------------------------------------
     # Process events
@@ -771,7 +770,9 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         # In that case, don't store events.
         # --------------------------------------------------------
 
-        if eventLatest_ts is None or event_ts <= eventLatest_ts:
+        # A missing eventLatest_ts is an invalid configuration: keep
+        # the existing behavior of not storing events in this case.
+        if eventLatest_ts is None:
             continue
 
         if event_ts > max_event_ts:
