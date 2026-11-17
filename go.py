@@ -34,7 +34,7 @@ import player_cache
 import golog
 import guionbot_discord
 import portraits
-import parallel_work
+import guild_semaphore
 import data as godata
 import emojis
 import bot_commands
@@ -517,8 +517,6 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
 
         if is_new_guild or need_refresh_due_to_time or need_to_add_players or force_update:
             #The guild needs to be loaded again
-            guild_loading_status = parallel_work.get_guild_loading_status(guild_name)
-
             if is_new_guild or need_refresh_due_to_time or force_update:
                 #add all players
                 if "member" in dict_guild:
@@ -530,50 +528,36 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                 list_playerId_to_update = playerId_to_add
                 total_players = len(list_playerId_to_update)
 
-            if guild_loading_status != None:
-                #The guild is already being loaded
-                while guild_loading_status != None:
-                    golog.log('INFO', "Guild "+guild_name+" already loading ("\
-                            + guild_loading_status + "), waiting 30 seconds...")
-                    await asyncio.sleep(30)
-                    guild_loading_status = parallel_work.get_guild_loading_status(guild_name)
-            else:
-                #Ensure only one guild loading at a time
-                list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guild_name)
-                while len(list_other_guilds_loading_status) > 0:
-                    golog.log('INFO', "Guild "+guild_name+" loading "\
-                                +"will start after loading of "+str(list_other_guilds_loading_status))
-                    if ctx_interaction!=None:
-                        await bot_commands.command_ok(ctx_interaction[0], ctx_interaction[1], "En file d'attente derrière "+str(list_other_guilds_loading_status)+"..." , intermediate=True)
-                    await asyncio.sleep(10)
-                    list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guild_name)
+            # A per-guild kernel lock prevents duplicate loads. The shared
+            # System V semaphore limits all guild/shard loads to two processes.
+            if ctx_interaction is not None:
+                await bot_commands.command_ok(
+                    ctx_interaction[0], ctx_interaction[1],
+                    "Mise en file d'attente pour le chargement de la guilde...",
+                    intermediate=True
+                )
 
-                #Request to load this guild
-                parallel_work.set_guild_loading_status(guild_name, "0/"+str(total_players))
-
-                #add player data
+            async with guild_semaphore.guild_loading("guild:" + str(guild_id)):
                 i_player = 0
                 prev_display_time = 0
                 for playerId in list_playerId_to_update:
                     i_player += 1
                     golog.log("INFO", guild_name+" player #"+str(i_player))
-                    
+
                     e, t, d = await load_player(str(playerId), 0, False, load_roster=load_rosters)
                     golog.log("DBG", "after load_player...")
-                    parallel_work.set_guild_loading_status(guild_name, str(i_player)+"/"+str(total_players))
 
-                    golog.log("DBG", (ctx_interaction, prev_display_time,time.time()))
                     #update status to user
-                    if ctx_interaction!=None:
+                    if ctx_interaction is not None:
                         if (time.time() - prev_display_time) > 10:
-                            await bot_commands.command_ok(ctx_interaction[0], ctx_interaction[1], "chargement du joueur "+str(i_player)+"/"+str(len(list_playerId_to_update))+"...", intermediate=True)
+                            await bot_commands.command_ok(
+                                ctx_interaction[0], ctx_interaction[1],
+                                "chargement du joueur "+str(i_player)+"/"+str(len(list_playerId_to_update))+"...",
+                                intermediate=True
+                            )
                             prev_display_time = time.time()
 
-                    golog.log("DBG", "after set_guild_loading_status...")
                     await asyncio.sleep(1)
-                    golog.log("DBG", "after sleep...")
-
-                parallel_work.set_guild_loading_status(guild_name, None)
 
         else:
             lastPlayerUpdated_txt = lastPlayerUpdated.strftime("%d/%m/%Y %H:%M:%S")
@@ -647,92 +631,61 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
     return 0, "", dict_guild
 
 async def load_shard(shard_id, shard_type, cmd_request):
-    #Get API data for the guild
     golog.log('INFO', 'Requesting API data for shard ' + str(shard_id))
 
-    guildName = "shard "+shard_type+" "+str(shard_id)
+    shard_name = "shard "+shard_type+" "+str(shard_id)
 
-    query = "SELECT lastUpdated FROM shards "\
-           +"WHERE id = "+str(shard_id)
+    query = "SELECT lastUpdated FROM shards WHERE id = "+str(shard_id)
     golog.log('DBG', query)
     lastUpdated = await connect_mysql.get_value_async(query)
 
-    query = "SELECT allyCode FROM players "
-    query+= "WHERE "+shard_type+"Shard_id = " + str(shard_id)
+    query = "SELECT allyCode FROM players WHERE "+shard_type+"Shard_id = "+str(shard_id)
     golog.log("DBG", query)
     allyCodes_in_DB = await connect_mysql.get_column_async(query)
 
-    if allyCodes_in_DB == None or len(allyCodes_in_DB) == 0:
+    if allyCodes_in_DB is None or len(allyCodes_in_DB) == 0:
         golog.log("WAR", "No player found for shard "+shard_type+" of ID "+str(shard_id))
         return 1, "No player found for shard "+shard_type+" of ID "+str(shard_id)
 
     delta_lastUpdated = datetime.datetime.now() - lastUpdated
     if cmd_request:
-        #if shard info used for a command, do not refresh unless more than a day
+        # If shard info is used for a command, refresh at most once per day.
         need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 86400
     else:
-        #if guild info refreshed regularly, do if more than one hour
+        # If shard info is refreshed regularly, refresh after one hour.
         need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600
 
     golog.log("DBG", "need_refresh_due_to_time="+str(need_refresh_due_to_time))
 
     if need_refresh_due_to_time:
-        #The guild is not defined yet, add it
-        guild_loading_status = parallel_work.get_guild_loading_status(guildName)
-
         list_allyCodes_to_update = allyCodes_in_DB
         total_players = len(list_allyCodes_to_update)
 
-        if guild_loading_status != None:
-            #The guild is already being loaded
-            #while dict_loading_guilds[guildName][1] < dict_loading_guilds[guildName][0]:
-            while guild_loading_status != None:
-                golog.log('INFO', "Guild "+guildName+" already loading ("\
-                        + guild_loading_status + "), waiting 30 seconds...")
-                if ctx_interaction!=None:
-                    await bot_commands.command_ok(ctx_interaction[0], ctx_interaction[1], "Chargement de la guilde déjà en cours via une autre commande..." , intermediate=True)
-                await asyncio.sleep(30)
-                guild_loading_status = parallel_work.get_guild_loading_status(guildName)
-        else:
-            #Ensure only one guild loading at a time
-            #while len(dict_loading_guilds) > 1:
-            list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
-            while len(list_other_guilds_loading_status) > 0:
-                golog.log('INFO', "Guild "+guildName+" loading "\
-                            +"will start after loading of "+str(list_other_guilds_loading_status))
-                await asyncio.sleep(30)
-                list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
-
-            #Request to load this guild
-            parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
-
-            #add player data
+        # Shards use the same global concurrency limit as guilds, and a
+        # shard-specific lock prevents two callers refreshing the same shard.
+        async with guild_semaphore.guild_loading(
+            "shard:"+str(shard_type)+":"+str(shard_id)
+        ):
             i_player = 0
             for allyCode in list_allyCodes_to_update:
                 i_player += 1
-                golog.log("INFO", "player #"+str(i_player))
-                
+                golog.log("INFO", shard_name+" player #"+str(i_player))
+
                 e, t, d = await load_player(str(allyCode), 0, False)
-                parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
+                if e != 0:
+                    golog.log("WAR", "Error loading player "+str(allyCode)+" for "+shard_name+": "+str(t))
 
-            parallel_work.set_guild_loading_status(guildName, None)
-
-            #Update dates in DB
-            query = "UPDATE shards "\
-                   +"SET lastUpdated = CURRENT_TIMESTAMP "\
-                   +"WHERE id = "+str(shard_id)
+            # Update the timestamp only after the complete shard pass.
+            query = "UPDATE shards SET lastUpdated = CURRENT_TIMESTAMP WHERE id = "+str(shard_id)
             golog.log('DBG', query)
             await connect_mysql.simple_execute_async(query)
 
     else:
         lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
-        golog.log('INFO', guildName+" last update is "+lastUpdated_txt)
+        golog.log('INFO', shard_name+" last update is "+lastUpdated_txt)
 
-    #Update dates in DB
     if cmd_request:
-        query = "UPDATE shards "\
-               +"SET lastRequested = CURRENT_TIMESTAMP "\
-               +"WHERE id = "+str(shard_id)
+        query = "UPDATE shards SET lastRequested = CURRENT_TIMESTAMP WHERE id = "+str(shard_id)
         golog.log('DBG', query)
         await connect_mysql.simple_execute_async(query)
 
