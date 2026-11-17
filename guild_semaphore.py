@@ -46,21 +46,18 @@ def _raise_errno(operation):
 
 
 def _get_semaphore_id():
-    # ftok derives the same key in both processes from this shared module path.
-    module_path = os.path.abspath(__file__).encode("utf-8")
-    key = _libc.ftok(ctypes.c_char_p(module_path), ctypes.c_int(_SEM_PROJECT_ID))
-    if key == -1:
-        _raise_errno("ftok")
-
     cache_dir = os.path.join(_BASE_DIR, "CACHE")
     os.makedirs(cache_dir, exist_ok=True)
 
-    # Serialize first-time creation/initialization. This file is only an
-    # initialization mutex; ongoing coordination is performed by the kernel.
+    # This persistent file is both the initialization mutex and ftok anchor.
+    # Unlike __file__, its inode survives normal code deployments/restarts.
     init_path = os.path.join(cache_dir, ".guild_semaphore_init.lock")
     fd = os.open(init_path, os.O_CREAT | os.O_RDWR, _SEM_PERMISSIONS)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
+        key = _libc.ftok(ctypes.c_char_p(init_path.encode("utf-8")), ctypes.c_int(_SEM_PROJECT_ID))
+        if key == -1:
+            _raise_errno("ftok")
         semid = _libc.semget(
             ctypes.c_int(key), ctypes.c_int(1),
             ctypes.c_int(_IPC_CREAT | _IPC_EXCL | _SEM_PERMISSIONS)
