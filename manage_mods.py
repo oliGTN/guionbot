@@ -153,7 +153,7 @@ async def _start_reaction_cancellation(interaction, content):
             pass
         listener = None
         try:
-            await message.edit(content=content.split("\n")[0])
+            message = await message.edit(content=content.split("\n")[0])
         except Exception as edit_error:
             golog.log("WAR", "Unable to remove unavailable cancellation instruction: " + repr(edit_error))
         golog.log("WAR", "Unable to add cancellation reaction: " + repr(e))
@@ -171,7 +171,7 @@ async def _stop_reaction_cancellation(interaction, listener, message):
         try:
             # The progress message is independent from the slash-command response.
             # Leave its final progress visible, but remove the now-invalid instruction.
-            await message.edit(content=message.content.split("\n")[0])
+            message = await message.edit(content=message.content.split("\n")[0])
         except Exception as e:
             golog.log("WAR", "Unable to finalize mod progress message: " + repr(e))
         try:
@@ -346,7 +346,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                 new_msg_content += "\nCliquez sur ✋ pour interrompre"
             try:
                 if cancel_message is not None:
-                    await cancel_message.edit(content=new_msg_content)
+                    cancel_message = await cancel_message.edit(content=new_msg_content)
                 elif interaction is not None:
                     await interaction.edit_original_response(content=new_msg_content)
                 else:
