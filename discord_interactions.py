@@ -37,7 +37,13 @@ async def command_error(ctx_interaction, resp_msg, err_txt):
         interaction = ctx_interaction
         content = emojis.redcross+" "+err_txt
 
-        await interaction.edit_original_response(content=content)
+        try:
+            await interaction.edit_original_response(content=content)
+        except Exception as e:
+            # Long-running commands may have deleted the deferred response or
+            # outlived its 15-minute interaction webhook token.
+            golog.log("WAR", "Unable to edit original interaction response: " + repr(e))
+            await interaction.channel.send(content=content)
 
     else:
         print("ERROR "+err_txt)
@@ -75,10 +81,20 @@ async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=N
         else:
             content = emojis.check+" "+output_txt
 
-        if attachments==[]:
-            await interaction.edit_original_response(content=content)
-        else:
-            await interaction.edit_original_response(content=content, attachments=attachments)
+        try:
+            if attachments==[]:
+                await interaction.edit_original_response(content=content)
+            else:
+                await interaction.edit_original_response(content=content, attachments=attachments)
+        except Exception as e:
+            # Long-running commands may have deleted the deferred response or
+            # outlived its 15-minute interaction webhook token. Send the result
+            # as a normal channel message instead.
+            golog.log("WAR", "Unable to edit original interaction response: " + repr(e))
+            send_kwargs = {"content": content}
+            if attachments:
+                send_kwargs["files"] = attachments
+            await interaction.channel.send(**send_kwargs)
 
     else:
         if intermediate==False:
@@ -140,6 +156,37 @@ async def send_message(ctx_interaction, output_txt, images=None, files=None):
 
 ##############################################################
 # interaction specifics
+class CancelOperationView(discord_ui.View):
+    """A cancellation button for long-running operations.
+
+    timeout=None keeps the button active beyond Discord's default 180-second
+    view timeout. The view is attached to a normal bot message, not an
+    interaction webhook response, so it also works for operations >15 minutes.
+    """
+    def __init__(self, user_id, cancel_event):
+        super().__init__(timeout=None)
+        self.user_id = user_id
+        self.cancel_event = cancel_event
+
+    @discord_ui.button(
+        label="Annuler",
+        style=ButtonStyle.danger,
+        custom_id="guionbot:cancel_long_operation"
+    )
+    async def cancel_operation(self, interaction: Interaction, button: discord_ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "Seul l'auteur de la commande peut l'annuler.",
+                ephemeral=True
+            )
+            return
+
+        self.cancel_event.set()
+        button.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+
 class ConfirmationButtons(discord_ui.View):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
