@@ -4641,7 +4641,8 @@ class ModsCog(commands.GroupCog, name="mods"):
                         output_channel = bot.get_channel(channel_id)
                         await output_channel.send(content=txt)
             else:
-                err_txt = emojis.redcross+" "+et
+                err_icon = emojis.warning if ec == 2 else emojis.redcross
+                err_txt = err_icon+" "+et
 
                 # error happening in the middle of a simulation does not display cost
                 # simulation going to its end but failing displays cost
@@ -4921,9 +4922,11 @@ class ModsCog(commands.GroupCog, name="mods"):
                     txt = "[SIMULATION]"+txt
                 if len(txt)>1000:
                     txt=txt[:1000]+"..."
-                await interaction.edit_original_response(content=txt)
+                if not await finish_cancelable_progress(interaction, txt):
+                    await interaction.edit_original_response(content=txt)
             else:
-                err_txt = emojis.redcross+" "+et
+                err_icon = emojis.warning if ec == 2 else emojis.redcross
+                err_txt = err_icon+" "+et
 
                 # error happening in the middle of a simulation does not display cost
                 # simulation going to its end but failing displays cost
@@ -4932,13 +4935,8 @@ class ModsCog(commands.GroupCog, name="mods"):
                         err_txt += "\n "+cost_and_missing
                     if len(err_txt)>1000:
                         err_txt=err_txt[:1000]+"..."
-                if ec == 2:
-                    # Keep the slash-command acknowledgement as the preparation
-                    # confirmation; publish the detailed cancellation only once,
-                    # in the persistent progress message.
-                    if not await finish_cancelable_progress(interaction, err_txt):
-                        await interaction.edit_original_response(content=err_txt)
-                else:
+                # The persistent progress message owns the final result.
+                if not await finish_cancelable_progress(interaction, err_txt):
                     await interaction.edit_original_response(content=err_txt)
 
         except Exception as e:
