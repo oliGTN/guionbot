@@ -251,14 +251,14 @@ async def stop_cancelable_progress(
             golog.log("WAR", "Unable to finalize progress message: " + repr(edit_error))
 
 
-async def finish_cancelable_progress(interaction, content, attachments=None):
+async def finish_cancelable_progress(interaction, content, attachments=None, view=None):
     """Replace progress with the final result, without using the slash webhook."""
     message = _cancelable_progress_messages.pop(interaction.id, None)
     if message is None:
         return False
 
     try:
-        kwargs = {"content": content, "view": None}
+        kwargs = {"content": content, "view": view}
         if attachments:
             kwargs["attachments"] = attachments
         await message.edit(**kwargs)
