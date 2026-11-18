@@ -41,6 +41,8 @@ from discord_interactions import (
     send_message, 
     confirmationPrompt,
     command_ack,
+    clear_cancelable_progress,
+    finish_cancelable_progress,
 )
 
 # CONSTANTS
@@ -985,6 +987,7 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
     await release_sem(txt_allyCode)
 
     if ec == 2:
+        clear_cancelable_progress(ctx_interaction)
         # The persistent progress message already records the cancellation.
         remove_command_from_queue(ctx_interaction)
         return
@@ -1061,6 +1064,7 @@ async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_t
         await release_sem(txt_allyCode)
 
     if ec == 2:
+        clear_cancelable_progress(ctx_interaction)
         # The persistent progress message already records the cancellation.
         # Avoid trying to edit the deleted deferred response or posting a duplicate.
         remove_command_from_queue(ctx_interaction)
@@ -1081,14 +1085,12 @@ async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_t
 
     if len(txt) > 1000:
         txt = txt[:1000]+"..."
-    try:
-        await ctx_interaction.edit_original_response(content=txt)
-    except Exception as e:
-        # The progress operation can outlive Discord's 15-minute interaction
-        # webhook token. In that case, publish the final result as a normal
-        # channel message instead of losing it.
-        golog.log("WAR", "Unable to edit slice-up interaction response: " + repr(e))
-        await ctx_interaction.channel.send(content=txt)
+    if not await finish_cancelable_progress(ctx_interaction, txt):
+        try:
+            await ctx_interaction.edit_original_response(content=txt)
+        except Exception as e:
+            golog.log("WAR", "Unable to edit slice-up interaction response: " + repr(e))
+            await ctx_interaction.channel.send(content=txt)
     remove_command_from_queue(ctx_interaction)
 
 ###############################
@@ -1197,6 +1199,7 @@ async def allocate_random_mods(ctx_interaction):
                             initialdata=initialdata,
                             initial_message=resp_msg)
     if ec == 2:
+        clear_cancelable_progress(ctx_interaction)
         # The persistent progress message already contains the cancellation
         # status; do not publish a duplicate error message.
         remove_command_from_queue(ctx_interaction)
