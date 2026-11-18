@@ -139,9 +139,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                                 dict_player=None,
                                 initialdata=None,
                                 initial_message=None):
-    if interaction != None:
-        await interaction.edit_original_response(content=emojis.hourglass+" Récupération des infos du joueur...")
-    else:
+    if interaction is None:
         print("Récupération des infos du joueur...")
 
     # Get player data
@@ -164,9 +162,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot
-    if interaction != None:
-        await interaction.edit_original_response(content=emojis.hourglass+" Récupération de la liste des mods...")
-    else:
+    if interaction is None:
         print("Récupération de la liste des mods...")
     dict_player_mods = get_dict_player_mods(dict_player, initialdata)
 
