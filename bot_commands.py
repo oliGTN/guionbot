@@ -1063,10 +1063,10 @@ async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_t
     finally:
         await release_sem(txt_allyCode)
 
-    if ec == 2:
+    if ec == 2 and not simulation:
         clear_cancelable_progress(ctx_interaction)
         # The persistent progress message already records the cancellation.
-        # Avoid trying to edit the deleted deferred response or posting a duplicate.
+        # Avoid trying to edit the deferred response or posting a duplicate.
         remove_command_from_queue(ctx_interaction)
         return
 
