@@ -155,7 +155,7 @@ async def _stop_cancel_button(view, message, delete_message=False):
         return
 
     try:
-        await message.edit(content=message.content.split("\\n")[0], view=None)
+        await message.edit(content=message.content.split("\n")[0], view=None)
     except Exception as e:
         golog.log("WAR", "Unable to finalize mod progress message: " + repr(e))
 
@@ -238,7 +238,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         )
         cancel_event, cancel_view, cancel_message = await _start_cancel_button(
             interaction,
-            emojis.hourglass + " Préparation des déplacements...\n")
+            emojis.hourglass + " Préparation des déplacements...")
 
     while(len(mod_allocations)>0):
         if cancel_event is not None and cancel_event.is_set():
@@ -327,8 +327,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                 + str(original_unit_count - len(mod_allocations) + 1) + "/"
                 + str(original_unit_count) + ": " + target_char_defId
             )
-            if cancel_view is not None:
-                new_msg_content += "\n"
+            # The Annuler button is the only control shown with progress.
             try:
                 if cancel_message is not None:
                     cancel_message = await cancel_message.edit(content=new_msg_content, view=cancel_view)
@@ -483,9 +482,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         await asyncio_sleep(0)
 
     if cancel_view is not None or cancel_message is not None:
-        await _stop_reaction_cancellation(
-            interaction, cancel_view, cancel_message, delete_message=True
-        )
+        await _stop_cancel_button(cancel_view, cancel_message, delete_message=True)
 
     ret_code = 0
     ret_txt = ""
@@ -1598,7 +1595,7 @@ async def upgrade_tier_mods(
             unit_index = {unit_id: idx for idx, unit_id in enumerate(unit_ids, start=1)}
             cancel_event, cancel_view, cancel_message = await _start_cancel_button(
                 interaction,
-                emojis.hourglass + " Préparation de l'amélioration des mods...\n")
+                emojis.hourglass + " Préparation de l'amélioration des mods...")
         # launch the request
         for mod in list_mods:
             if cancel_event is not None and cancel_event.is_set():
@@ -1610,7 +1607,6 @@ async def upgrade_tier_mods(
                 progress_content = (
                     emojis.hourglass + " Perso " + str(unit_index[unit_id]) + "/"
                     + str(len(unit_ids)) + ": " + str(unit_id)
-                    + ("\n" if cancel_view is not None else "")
                 )
                 try:
                     cancel_message = await cancel_message.edit(content=progress_content, view=cancel_view)
@@ -1671,7 +1667,7 @@ async def upgrade_tier_mods(
                         return err_code, err_txt, None
 
     if cancel_view is not None or cancel_message is not None:
-        await _stop_cancel_button(cancel_view, cancel_message)
+        await _stop_cancel_button(cancel_view, cancel_message, delete_message=True)
 
     if err_code == 0:
         ret_code = 0
