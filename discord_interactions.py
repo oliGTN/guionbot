@@ -189,11 +189,11 @@ class CancelOperationView(discord_ui.View):
         self.stop()
 
 
-async def start_cancelable_progress(ctx_interaction, content):
+async def start_cancelable_progress(ctx_interaction, content, initial_message=None):
     """Create a channel progress message with an Annuler button.
 
-    Delete a deferred slash-command response once the durable progress message
-    exists, avoiding a stale 'thinking...' response during long operations.
+    Keep the command's original response clean while detailed progress lives
+    in a normal channel message, independent of the 15-minute webhook token.
     """
     cancel_event = asyncio.Event()
     user = getattr(ctx_interaction, "user", None) or getattr(ctx_interaction, "author", None)
@@ -202,6 +202,16 @@ async def start_cancelable_progress(ctx_interaction, content):
 
     view = CancelOperationView(user.id, cancel_event)
     message = await ctx_interaction.channel.send(content=content, view=view)
+
+    # Prefix-command contexts have a normal response message rather than an
+    # interaction webhook response. Keep it available for the final result.
+    if initial_message is not None:
+        try:
+            await initial_message.edit(
+                content="ℹ️ Progression détaillée dans le message ci-dessous."
+            )
+        except Exception as e:
+            golog.log("WAR", "Unable to update initial command response: " + repr(e))
 
     if hasattr(ctx_interaction, "delete_original_response"):
         try:
