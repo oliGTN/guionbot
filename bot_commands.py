@@ -41,7 +41,6 @@ from discord_interactions import (
     send_message, 
     confirmationPrompt,
     command_ack,
-    clear_cancelable_progress,
     finish_cancelable_progress,
 )
 
