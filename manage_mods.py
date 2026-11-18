@@ -1269,7 +1269,7 @@ async def upgrade_roster_mods(
 
         # Split the batch so cancellation can be checked between RPC requests.
         # This avoids one uninterruptible request for the entire inventory.
-        batch_size = 100
+        batch_size = 100 if interaction is not None else len(list_mods)
         prev_display_time = 0
         for offset in range(0, len(list_mods), batch_size):
             if cancel_event is not None and cancel_event.is_set():
