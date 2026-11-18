@@ -27,7 +27,6 @@ from json import dumps as json_dumps, load as json_load, loads as json_loads
 import threading
 import urllib
 
-import bot_command_ownership
 import config
 import bot_commands
 import go
@@ -36,6 +35,7 @@ import player_cache
 import golog
 import connect_gsheets
 import connect_mysql
+import bot_command_ownership
 import get_mysql
 import update_mysql
 import shard_mysql
@@ -9541,6 +9541,9 @@ async def main():
     # Initialize MySQL async connection pool
     golog.log("INFO", "Initializing MySQL async pool...")
     await connect_mysql.init_async_pool()
+
+    # Ensure the shared lease table exists in both production and test mode.
+    await bot_command_ownership.initialize()
 
     #Initialize HTTP session
     golog.log("INFO", "Initializing HTTP connection...")
