@@ -133,8 +133,8 @@ async def _start_cancel_button(ctx_interaction, content):
     return cancel_event, view, message
 
 
-async def _stop_cancel_button(view, message, delete_message=False):
-    """Stop the button view and clean up its persistent progress message."""
+async def _stop_cancel_button(view, message, final_content="⚠️ Opération arrêtée"):
+    """Stop the button view and remove the temporary progress message."""
     if view is not None:
         view.stop()
         for child in view.children:
@@ -143,22 +143,15 @@ async def _stop_cancel_button(view, message, delete_message=False):
     if message is None:
         return
 
-    if delete_message:
-        try:
-            await message.delete()
-        except Exception as e:
-            golog.log("WAR", "Unable to delete completed mod progress message: " + repr(e))
-            try:
-                await message.edit(content="✅ Opération terminée", view=None)
-            except Exception as edit_error:
-                golog.log("WAR", "Unable to finalize completed mod progress message: " + repr(edit_error))
-        return
-
     try:
-        await message.edit(content=message.content.split("\n")[0], view=None)
+        await message.delete()
     except Exception as e:
-        golog.log("WAR", "Unable to finalize mod progress message: " + repr(e))
-
+        golog.log("WAR", "Unable to delete mod progress message: " + repr(e))
+        try:
+            # Never leave a stale "Perso x/y" message looking active.
+            await message.edit(content=final_content, view=None)
+        except Exception as edit_error:
+            golog.log("WAR", "Unable to finalize mod progress message: " + repr(edit_error))
 
 ##########################
 # STEP3
@@ -482,7 +475,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         await asyncio_sleep(0)
 
     if cancel_view is not None or cancel_message is not None:
-        await _stop_cancel_button(cancel_view, cancel_message, delete_message=True)
+        await _stop_cancel_button(cancel_view, cancel_message, final_content="✅ Opération terminée")
 
     ret_code = 0
     ret_txt = ""
@@ -1667,7 +1660,7 @@ async def upgrade_tier_mods(
                         return err_code, err_txt, None
 
     if cancel_view is not None or cancel_message is not None:
-        await _stop_cancel_button(cancel_view, cancel_message, delete_message=True)
+        await _stop_cancel_button(cancel_view, cancel_message, final_content="✅ Opération terminée")
 
     if err_code == 0:
         ret_code = 0
