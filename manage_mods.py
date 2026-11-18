@@ -124,7 +124,9 @@ def get_dict_player_mods(dict_player, initialdata=None):
 async def _start_reaction_cancellation(interaction, content):
     """Display progress and listen for the invoking user adding ✋."""
     cancel_event = asyncio.Event()
-    message = await interaction.edit_original_response(content=content)
+    # Use a regular channel message: interaction webhook tokens expire after 15 minutes,
+    # while mod allocation can take considerably longer.
+    message = await interaction.channel.send(content)
     client = interaction.client
     user_id = interaction.user.id
 
@@ -152,10 +154,10 @@ async def _start_reaction_cancellation(interaction, content):
         listener = None
         message = None
         try:
-            await interaction.edit_original_response(content=content.split("\n")[0])
-        except Exception:
-            pass
-        golog.log("WAR", "Unable to add cancellation reaction: " + str(e))
+            await message.edit(content=content.split("\n")[0])
+        except Exception as edit_error:
+            golog.log("WAR", "Unable to remove unavailable cancellation instruction: " + repr(edit_error))
+        golog.log("WAR", "Unable to add cancellation reaction: " + repr(e))
     return cancel_event, listener, message
 
 
@@ -168,9 +170,15 @@ async def _stop_reaction_cancellation(interaction, listener, message):
             pass
     if message is not None:
         try:
+            # The progress message is independent from the slash-command response.
+            # Leave its final progress visible, but remove the now-invalid instruction.
+            await message.edit(content=message.content.split("\n")[0])
+        except Exception as e:
+            golog.log("WAR", "Unable to finalize mod progress message: " + repr(e))
+        try:
             await message.remove_reaction("✋", interaction.client.user)
-        except Exception:
-            pass
+        except Exception as e:
+            golog.log("WAR", "Unable to remove mod progress reaction: " + repr(e))
 
 
 ##########################
@@ -338,12 +346,19 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             if cancel_message is not None:
                 new_msg_content += "\nCliquez sur ✋ pour interrompre"
             try:
-                if interaction is not None:
+                if cancel_message is not None:
+                    await cancel_message.edit(content=new_msg_content)
+                elif interaction is not None:
                     await interaction.edit_original_response(content=new_msg_content)
                 else:
                     print(new_msg_content)
-            except Exception:
-                golog.log("WAR", "Unable to update discord msg to: " + new_msg_content)
+            except Exception as e:
+                golog.log(
+                    "WAR",
+                    "Unable to update discord msg: "
+                    + type(e).__name__ + ": " + repr(e)
+                    + " | content=" + new_msg_content
+                )
             prev_display_time = time.time()
 
         if target_char_level < 50:
