@@ -7,6 +7,8 @@ from discord import ButtonStyle
 from io import BytesIO
 import asyncio
 
+_cancelable_progress_messages = {}
+
 # BOT imports
 import golog
 import emojis
@@ -38,11 +40,11 @@ async def command_error(ctx_interaction, resp_msg, err_txt):
         interaction = ctx_interaction
         content = emojis.redcross+" "+err_txt
 
+        if await finish_cancelable_progress(interaction, content):
+            return
         try:
             await interaction.edit_original_response(content=content)
         except Exception as e:
-            # Long-running commands may have deleted the deferred response or
-            # outlived its 15-minute interaction webhook token.
             golog.log("WAR", "Unable to edit original interaction response: " + repr(e))
             await interaction.channel.send(content=content)
 
@@ -82,15 +84,15 @@ async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=N
         else:
             content = emojis.check+" "+output_txt
 
+        if not intermediate and await finish_cancelable_progress(
+                interaction, content, attachments=attachments):
+            return
         try:
             if attachments==[]:
                 await interaction.edit_original_response(content=content)
             else:
                 await interaction.edit_original_response(content=content, attachments=attachments)
         except Exception as e:
-            # Long-running commands may have deleted the deferred response or
-            # outlived its 15-minute interaction webhook token. Send the result
-            # as a normal channel message instead.
             golog.log("WAR", "Unable to edit original interaction response: " + repr(e))
             send_kwargs = {"content": content}
             if attachments:
@@ -190,11 +192,7 @@ class CancelOperationView(discord_ui.View):
 
 
 async def start_cancelable_progress(ctx_interaction, content, initial_message=None):
-    """Create a channel progress message with an Annuler button.
-
-    Keep the command's original response clean while detailed progress lives
-    in a normal channel message, independent of the 15-minute webhook token.
-    """
+    """Create a normal channel progress message and preserve a clean command acknowledgement."""
     cancel_event = asyncio.Event()
     user = getattr(ctx_interaction, "user", None) or getattr(ctx_interaction, "author", None)
     if user is None:
@@ -203,27 +201,18 @@ async def start_cancelable_progress(ctx_interaction, content, initial_message=No
     view = CancelOperationView(user.id, cancel_event)
     message = await ctx_interaction.channel.send(content=content, view=view)
 
-    # Prefix-command contexts have a normal response message rather than an
-    # interaction webhook response. Keep it available for the final result.
-    if initial_message is not None:
+    acknowledgement = "✅ Préparation terminée. Suivi de l'opération dans le message ci-dessous."
+    if type(ctx_interaction) == Interaction:
+        _cancelable_progress_messages[ctx_interaction.id] = message
         try:
-            await initial_message.edit(
-                content="ℹ️ Progression détaillée dans le message ci-dessous."
-            )
+            await ctx_interaction.edit_original_response(content=acknowledgement)
+        except Exception as e:
+            golog.log("WAR", "Unable to acknowledge long-operation preparation: " + repr(e))
+    elif initial_message is not None:
+        try:
+            await initial_message.edit(content=acknowledgement)
         except Exception as e:
             golog.log("WAR", "Unable to update initial command response: " + repr(e))
-
-    if hasattr(ctx_interaction, "delete_original_response"):
-        try:
-            await ctx_interaction.delete_original_response()
-        except Exception as e:
-            golog.log("WAR", "Unable to delete initial long-operation response: " + repr(e))
-            try:
-                await ctx_interaction.edit_original_response(
-                    content="ℹ️ Progression détaillée dans le message ci-dessous."
-                )
-            except Exception as edit_error:
-                golog.log("WAR", "Unable to neutralize initial long-operation response: " + repr(edit_error))
 
     return cancel_event, view, message
 
@@ -234,13 +223,8 @@ async def update_cancelable_progress(message, content, view):
 
 
 async def stop_cancelable_progress(
-        view, message, final_content="⚠️ Opération arrêtée", delete_message=True):
-    """Disable cancellation and either delete or finalize the progress message.
-
-    Keep the progress message for cancellation so the channel retains a visible
-    record of the command. Successful operations can still remove the temporary
-    progress message and publish their result through the command response.
-    """
+        view, message, final_content="⚠️ Opération arrêtée", delete_message=False):
+    """Disable cancellation and leave a finalizable progress message in the channel."""
     if view is not None:
         view.stop()
         for child in view.children:
@@ -253,7 +237,7 @@ async def stop_cancelable_progress(
         try:
             await message.edit(content=final_content, view=None)
         except Exception as e:
-            golog.log("WAR", "Unable to finalize cancelled progress message: " + repr(e))
+            golog.log("WAR", "Unable to finalize progress message: " + repr(e))
         return
 
     try:
@@ -264,6 +248,32 @@ async def stop_cancelable_progress(
             await message.edit(content=final_content, view=None)
         except Exception as edit_error:
             golog.log("WAR", "Unable to finalize progress message: " + repr(edit_error))
+
+
+async def finish_cancelable_progress(interaction, content, attachments=None):
+    """Replace progress with the final result, without using the slash webhook."""
+    message = _cancelable_progress_messages.pop(interaction.id, None)
+    if message is None:
+        return False
+
+    try:
+        kwargs = {"content": content, "view": None}
+        if attachments:
+            kwargs["attachments"] = attachments
+        await message.edit(**kwargs)
+    except Exception as e:
+        golog.log("WAR", "Unable to publish final progress result: " + repr(e))
+        send_kwargs = {"content": content}
+        if attachments:
+            send_kwargs["files"] = attachments
+        await interaction.channel.send(**send_kwargs)
+    return True
+
+
+def clear_cancelable_progress(interaction):
+    if type(interaction) == Interaction:
+        _cancelable_progress_messages.pop(interaction.id, None)
+
 
 
 ##############################################################
