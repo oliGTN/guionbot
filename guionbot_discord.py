@@ -27,6 +27,7 @@ from json import dumps as json_dumps, load as json_load, loads as json_loads
 import threading
 import urllib
 
+import bot_command_ownership
 import config
 import bot_commands
 import go
@@ -77,9 +78,24 @@ latestGamedataVersion = ""
 # Class: MyClient
 # Description: the bot client, enabling basic bot and slash commands
 ##############################################################
+class MyCommandTree(app_commands.CommandTree):
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Both production and development receive the same application command.
+        # Only the instance holding the admin user's active lease may execute it.
+        if str(interaction.user.id) in config.GO_ADMIN_IDS.split():
+            return await bot_command_ownership.should_process_command(
+                interaction.user.id
+            )
+        return True
+
+
 class MyClient(commands.Bot):
     def __init__(self, *, command_prefix: list, intents: discord.Intents):
-        super().__init__(command_prefix=command_prefix, intents=intents)
+        super().__init__(
+            command_prefix=command_prefix,
+            intents=intents,
+            tree_cls=MyCommandTree
+        )
 
 #create bot
 intents = Intents.all()
@@ -87,6 +103,24 @@ intents.members = True
 intents.presences = True
 intents.message_content = True
 bot = MyClient(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
+
+
+class AdminCommandOwnedElsewhere(commands.CheckFailure):
+    """This admin user's commands are currently owned by another bot instance."""
+
+
+async def command_ownership_check(ctx):
+    if str(ctx.author.id) not in config.GO_ADMIN_IDS.split():
+        return True
+
+    if not await bot_command_ownership.should_process_command(ctx.author.id):
+        raise AdminCommandOwnedElsewhere()
+
+    return True
+
+
+# Global prefix-command check: covers commands invoked normally and via reactions.
+bot.add_check(command_ownership_check)
 
 list_tw_opponent_msgIDs: list[tuple[User, list[tuple[Message, list[int]]]]] = []
 
@@ -2889,6 +2923,10 @@ async def on_command_error(ctx, error):
         cmd_name = ctx.command.name
         await ctx.send("ERR: erreur de guillemets. Les guillemets vont pas paires et doivent être précédés ou suivis d'un espace.")
         await ctx.message.add_reaction(emojis.redcross)
+    elif isinstance(error, AdminCommandOwnedElsewhere):
+        # Another bot instance owns this admin user's commands. Stay silent:
+        # the owning instance will handle the same Discord event.
+        return
     elif isinstance(error, commands.CheckFailure):
         if not bot_test_mode:
             await ctx.send("ERR: commande interdite")
@@ -9472,12 +9510,18 @@ async def main():
     global bot_on_message
     global bot
 
+    admin_ownership_mode = False
+    ownership_heartbeat_task = None
+
     #Init bot
     golog.log("INFO", "Starting...")
     # Use command-line parameters
     if len(sys.argv) > 1:
         golog.log("INFO", "TEST MODE - options="+str(sys.argv[1:]))
         bot_test_mode = True
+        if "test-admin" in sys.argv[1:]:
+            admin_ownership_mode = True
+            golog.log("INFO", "TEST MODE - exclusive admin command ownership enabled")
         if "noloop" in sys.argv[1:]:
             golog.log("INFO", "Disable loops")
             bot_background_tasks = False
@@ -9528,11 +9572,28 @@ async def main():
     locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
 
     try:
+        if admin_ownership_mode:
+            admin_ids = config.GO_ADMIN_IDS.split()
+            await bot_command_ownership.acquire(admin_ids)
+            ownership_heartbeat_task = asyncio.create_task(
+                bot_command_ownership.heartbeat_loop()
+            )
+
         #Lancement du bot
         golog.log("INFO", "Run bot...")
         await bot.start(TOKEN, reconnect=True)
 
     finally:
+        if ownership_heartbeat_task is not None:
+            ownership_heartbeat_task.cancel()
+            try:
+                await ownership_heartbeat_task
+            except asyncio.CancelledError:
+                pass
+
+        if admin_ownership_mode:
+            await bot_command_ownership.release()
+
         golog.log("INFO", "Closing HTTP session...")
         if bot.http_session is not None:
             await bot.http_session.close()
