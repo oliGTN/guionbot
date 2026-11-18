@@ -1224,7 +1224,9 @@ async def upgrade_allocated_mods_to_15(mod_allocations, dict_player_mods, allyCo
 # upgrade all equipped mods to specified level
 # option for mods having speed as a secondary
 # dict_player_mods should only contain only equipped mods
-async def upgrade_roster_mods(dict_player_mods, target_level, allyCode, is_simu=False, only_speed_sec=False):
+async def upgrade_roster_mods(
+        dict_player_mods, target_level, allyCode, is_simu=False,
+        only_speed_sec=False, interaction=None):
     # list all mods below target level
     list_mods = []
     upgrade_cost = 0
@@ -1255,9 +1257,51 @@ async def upgrade_roster_mods(dict_player_mods, target_level, allyCode, is_simu=
         return 1, "Aucun mod à passer au niveau "+str(target_level)
 
     err_code=0
+    cancel_event = None
+    cancel_view = None
+    cancel_message = None
     if not is_simu:
-        # launch the request
-        err_code, err_txt = await connect_rpc.upgrade_level_mods(list_mods, target_level, allyCode)
+        if interaction is not None:
+            cancel_event, cancel_view, cancel_message = await _start_cancel_button(
+                interaction,
+                emojis.hourglass + " Préparation de l'amélioration des mods..."
+            )
+
+        # Split the batch so cancellation can be checked between RPC requests.
+        # This avoids one uninterruptible request for the entire inventory.
+        batch_size = 100
+        prev_display_time = 0
+        for offset in range(0, len(list_mods), batch_size):
+            if cancel_event is not None and cancel_event.is_set():
+                await _stop_cancel_button(cancel_view, cancel_message)
+                return 2, "Opération interrompue par l'utilisateur"
+
+            batch = list_mods[offset:offset + batch_size]
+            if cancel_message is not None and (time.time() - prev_display_time) > 5:
+                progress_content = (
+                    emojis.hourglass + " Mods "
+                    + str(offset + 1) + "/" + str(len(list_mods))
+                )
+                try:
+                    cancel_message = await cancel_message.edit(
+                        content=progress_content, view=cancel_view
+                    )
+                except Exception as e:
+                    golog.log("WAR", "Unable to update mod level-up progress: " + repr(e))
+                prev_display_time = time.time()
+
+            err_code, err_txt = await connect_rpc.upgrade_level_mods(
+                batch, target_level, allyCode
+            )
+            if err_code != 0:
+                if cancel_view is not None:
+                    await _stop_cancel_button(cancel_view, cancel_message)
+                return err_code, err_txt
+
+        if cancel_view is not None or cancel_message is not None:
+            await _stop_cancel_button(
+                cancel_view, cancel_message, final_content="✅ Opération terminée"
+            )
 
     if err_code == 0:
         mod_count = len(list_mods)
