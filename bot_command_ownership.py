@@ -37,6 +37,11 @@ async def _ensure_table():
     await connect_mysql.simple_execute_async(query)
 
 
+async def initialize():
+    """Create the shared ownership table for both production and test bots."""
+    await _ensure_table()
+
+
 async def acquire(admin_ids):
     """Acquire exclusive command ownership for all configured administrators."""
     global _enabled, _admin_ids
