@@ -209,7 +209,11 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
     while(len(mod_allocations)>0):
         if cancel_event is not None and cancel_event.is_set():
-            await stop_cancelable_progress(cancel_view, cancel_message)
+            await stop_cancelable_progress(
+                cancel_view, cancel_message,
+                final_content="⚠️ Opération annulée par l'utilisateur",
+                delete_message=False
+            )
             return 2, "Opération interrompue par l'utilisateur", {
                 "cost": str(mod_add_count) + " mods déplacés, sur " + str(unit_count) + " persos",
                 "missing": missing_mods,
@@ -1236,7 +1240,11 @@ async def upgrade_roster_mods(
         prev_display_time = 0
         for offset in range(0, len(list_mods), batch_size):
             if cancel_event is not None and cancel_event.is_set():
-                await stop_cancelable_progress(cancel_view, cancel_message)
+                await stop_cancelable_progress(
+                    cancel_view, cancel_message,
+                    final_content="⚠️ Opération annulée par l'utilisateur",
+                    delete_message=False
+                )
                 return 2, "Opération interrompue par l'utilisateur"
 
             batch = list_mods[offset:offset + batch_size]
@@ -1621,7 +1629,11 @@ async def upgrade_tier_mods(
         # launch the request
         for mod in list_mods:
             if cancel_event is not None and cancel_event.is_set():
-                await stop_cancelable_progress(cancel_view, cancel_message)
+                await stop_cancelable_progress(
+                    cancel_view, cancel_message,
+                    final_content="⚠️ Opération annulée par l'utilisateur",
+                    delete_message=False
+                )
                 return 2, "Opération interrompue par l'utilisateur", None
 
             if interaction is not None and (time.time() - prev_display_time) > 5:
@@ -1646,7 +1658,11 @@ async def upgrade_tier_mods(
             if mod_rarity == target_rarity:
                 for tier_up_id in range(mod_tier, target_tier):
                     if cancel_event is not None and cancel_event.is_set():
-                        await stop_cancelable_progress(cancel_view, cancel_message)
+                        await stop_cancelable_progress(
+                            cancel_view, cancel_message,
+                            final_content="⚠️ Opération annulée par l'utilisateur",
+                            delete_message=False
+                        )
                         return 2, "Opération interrompue par l'utilisateur", None
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
@@ -1659,7 +1675,11 @@ async def upgrade_tier_mods(
                 # 1/ upgrade to tier 5
                 for tier_up_id in range(mod_tier, 5):
                     if cancel_event is not None and cancel_event.is_set():
-                        await stop_cancelable_progress(cancel_view, cancel_message)
+                        await stop_cancelable_progress(
+                            cancel_view, cancel_message,
+                            final_content="⚠️ Opération annulée par l'utilisateur",
+                            delete_message=False
+                        )
                         return 2, "Opération interrompue par l'utilisateur", None
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
@@ -1669,7 +1689,11 @@ async def upgrade_tier_mods(
 
                 # 2/ promote
                 if cancel_event is not None and cancel_event.is_set():
-                    await stop_cancelable_progress(cancel_view, cancel_message)
+                    await stop_cancelable_progress(
+                        cancel_view, cancel_message,
+                        final_content="⚠️ Opération annulée par l'utilisateur",
+                        delete_message=False
+                    )
                     return 2, "Opération interrompue par l'utilisateur", None
                 err_code, err_txt = await connect_rpc.promote_mod(mod["id"], allyCode)
                 if err_code != 0:
@@ -1680,7 +1704,11 @@ async def upgrade_tier_mods(
                 # 3/ upgrade to tier 5
                 for tier_up_id in range(1, target_tier):
                     if cancel_event is not None and cancel_event.is_set():
-                        await stop_cancelable_progress(cancel_view, cancel_message)
+                        await stop_cancelable_progress(
+                            cancel_view, cancel_message,
+                            final_content="⚠️ Opération annulée par l'utilisateur",
+                            delete_message=False
+                        )
                         return 2, "Opération interrompue par l'utilisateur", None
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
