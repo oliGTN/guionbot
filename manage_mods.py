@@ -449,7 +449,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         await asyncio_sleep(0)
 
     if cancel_view is not None or cancel_message is not None:
-        await stop_cancelable_progress(cancel_view, cancel_message, final_content="✅ Opération terminée")
+        await stop_cancelable_progress(cancel_view, cancel_message, final_content="⌛ Finalisation du résultat...")
 
     ret_code = 0
     ret_txt = ""
@@ -1267,7 +1267,7 @@ async def upgrade_roster_mods(
 
         if cancel_view is not None or cancel_message is not None:
             await stop_cancelable_progress(
-                cancel_view, cancel_message, final_content="✅ Opération terminée"
+                cancel_view, cancel_message, final_content="⌛ Finalisation du résultat..."
             )
 
     if err_code == 0:
