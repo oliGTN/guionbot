@@ -977,7 +977,8 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
                       target_level,
                       txt_allyCode,
                       is_simu=simulation,
-                      only_speed_sec=only_speed_sec)
+                      only_speed_sec=only_speed_sec,
+                      interaction=ctx_interaction)
 
     # Release semaphore
     await release_sem(txt_allyCode)
