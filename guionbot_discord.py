@@ -44,6 +44,7 @@ import connect_rpc
 import portraits
 import data
 import manage_mods
+from discord_interactions import finish_cancelable_progress
 import manage_events
 import emojis
 import register
@@ -4927,7 +4928,14 @@ class ModsCog(commands.GroupCog, name="mods"):
                         err_txt += "\n "+cost_and_missing
                     if len(err_txt)>1000:
                         err_txt=err_txt[:1000]+"..."
-                await interaction.edit_original_response(content=err_txt)
+                if ec == 2:
+                    # Keep the slash-command acknowledgement as the preparation
+                    # confirmation; publish the detailed cancellation only once,
+                    # in the persistent progress message.
+                    if not await finish_cancelable_progress(interaction, err_txt):
+                        await interaction.edit_original_response(content=err_txt)
+                else:
+                    await interaction.edit_original_response(content=err_txt)
 
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
