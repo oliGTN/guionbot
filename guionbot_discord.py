@@ -4641,7 +4641,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                         output_channel = bot.get_channel(channel_id)
                         await output_channel.send(content=txt)
             else:
-                err_icon = emojis.warning if ec == 2 else emojis.redcross
+                err_icon = emojis.warning if ec == 2 and not simulation else emojis.redcross
                 err_txt = err_icon+" "+et
 
                 # error happening in the middle of a simulation does not display cost
