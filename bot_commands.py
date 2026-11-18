@@ -1186,6 +1186,11 @@ async def allocate_random_mods(ctx_interaction):
                             dict_player=dict_player,
                             initialdata=initialdata,
                             initial_message=resp_msg)
+    if ec == 2:
+        # The persistent progress message already contains the cancellation
+        # status; do not publish a duplicate error message.
+        remove_command_from_queue(ctx_interaction)
+        return
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
         remove_command_from_queue(ctx_interaction)
