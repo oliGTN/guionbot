@@ -233,11 +233,6 @@ async def stop_cancelable_progress(
     if message is None:
         return
 
-    # Release the interaction-to-message association on cancellation/error.
-    for interaction_id, progress_message in list(_cancelable_progress_messages.items()):
-        if progress_message.id == message.id:
-            _cancelable_progress_messages.pop(interaction_id, None)
-
     if not delete_message:
         try:
             await message.edit(content=final_content, view=None)
