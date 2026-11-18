@@ -25,7 +25,12 @@ import connect_rpc
 import connect_crinolo
 import data as godata
 import emojis
-from discord_interactions import (confirmationPrompt, start_cancelable_progress,\n                                 update_cancelable_progress, stop_cancelable_progress)
+from discord_interactions import (
+    confirmationPrompt,
+    start_cancelable_progress,
+    update_cancelable_progress,
+    stop_cancelable_progress,
+)
 
 #############
 # MAIN
