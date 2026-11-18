@@ -241,36 +241,6 @@ async def stop_cancelable_progress(view, message, final_content="⚠️ Opérati
 
 ##############################################################
 # interaction specifics
-    """A cancellation button for long-running operations.
-
-    timeout=None keeps the button active beyond Discord's default 180-second
-    view timeout. The view is attached to a normal bot message, not an
-    interaction webhook response, so it also works for operations >15 minutes.
-    """
-    def __init__(self, user_id, cancel_event):
-        super().__init__(timeout=None)
-        self.user_id = user_id
-        self.cancel_event = cancel_event
-
-    @discord_ui.button(
-        label="Annuler",
-        style=ButtonStyle.danger,
-        custom_id="guionbot:cancel_long_operation"
-    )
-    async def cancel_operation(self, interaction: Interaction, button: discord_ui.Button):
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                "Seul l'auteur de la commande peut l'annuler.",
-                ephemeral=True
-            )
-            return
-
-        self.cancel_event.set()
-        button.disabled = True
-        await interaction.response.edit_message(view=self)
-        self.stop()
-
-
 class ConfirmationButtons(discord_ui.View):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
