@@ -160,7 +160,7 @@ async def _start_reaction_cancellation(interaction, content):
     return cancel_event, listener, message
 
 
-async def _stop_reaction_cancellation(interaction, listener, message):
+async def _stop_reaction_cancellation(interaction, listener, message, delete_message=False):
     if listener is not None:
         listener.cancel()
         try:
@@ -168,9 +168,17 @@ async def _stop_reaction_cancellation(interaction, listener, message):
         except asyncio.CancelledError:
             pass
     if message is not None:
+        if delete_message:
+            # The slash-command response contains the final result. Remove the
+            # separate progress message so it cannot look like work is ongoing.
+            try:
+                await message.delete()
+            except Exception as e:
+                golog.log("WAR", "Unable to delete completed mod progress message: " + repr(e))
+            return
         try:
-            # The progress message is independent from the slash-command response.
-            # Leave its final progress visible, but remove the now-invalid instruction.
+            # Leave the last progress visible on interruption/error, but remove
+            # the now-invalid instruction.
             message = await message.edit(content=message.content.split("\n")[0])
         except Exception as e:
             golog.log("WAR", "Unable to finalize mod progress message: " + repr(e))
@@ -501,7 +509,9 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         await asyncio_sleep(0)
 
     if cancel_listener is not None or cancel_message is not None:
-        await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
+        await _stop_reaction_cancellation(
+            interaction, cancel_listener, cancel_message, delete_message=True
+        )
 
     ret_code = 0
     ret_txt = ""
