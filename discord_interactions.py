@@ -218,6 +218,12 @@ async def start_cancelable_progress(ctx_interaction, content, initial_message=No
             await ctx_interaction.delete_original_response()
         except Exception as e:
             golog.log("WAR", "Unable to delete initial long-operation response: " + repr(e))
+            try:
+                await ctx_interaction.edit_original_response(
+                    content="ℹ️ Progression détaillée dans le message ci-dessous."
+                )
+            except Exception as edit_error:
+                golog.log("WAR", "Unable to neutralize initial long-operation response: " + repr(edit_error))
 
     return cancel_event, view, message
 
