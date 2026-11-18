@@ -1056,6 +1056,12 @@ async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_t
     finally:
         await release_sem(txt_allyCode)
 
+    if ec == 2:
+        # The persistent progress message already records the cancellation.
+        # Avoid trying to edit the deleted deferred response or posting a duplicate.
+        remove_command_from_queue(ctx_interaction)
+        return
+
     if ec == 0:
         # The cost gets a SUCCESS sign.
         txt = emojis.check+" "+cost_txt
