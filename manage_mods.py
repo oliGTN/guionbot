@@ -25,7 +25,7 @@ import connect_rpc
 import connect_crinolo
 import data as godata
 import emojis
-from discord_interactions import confirmationPrompt, CancelOperationView
+from discord_interactions import (confirmationPrompt, start_cancelable_progress,\n                                 update_cancelable_progress, stop_cancelable_progress)
 
 #############
 # MAIN
@@ -121,49 +121,6 @@ def get_dict_player_mods(dict_player, initialdata=None):
 
     return dict_player_mods
 
-async def _start_cancel_button(ctx_interaction, content):
-    """Create a persistent progress message with an Annuler button."""
-    cancel_event = asyncio.Event()
-    user = getattr(ctx_interaction, "user", None) or getattr(ctx_interaction, "author", None)
-    if user is None:
-        raise ValueError("Unable to identify the user who started the operation")
-
-    view = CancelOperationView(user.id, cancel_event)
-    message = await ctx_interaction.channel.send(content=content, view=view)
-
-    # The persistent channel message now owns progress and the final status.
-    # Remove the deferred interaction response so it cannot remain as a stale
-    # "thinking..." message after the 15-minute webhook token expires.
-    if hasattr(ctx_interaction, "delete_original_response"):
-        try:
-            await ctx_interaction.delete_original_response()
-        except Exception as e:
-            golog.log("WAR", "Unable to delete initial long-operation response: " + repr(e))
-
-    return cancel_event, view, message
-
-
-async def _stop_cancel_button(view, message, final_content="⚠️ Opération arrêtée"):
-    """Stop the button view and remove the temporary progress message."""
-    if view is not None:
-        view.stop()
-        for child in view.children:
-            child.disabled = True
-
-    if message is None:
-        return
-
-    try:
-        await message.delete()
-    except Exception as e:
-        golog.log("WAR", "Unable to delete mod progress message: " + repr(e))
-        try:
-            # Never leave a stale "Perso x/y" message looking active.
-            await message.edit(content=final_content, view=None)
-        except Exception as edit_error:
-            golog.log("WAR", "Unable to finalize mod progress message: " + repr(edit_error))
-
-##########################
 # STEP3
 # Prepare list of modification commands
 # Manage the global list of mods to ensure not be blocked
@@ -239,13 +196,13 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         await interaction.edit_original_response(
             content="✅ Récupération de la liste des mods : OK"
         )
-        cancel_event, cancel_view, cancel_message = await _start_cancel_button(
+        cancel_event, cancel_view, cancel_message = await start_cancelable_progress(
             interaction,
             emojis.hourglass + " Préparation des déplacements...")
 
     while(len(mod_allocations)>0):
         if cancel_event is not None and cancel_event.is_set():
-            await _stop_cancel_button(cancel_view, cancel_message)
+            await stop_cancelable_progress(cancel_view, cancel_message)
             return 2, "Opération interrompue par l'utilisateur", {
                 "cost": str(mod_add_count) + " mods déplacés, sur " + str(unit_count) + " persos",
                 "missing": missing_mods,
@@ -333,7 +290,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             # The Annuler button is the only control shown with progress.
             try:
                 if cancel_message is not None:
-                    cancel_message = await cancel_message.edit(content=new_msg_content, view=cancel_view)
+                    cancel_message = await update_cancelable_progress(cancel_message, new_msg_content, cancel_view)
                 elif interaction is not None:
                     await interaction.edit_original_response(content=new_msg_content)
                 else:
@@ -350,7 +307,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         if target_char_level < 50:
             cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
             if cancel_view is not None or cancel_message is not None:
-                await _stop_cancel_button(cancel_view, cancel_message)
+                await stop_cancelable_progress(cancel_view, cancel_message)
             return 1, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
 
         mods_to_add = [] # list of mod IDs to be added to this unit
@@ -453,7 +410,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                     else:
                         err_txt = str([target_char_defId, mods_to_add, mods_to_remove])+": "+et
                     if cancel_view is not None:
-                        await _stop_cancel_button(cancel_view, cancel_message)
+                        await stop_cancelable_progress(cancel_view, cancel_message)
                     return ec, err_txt, {
                         "cost": cost_txt,
                         "missing": missing_mods,
@@ -471,7 +428,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             ret_data["needed_inventory"] = max(0, max_inventory - initial_inventory)
             ret_data["inventory_shortfall"] = max(0, max_inventory - 500)
             if cancel_view is not None or cancel_message is not None:
-                await _stop_cancel_button(cancel_view, cancel_message)
+                await stop_cancelable_progress(cancel_view, cancel_message)
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
 
         unit_count = new_unit_count
@@ -485,7 +442,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         await asyncio_sleep(0)
 
     if cancel_view is not None or cancel_message is not None:
-        await _stop_cancel_button(cancel_view, cancel_message, final_content="✅ Opération terminée")
+        await stop_cancelable_progress(cancel_view, cancel_message, final_content="✅ Opération terminée")
 
     ret_code = 0
     ret_txt = ""
@@ -1260,7 +1217,7 @@ async def upgrade_roster_mods(
     cancel_message = None
     if not is_simu:
         if interaction is not None:
-            cancel_event, cancel_view, cancel_message = await _start_cancel_button(
+            cancel_event, cancel_view, cancel_message = await start_cancelable_progress(
                 interaction,
                 emojis.hourglass + " Préparation de l'amélioration des mods..."
             )
@@ -1271,7 +1228,7 @@ async def upgrade_roster_mods(
         prev_display_time = 0
         for offset in range(0, len(list_mods), batch_size):
             if cancel_event is not None and cancel_event.is_set():
-                await _stop_cancel_button(cancel_view, cancel_message)
+                await stop_cancelable_progress(cancel_view, cancel_message)
                 return 2, "Opération interrompue par l'utilisateur"
 
             batch = list_mods[offset:offset + batch_size]
@@ -1293,11 +1250,11 @@ async def upgrade_roster_mods(
             )
             if err_code != 0:
                 if cancel_view is not None:
-                    await _stop_cancel_button(cancel_view, cancel_message)
+                    await stop_cancelable_progress(cancel_view, cancel_message)
                 return err_code, err_txt
 
         if cancel_view is not None or cancel_message is not None:
-            await _stop_cancel_button(
+            await stop_cancelable_progress(
                 cancel_view, cancel_message, final_content="✅ Opération terminée"
             )
 
@@ -1640,13 +1597,13 @@ async def upgrade_tier_mods(
         if interaction is not None:
             unit_ids = list(dict.fromkeys(mod.get("unit_id") or "Inventaire" for mod in list_mods))
             unit_index = {unit_id: idx for idx, unit_id in enumerate(unit_ids, start=1)}
-            cancel_event, cancel_view, cancel_message = await _start_cancel_button(
+            cancel_event, cancel_view, cancel_message = await start_cancelable_progress(
                 interaction,
                 emojis.hourglass + " Préparation de l'amélioration des mods...")
         # launch the request
         for mod in list_mods:
             if cancel_event is not None and cancel_event.is_set():
-                await _stop_cancel_button(cancel_view, cancel_message)
+                await stop_cancelable_progress(cancel_view, cancel_message)
                 return 2, "Opération interrompue par l'utilisateur", None
 
             if interaction is not None and (time.time() - prev_display_time) > 5:
@@ -1656,7 +1613,7 @@ async def upgrade_tier_mods(
                     + str(len(unit_ids)) + ": " + str(unit_id)
                 )
                 try:
-                    cancel_message = await cancel_message.edit(content=progress_content, view=cancel_view)
+                    cancel_message = await update_cancelable_progress(cancel_message, progress_content, cancel_view)
                 except Exception as e:
                     golog.log("WAR", "Unable to update mod tier-up progress: " + str(e))
                 prev_display_time = time.time()
@@ -1671,12 +1628,12 @@ async def upgrade_tier_mods(
             if mod_rarity == target_rarity:
                 for tier_up_id in range(mod_tier, target_tier):
                     if cancel_event is not None and cancel_event.is_set():
-                        await _stop_cancel_button(cancel_view, cancel_message)
+                        await stop_cancelable_progress(cancel_view, cancel_message)
                         return 2, "Opération interrompue par l'utilisateur", None
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
                         if cancel_view is not None:
-                            await _stop_cancel_button(cancel_view, cancel_message)
+                            await stop_cancelable_progress(cancel_view, cancel_message)
                         return err_code, err_txt, None
 
             else:
@@ -1684,37 +1641,37 @@ async def upgrade_tier_mods(
                 # 1/ upgrade to tier 5
                 for tier_up_id in range(mod_tier, 5):
                     if cancel_event is not None and cancel_event.is_set():
-                        await _stop_cancel_button(cancel_view, cancel_message)
+                        await stop_cancelable_progress(cancel_view, cancel_message)
                         return 2, "Opération interrompue par l'utilisateur", None
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
                         if cancel_view is not None:
-                            await _stop_cancel_button(cancel_view, cancel_message)
+                            await stop_cancelable_progress(cancel_view, cancel_message)
                         return err_code, err_txt, None
 
                 # 2/ promote
                 if cancel_event is not None and cancel_event.is_set():
-                    await _stop_cancel_button(cancel_view, cancel_message)
+                    await stop_cancelable_progress(cancel_view, cancel_message)
                     return 2, "Opération interrompue par l'utilisateur", None
                 err_code, err_txt = await connect_rpc.promote_mod(mod["id"], allyCode)
                 if err_code != 0:
                     if cancel_view is not None:
-                        await _stop_cancel_button(cancel_view, cancel_message)
+                        await stop_cancelable_progress(cancel_view, cancel_message)
                     return err_code, err_txt, None
 
                 # 3/ upgrade to tier 5
                 for tier_up_id in range(1, target_tier):
                     if cancel_event is not None and cancel_event.is_set():
-                        await _stop_cancel_button(cancel_view, cancel_message)
+                        await stop_cancelable_progress(cancel_view, cancel_message)
                         return 2, "Opération interrompue par l'utilisateur", None
                     err_code, err_txt = await connect_rpc.upgrade_tier_mod(mod["id"], allyCode)
                     if err_code != 0:
                         if cancel_view is not None:
-                            await _stop_cancel_button(cancel_view, cancel_message)
+                            await stop_cancelable_progress(cancel_view, cancel_message)
                         return err_code, err_txt, None
 
     if cancel_view is not None or cancel_message is not None:
-        await _stop_cancel_button(cancel_view, cancel_message, final_content="✅ Opération terminée")
+        await stop_cancelable_progress(cancel_view, cancel_message, final_content="✅ Opération terminée")
 
     if err_code == 0:
         ret_code = 0
