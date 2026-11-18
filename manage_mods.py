@@ -251,6 +251,11 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
     cancel_listener = None
     cancel_message = None
     if interaction is not None:
+        # Mark the previous preparation step as complete before creating the
+        # separate persistent progress message for mod movements.
+        await interaction.edit_original_response(
+            content="✅ Récupération de la liste des mods : OK"
+        )
         cancel_event, cancel_listener, cancel_message = await _start_reaction_cancellation(
             interaction,
             emojis.hourglass + " Préparation des déplacements...\nCliquez sur ✋ pour interrompre")
