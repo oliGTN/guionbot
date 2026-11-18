@@ -152,7 +152,6 @@ async def _start_reaction_cancellation(interaction, content):
         except asyncio.CancelledError:
             pass
         listener = None
-        message = None
         try:
             await message.edit(content=content.split("\n")[0])
         except Exception as edit_error:
@@ -343,7 +342,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                 + str(original_unit_count - len(mod_allocations) + 1) + "/"
                 + str(original_unit_count) + ": " + target_char_defId
             )
-            if cancel_message is not None:
+            if cancel_listener is not None:
                 new_msg_content += "\nCliquez sur ✋ pour interrompre"
             try:
                 if cancel_message is not None:
@@ -363,7 +362,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
         if target_char_level < 50:
             cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
-            if cancel_listener is not None:
+            if cancel_listener is not None or cancel_message is not None:
                 await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
             return 1, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
 
@@ -482,7 +481,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             else:
                 ret_data = {"missing": missing_mods, "forbidden": forbidden_mods}
             ret_data["needed_inventory"] = max(0, max_inventory - initial_inventory)
-            if cancel_listener is not None:
+            if cancel_listener is not None or cancel_message is not None:
                 await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
 
@@ -496,7 +495,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         #breathe
         await asyncio_sleep(0)
 
-    if cancel_listener is not None:
+    if cancel_listener is not None or cancel_message is not None:
         await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
 
     ret_code = 0
@@ -1681,7 +1680,7 @@ async def upgrade_tier_mods(
                             await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
                         return err_code, err_txt, None
 
-    if cancel_listener is not None:
+    if cancel_listener is not None or cancel_message is not None:
         await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
 
     if err_code == 0:
