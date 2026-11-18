@@ -1605,9 +1605,19 @@ async def upgrade_tier_mods(
         if interaction is not None:
             unit_ids = list(dict.fromkeys(mod.get("unit_id") or "Inventaire" for mod in list_mods))
             unit_index = {unit_id: idx for idx, unit_id in enumerate(unit_ids, start=1)}
+
+            # Display the real work immediately. A "Préparation..." message
+            # becomes misleading as soon as the mod-upgrade loop starts.
+            first_unit_id = list_mods[0].get("unit_id") or "Inventaire"
+            initial_progress = (
+                emojis.hourglass + " Perso 1/" + str(len(unit_ids))
+                + ": " + str(first_unit_id)
+            )
             cancel_event, cancel_view, cancel_message = await start_cancelable_progress(
                 interaction,
-                emojis.hourglass + " Préparation de l'amélioration des mods...")
+                initial_progress)
+            prev_display_time = time.time()
+
         # launch the request
         for mod in list_mods:
             if cancel_event is not None and cancel_event.is_set():
