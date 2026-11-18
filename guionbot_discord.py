@@ -4426,7 +4426,7 @@ class CodexRemodView(discord.ui.View):
                         + str(needed_inventory) + " places dans l'inventaire. "
                         + str(len(mods_to_sell)) + " mods de la liste Codex sont proposés à la vente."
                         + ("\n" + sim_details if sim_details else "")
-                        + "\\n\\nConfirme leur vente pour relancer la simulation puis l'application.",
+                        + "\n\nConfirme leur vente pour relancer la simulation puis l'application.",
                         view=sell_view
                     )
                 else:
@@ -4481,7 +4481,7 @@ class CodexRemodView(discord.ui.View):
                         needs_sell=True
                     )
                     await interaction.edit_original_response(
-                        content=result + "\\n\\nL'inventaire est devenu plein pendant l'application. Il faut libérer "
+                        content=result + "\n\nL'inventaire est devenu plein pendant l'application. Il faut libérer "
                         + str(needed_inventory) + " places. Confirme la vente des mods proposés pour relancer.",
                         view=sell_view
                     )
