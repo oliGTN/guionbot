@@ -131,16 +131,14 @@ async def _start_cancel_button(ctx_interaction, content):
     view = CancelOperationView(user.id, cancel_event)
     message = await ctx_interaction.channel.send(content=content, view=view)
 
-    # Replace the deferred "thinking..." response with a neutral, completed
-    # status. The detailed progress lives in the ordinary channel message,
-    # which remains editable even after the interaction token expires.
-    if hasattr(ctx_interaction, "edit_original_response"):
+    # The persistent channel message now owns progress and the final status.
+    # Remove the deferred interaction response so it cannot remain as a stale
+    # "thinking..." message after the 15-minute webhook token expires.
+    if hasattr(ctx_interaction, "delete_original_response"):
         try:
-            await ctx_interaction.edit_original_response(
-                content="ℹ️ Progression détaillée dans le message ci-dessous."
-            )
+            await ctx_interaction.delete_original_response()
         except Exception as e:
-            golog.log("WAR", "Unable to update initial long-operation response: " + repr(e))
+            golog.log("WAR", "Unable to delete initial long-operation response: " + repr(e))
 
     return cancel_event, view, message
 
