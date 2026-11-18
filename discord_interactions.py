@@ -233,10 +233,13 @@ async def update_cancelable_progress(message, content, view):
     return await message.edit(content=content, view=view)
 
 
-async def stop_cancelable_progress(view, message, final_content="⚠️ Opération arrêtée"):
-    """Disable the cancel button and remove the temporary progress message.
+async def stop_cancelable_progress(
+        view, message, final_content="⚠️ Opération arrêtée", delete_message=True):
+    """Disable cancellation and either delete or finalize the progress message.
 
-    If Discord refuses deletion, replace the stale progress with a clean status.
+    Keep the progress message for cancellation so the channel retains a visible
+    record of the command. Successful operations can still remove the temporary
+    progress message and publish their result through the command response.
     """
     if view is not None:
         view.stop()
@@ -244,6 +247,13 @@ async def stop_cancelable_progress(view, message, final_content="⚠️ Opérati
             child.disabled = True
 
     if message is None:
+        return
+
+    if not delete_message:
+        try:
+            await message.edit(content=final_content, view=None)
+        except Exception as e:
+            golog.log("WAR", "Unable to finalize cancelled progress message: " + repr(e))
         return
 
     try:
