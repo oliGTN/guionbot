@@ -984,6 +984,10 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
     # Release semaphore
     await release_sem(txt_allyCode)
 
+    if ec == 2:
+        # The persistent progress message already records the cancellation.
+        remove_command_from_queue(ctx_interaction)
+        return
     if ec != 0:
         await command_error(ctx_interaction, resp_msg, et)
         remove_command_from_queue(ctx_interaction)
