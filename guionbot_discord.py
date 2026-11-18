@@ -2910,6 +2910,11 @@ async def store_wookiebot_raid_estimates(message):
 ##############################################################
 @bot.event
 async def on_command_error(ctx, error):
+    if isinstance(error, AdminCommandOwnedElsewhere):
+        # Another bot instance owns this admin user's commands. Stay silent:
+        # do not react or send a message; the owning instance handles the event.
+        return
+
     await ctx.message.add_reaction(emojis.thumb)
     if isinstance(error, commands.CommandNotFound):
         await ctx.send("ERR: commande inconnue")
@@ -2923,10 +2928,6 @@ async def on_command_error(ctx, error):
         cmd_name = ctx.command.name
         await ctx.send("ERR: erreur de guillemets. Les guillemets vont pas paires et doivent être précédés ou suivis d'un espace.")
         await ctx.message.add_reaction(emojis.redcross)
-    elif isinstance(error, AdminCommandOwnedElsewhere):
-        # Another bot instance owns this admin user's commands. Stay silent:
-        # the owning instance will handle the same Discord event.
-        return
     elif isinstance(error, commands.CheckFailure):
         if not bot_test_mode:
             await ctx.send("ERR: commande interdite")
