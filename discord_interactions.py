@@ -191,7 +191,7 @@ class CancelOperationView(discord_ui.View):
         self.stop()
 
 
-async def start_cancelable_progress(ctx_interaction, content, initial_message=None):
+async def start_cancelable_progress(ctx_interaction, content, initial_message=None, acknowledgement=None):
     """Create a normal channel progress message and preserve a clean command acknowledgement."""
     cancel_event = asyncio.Event()
     user = getattr(ctx_interaction, "user", None) or getattr(ctx_interaction, "author", None)
@@ -201,7 +201,8 @@ async def start_cancelable_progress(ctx_interaction, content, initial_message=No
     view = CancelOperationView(user.id, cancel_event)
     message = await ctx_interaction.channel.send(content=content, view=view)
 
-    acknowledgement = "✅ Préparation terminée. Suivi de l'opération dans le message ci-dessous."
+    if acknowledgement is None:
+        acknowledgement = "✅ Préparation terminée. Suivi de l'opération dans le message ci-dessous."
     if type(ctx_interaction) == Interaction:
         _cancelable_progress_messages[ctx_interaction.id] = message
         try:
