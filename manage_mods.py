@@ -124,7 +124,9 @@ def get_dict_player_mods(dict_player, initialdata=None):
 async def _start_reaction_cancellation(interaction, content):
     """Display progress and listen for the invoking user adding ✋."""
     cancel_event = asyncio.Event()
-    message = await interaction.edit_original_response(content=content)
+    # Use a regular channel message: interaction webhook tokens expire after 15 minutes,
+    # while mod allocation can take considerably longer.
+    message = await interaction.channel.send(content)
     client = interaction.client
     user_id = interaction.user.id
 
@@ -150,12 +152,11 @@ async def _start_reaction_cancellation(interaction, content):
         except asyncio.CancelledError:
             pass
         listener = None
-        message = None
         try:
-            await interaction.edit_original_response(content=content.split("\n")[0])
-        except Exception:
-            pass
-        golog.log("WAR", "Unable to add cancellation reaction: " + str(e))
+            message = await message.edit(content=content.split("\n")[0])
+        except Exception as edit_error:
+            golog.log("WAR", "Unable to remove unavailable cancellation instruction: " + repr(edit_error))
+        golog.log("WAR", "Unable to add cancellation reaction: " + repr(e))
     return cancel_event, listener, message
 
 
@@ -168,9 +169,15 @@ async def _stop_reaction_cancellation(interaction, listener, message):
             pass
     if message is not None:
         try:
+            # The progress message is independent from the slash-command response.
+            # Leave its final progress visible, but remove the now-invalid instruction.
+            message = await message.edit(content=message.content.split("\n")[0])
+        except Exception as e:
+            golog.log("WAR", "Unable to finalize mod progress message: " + repr(e))
+        try:
             await message.remove_reaction("✋", interaction.client.user)
-        except Exception:
-            pass
+        except Exception as e:
+            golog.log("WAR", "Unable to remove mod progress reaction: " + repr(e))
 
 
 ##########################
@@ -335,20 +342,27 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                 + str(original_unit_count - len(mod_allocations) + 1) + "/"
                 + str(original_unit_count) + ": " + target_char_defId
             )
-            if cancel_message is not None:
+            if cancel_listener is not None:
                 new_msg_content += "\nCliquez sur ✋ pour interrompre"
             try:
-                if interaction is not None:
+                if cancel_message is not None:
+                    cancel_message = await cancel_message.edit(content=new_msg_content)
+                elif interaction is not None:
                     await interaction.edit_original_response(content=new_msg_content)
                 else:
                     print(new_msg_content)
-            except Exception:
-                golog.log("WAR", "Unable to update discord msg to: " + new_msg_content)
+            except Exception as e:
+                golog.log(
+                    "WAR",
+                    "Unable to update discord msg: "
+                    + type(e).__name__ + ": " + repr(e)
+                    + " | content=" + new_msg_content
+                )
             prev_display_time = time.time()
 
         if target_char_level < 50:
             cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
-            if cancel_listener is not None:
+            if cancel_listener is not None or cancel_message is not None:
                 await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
             return 1, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
 
@@ -467,7 +481,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             else:
                 ret_data = {"missing": missing_mods, "forbidden": forbidden_mods}
             ret_data["needed_inventory"] = max(0, max_inventory - initial_inventory)
-            if cancel_listener is not None:
+            if cancel_listener is not None or cancel_message is not None:
                 await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
 
@@ -481,7 +495,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         #breathe
         await asyncio_sleep(0)
 
-    if cancel_listener is not None:
+    if cancel_listener is not None or cancel_message is not None:
         await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
 
     ret_code = 0
@@ -1666,7 +1680,7 @@ async def upgrade_tier_mods(
                             await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
                         return err_code, err_txt, None
 
-    if cancel_listener is not None:
+    if cancel_listener is not None or cancel_message is not None:
         await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
 
     if err_code == 0:
