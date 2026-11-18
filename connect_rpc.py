@@ -4040,61 +4040,62 @@ async def get_coliseum_guild_status(guild_id, force_update=0, allyCode=None):
 # OUT: {"player name": [gnd attacks, gnd victories, ship attacks, ship victories, defense], ...}
 ####################################################
 async def get_tw_participation(guild_id, force_update, allyCode=None):
-    dict_tw = godata.dict_tw
-
-    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+    # Refresh guild/TW data first. This also retrieves and stores TW events
+    # in the database, which is the source of truth used by TW.php.
+    err_code, err_txt, rpc_data = await get_guild_rpc_data(
+        guild_id, ["TW"], force_update, allyCode=allyCode
+    )
     if err_code != 0:
         golog.log("ERR", err_txt)
-        return 1, err_txt, None
+        return err_code, err_txt, None
 
-    err_code, err_txt, dict_events = await get_event_data(dict_guild, ["TW"], force_update, allyCode=allyCode)
-    if err_code != 0:
-        golog.log("ERR", err_txt)
-        return 1, err_txt, None
+    # Use the latest TW registered for this guild, just like the TW history
+    # page, and aggregate the persisted events by player/event/zone.
+    query = (
+        "SELECT players.name, tw_events.event_type, tw_events.zone_id, COUNT(*) "
+        "FROM tw_events "
+        "JOIN tw_history ON tw_history.id=tw_events.tw_id "
+        "JOIN players ON players.playerId=tw_events.author_id "
+        "WHERE tw_history.id=("
+        "    SELECT id FROM tw_history "
+        "    WHERE guild_id=%s "
+        "    ORDER BY start_date DESC, id DESC LIMIT 1"
+        ") "
+        "AND players.guildId=%s "
+        "AND tw_events.event_type IN ('DEPLOY', 'SQUADLOCKED', 'SQUADDEFEATED') "
+        "GROUP BY players.allyCode, players.name, tw_events.event_type, tw_events.zone_id"
+    )
+    try:
+        db_events = await connect_mysql.get_table_async(query, (guild_id, guild_id))
+    except Exception as e:
+        golog.log("ERR", "Unable to read TW events from database: " + str(e))
+        return 1, "Erreur lors de la lecture des événements de GT en base", None
 
     dict_participation = {} # {"player name": [gnd attacks, gnd victories, ship attacks, ship victories, defense], ...}
+    ship_zones = {
+        "tw_jakku01_phase03_conflict01",
+        "tw_jakku01_phase04_conflict01"
+    }
 
-    for tw_id in dict_events:
-        tw_events = dict_events[tw_id]
-        for event_id in tw_events:
-            event = tw_events[event_id]
-            player_name = event["authorName"]
+    for player_name, event_type, zone_id, event_count in (db_events or []):
+        if player_name not in dict_participation:
+            dict_participation[player_name] = [0, 0, 0, 0, 0]
 
-            data = event["data"][0]
-            if data["activity"]["zoneData"]["guildId"] != guild_id:
-                continue
+        is_ship_fight = zone_id in ship_zones
+        event_count = int(event_count)
 
-            if not player_name in dict_participation:
-                dict_participation[player_name] = [0, 0, 0, 0, 0]
-
-            if data["activityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY":
-                activity=data["activity"]
-                zone_id=activity["zoneData"]["zoneId"]
-                zone_name = dict_tw[zone_id]
-                if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
-                    if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
-                        dict_participation[player_name][4] += 1
-                else:
-                    zone_id = activity["zoneData"]["zoneId"]
-                    if dict_tw[zone_id][0] == "F":
-                        is_ship_fight = True
-                    else:
-                        is_ship_fight = False
-
-                    if "warSquad" in activity:
-                        if activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
-                            if "squad" in activity["warSquad"]:
-                                if is_ship_fight:
-                                    dict_participation[player_name][3] += 1
-                                else:
-                                    dict_participation[player_name][1] += 1
-                        elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
-                            if "squad" in activity["warSquad"]:
-                                if is_ship_fight:
-                                    dict_participation[player_name][2] += 1
-                                else:
-                                    dict_participation[player_name][0] += 1
-
+        if event_type == "DEPLOY":
+            dict_participation[player_name][4] += event_count
+        elif event_type == "SQUADLOCKED":
+            if is_ship_fight:
+                dict_participation[player_name][2] += event_count
+            else:
+                dict_participation[player_name][0] += event_count
+        elif event_type == "SQUADDEFEATED":
+            if is_ship_fight:
+                dict_participation[player_name][3] += event_count
+            else:
+                dict_participation[player_name][1] += event_count
 
     return 0, "", dict_participation
 
