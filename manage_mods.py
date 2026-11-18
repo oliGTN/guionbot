@@ -137,7 +137,8 @@ def get_dict_player_mods(dict_player, initialdata=None):
 async def apply_mod_allocations(mod_allocations, allyCode, is_simu, 
                                 interaction=None, 
                                 dict_player=None,
-                                initialdata=None):
+                                initialdata=None,
+                                initial_message=None):
     if interaction != None:
         await interaction.edit_original_response(content=emojis.hourglass+" Récupération des infos du joueur...")
     else:
@@ -203,7 +204,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         )
         cancel_event, cancel_view, cancel_message = await start_cancelable_progress(
             interaction,
-            emojis.hourglass + " Préparation des déplacements...")
+            emojis.hourglass + " Préparation des déplacements...",
+            initial_message=initial_message)
 
     while(len(mod_allocations)>0):
         if cancel_event is not None and cancel_event.is_set():
@@ -1186,7 +1188,7 @@ async def upgrade_allocated_mods_to_15(mod_allocations, dict_player_mods, allyCo
 # dict_player_mods should only contain only equipped mods
 async def upgrade_roster_mods(
         dict_player_mods, target_level, allyCode, is_simu=False,
-        only_speed_sec=False, interaction=None):
+        only_speed_sec=False, interaction=None, initial_message=None):
     # list all mods below target level
     list_mods = []
     upgrade_cost = 0
@@ -1224,7 +1226,8 @@ async def upgrade_roster_mods(
         if interaction is not None:
             cancel_event, cancel_view, cancel_message = await start_cancelable_progress(
                 interaction,
-                emojis.hourglass + " Préparation de l'amélioration des mods..."
+                emojis.hourglass + " Préparation de l'amélioration des mods...",
+                initial_message=initial_message
             )
 
         # Split the batch so cancellation can be checked between RPC requests.
