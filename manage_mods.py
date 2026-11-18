@@ -1238,8 +1238,8 @@ async def upgrade_roster_mods(
                     + str(offset + 1) + "/" + str(len(list_mods))
                 )
                 try:
-                    cancel_message = await cancel_message.edit(
-                        content=progress_content, view=cancel_view
+                    cancel_message = await update_cancelable_progress(
+                        cancel_message, progress_content, cancel_view
                     )
                 except Exception as e:
                     golog.log("WAR", "Unable to update mod level-up progress: " + repr(e))
