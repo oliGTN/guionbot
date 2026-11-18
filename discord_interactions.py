@@ -5,6 +5,7 @@ from discord import app_commands, Interaction
 from discord import ui as discord_ui
 from discord import ButtonStyle
 from io import BytesIO
+import asyncio
 
 # BOT imports
 import golog
