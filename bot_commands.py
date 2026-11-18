@@ -1069,7 +1069,14 @@ async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_t
 
     if len(txt) > 1000:
         txt = txt[:1000]+"..."
-    await ctx_interaction.edit_original_response(content=txt)
+    try:
+        await ctx_interaction.edit_original_response(content=txt)
+    except Exception as e:
+        # The progress operation can outlive Discord's 15-minute interaction
+        # webhook token. In that case, publish the final result as a normal
+        # channel message instead of losing it.
+        golog.log("WAR", "Unable to edit slice-up interaction response: " + repr(e))
+        await ctx_interaction.channel.send(content=txt)
     remove_command_from_queue(ctx_interaction)
 
 ###############################
