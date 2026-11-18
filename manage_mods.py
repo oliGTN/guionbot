@@ -485,6 +485,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                         "missing": missing_mods,
                         "forbidden": forbidden_mods,
                         "needed_inventory": max(0, max_inventory - initial_inventory),
+                        "inventory_shortfall": max(0, max_inventory - 500),
                     }
 
         elif len(mods_to_remove) > 0:
@@ -494,6 +495,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             else:
                 ret_data = {"missing": missing_mods, "forbidden": forbidden_mods}
             ret_data["needed_inventory"] = max(0, max_inventory - initial_inventory)
+            ret_data["inventory_shortfall"] = max(0, max_inventory - 500)
             if cancel_listener is not None or cancel_message is not None:
                 await _stop_reaction_cancellation(interaction, cancel_listener, cancel_message)
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
@@ -534,6 +536,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         "missing": missing_mods,
         "forbidden": forbidden_mods,
         "needed_inventory": max(0, max_inventory - initial_inventory),
+        "inventory_shortfall": max(0, max_inventory - 500),
         "inventory_full": max_inventory > 500,
     }
 
