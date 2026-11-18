@@ -987,8 +987,8 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
     await release_sem(txt_allyCode)
 
     if ec == 2:
-        clear_cancelable_progress(ctx_interaction)
-        # The persistent progress message already records the cancellation.
+        # Keep the detailed cancellation on the progress message only.
+        await finish_cancelable_progress(ctx_interaction, emojis.warning+" "+et)
         remove_command_from_queue(ctx_interaction)
         return
     if ec != 0:
@@ -1064,9 +1064,8 @@ async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_t
         await release_sem(txt_allyCode)
 
     if ec == 2 and not simulation:
-        clear_cancelable_progress(ctx_interaction)
-        # The persistent progress message already records the cancellation.
-        # Avoid trying to edit the deferred response or posting a duplicate.
+        # Keep the detailed cancellation on the progress message only.
+        await finish_cancelable_progress(ctx_interaction, emojis.warning+" "+et)
         remove_command_from_queue(ctx_interaction)
         return
 
@@ -1199,9 +1198,8 @@ async def allocate_random_mods(ctx_interaction):
                             initialdata=initialdata,
                             initial_message=resp_msg)
     if ec == 2:
-        clear_cancelable_progress(ctx_interaction)
-        # The persistent progress message already contains the cancellation
-        # status; do not publish a duplicate error message.
+        # Keep the detailed cancellation on the progress message only.
+        await finish_cancelable_progress(ctx_interaction, emojis.warning+" "+et)
         remove_command_from_queue(ctx_interaction)
         return
     if ec!=0:
