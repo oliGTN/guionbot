@@ -4447,22 +4447,22 @@ class CodexRemodView(discord.ui.View):
 
             sim_details = format_details(sim_data)
             if sim_data.get("inventory_full"):
-                needed_inventory = max(0, int(sim_data.get("needed_inventory", 0) or 0))
-                mods_to_sell = self.mods_to_delete[:needed_inventory]
-                if needed_inventory > 0 and len(mods_to_sell) >= needed_inventory:
+                inventory_shortfall = max(0, int(sim_data.get("inventory_shortfall", 0) or 0))
+                mods_to_sell = self.mods_to_delete[:inventory_shortfall]
+                if inventory_shortfall > 0 and len(mods_to_sell) >= inventory_shortfall:
                     sell_view = CodexRemodView(
                         self.ally_code,
                         progress_json=self.progress_json,
                         comparison_html=self.comparison_html,
                         initialdata=self.initialdata,
                         mods_to_delete=mods_to_sell,
-                        needed_inventory=needed_inventory,
+                        needed_inventory=inventory_shortfall,
                         owner_id=self.owner_id,
                         needs_sell=True
                     )
                     await interaction.edit_original_response(
                         content=emojis.redcross + " Simulation échouée : il faut libérer "
-                        + str(needed_inventory) + " places dans l'inventaire. "
+                        + str(inventory_shortfall) + " places dans l'inventaire. "
                         + str(len(mods_to_sell)) + " mods de la liste Codex sont proposés à la vente."
                         + ("\n" + sim_details if sim_details else "")
                         + "\n\nConfirme leur vente pour relancer la simulation puis l'application.",
@@ -4471,7 +4471,7 @@ class CodexRemodView(discord.ui.View):
                 else:
                     await interaction.edit_original_response(
                         content=emojis.redcross + " Simulation échouée : il faut libérer "
-                        + str(needed_inventory) + " places, mais la liste Codex ne contient pas assez de mods valides. Aucune vente n'a été effectuée."
+                        + str(inventory_shortfall) + " places, mais la liste Codex ne contient pas assez de mods valides. Aucune vente n'a été effectuée."
                         + ("\n" + sim_details if sim_details else ""),
                         view=None
                     )
@@ -4506,22 +4506,22 @@ class CodexRemodView(discord.ui.View):
 
             # Keep a fallback in case the inventory changes between simulation and apply.
             if "inventaire plein" in str(et).casefold():
-                needed_inventory = max(0, int(ret_data.get("needed_inventory", 0) or 0))
-                mods_to_sell = self.mods_to_delete[:needed_inventory]
-                if needed_inventory > 0 and len(mods_to_sell) >= needed_inventory:
+                inventory_shortfall = max(0, int(ret_data.get("inventory_shortfall", 0) or 0))
+                mods_to_sell = self.mods_to_delete[:inventory_shortfall]
+                if inventory_shortfall > 0 and len(mods_to_sell) >= inventory_shortfall:
                     sell_view = CodexRemodView(
                         self.ally_code,
                         progress_json=self.progress_json,
                         comparison_html=self.comparison_html,
                         initialdata=self.initialdata,
                         mods_to_delete=mods_to_sell,
-                        needed_inventory=needed_inventory,
+                        needed_inventory=inventory_shortfall,
                         owner_id=self.owner_id,
                         needs_sell=True
                     )
                     await interaction.edit_original_response(
                         content=result + "\n\nL'inventaire est devenu plein pendant l'application. Il faut libérer "
-                        + str(needed_inventory) + " places. Confirme la vente des mods proposés pour relancer.",
+                        + str(inventory_shortfall) + " places. Confirme la vente des mods proposés pour relancer.",
                         view=sell_view
                     )
                     return
