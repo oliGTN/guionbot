@@ -978,7 +978,8 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
                       txt_allyCode,
                       is_simu=simulation,
                       only_speed_sec=only_speed_sec,
-                      interaction=ctx_interaction)
+                      interaction=ctx_interaction,
+                      initial_message=resp_msg)
 
     # Release semaphore
     await release_sem(txt_allyCode)
@@ -1183,7 +1184,8 @@ async def allocate_random_mods(ctx_interaction):
                             False,
                             interaction=ctx_interaction,
                             dict_player=dict_player,
-                            initialdata=initialdata)
+                            initialdata=initialdata,
+                            initial_message=resp_msg)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
         remove_command_from_queue(ctx_interaction)
