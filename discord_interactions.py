@@ -155,8 +155,92 @@ async def send_message(ctx_interaction, output_txt, images=None, files=None):
             print(attachment)
 
 ##############################################################
-# interaction specifics
+# Long-running operations
+
 class CancelOperationView(discord_ui.View):
+    """Cancellation control attached to a normal bot-authored channel message.
+
+    timeout=None avoids the default 180-second view timeout. Because progress
+    is a regular channel message, edits do not depend on the 15-minute
+    interaction webhook token.
+    """
+    def __init__(self, user_id, cancel_event):
+        super().__init__(timeout=None)
+        self.user_id = user_id
+        self.cancel_event = cancel_event
+
+    @discord_ui.button(
+        label="Annuler",
+        style=ButtonStyle.danger,
+        custom_id="guionbot:cancel_long_operation"
+    )
+    async def cancel_operation(self, interaction: Interaction, button: discord_ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "Seul l'auteur de la commande peut l'annuler.",
+                ephemeral=True
+            )
+            return
+
+        self.cancel_event.set()
+        button.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+
+async def start_cancelable_progress(ctx_interaction, content):
+    """Create a channel progress message with an Annuler button.
+
+    Delete a deferred slash-command response once the durable progress message
+    exists, avoiding a stale 'thinking...' response during long operations.
+    """
+    cancel_event = asyncio.Event()
+    user = getattr(ctx_interaction, "user", None) or getattr(ctx_interaction, "author", None)
+    if user is None:
+        raise ValueError("Unable to identify the user who started the operation")
+
+    view = CancelOperationView(user.id, cancel_event)
+    message = await ctx_interaction.channel.send(content=content, view=view)
+
+    if hasattr(ctx_interaction, "delete_original_response"):
+        try:
+            await ctx_interaction.delete_original_response()
+        except Exception as e:
+            golog.log("WAR", "Unable to delete initial long-operation response: " + repr(e))
+
+    return cancel_event, view, message
+
+
+async def update_cancelable_progress(message, content, view):
+    """Edit a persistent progress message while keeping its cancel button."""
+    return await message.edit(content=content, view=view)
+
+
+async def stop_cancelable_progress(view, message, final_content="⚠️ Opération arrêtée"):
+    """Disable the cancel button and remove the temporary progress message.
+
+    If Discord refuses deletion, replace the stale progress with a clean status.
+    """
+    if view is not None:
+        view.stop()
+        for child in view.children:
+            child.disabled = True
+
+    if message is None:
+        return
+
+    try:
+        await message.delete()
+    except Exception as e:
+        golog.log("WAR", "Unable to delete progress message: " + repr(e))
+        try:
+            await message.edit(content=final_content, view=None)
+        except Exception as edit_error:
+            golog.log("WAR", "Unable to finalize progress message: " + repr(edit_error))
+
+
+##############################################################
+# interaction specifics
     """A cancellation button for long-running operations.
 
     timeout=None keeps the button active beyond Discord's default 180-second
