@@ -44,7 +44,10 @@ import connect_rpc
 import portraits
 import data
 import manage_mods
-from discord_interactions import finish_cancelable_progress
+from discord_interactions import (
+    finish_cancelable_progress,
+    start_cancelable_progress,
+)
 import manage_events
 import emojis
 import register
@@ -4631,12 +4634,12 @@ class ModsCog(commands.GroupCog, name="mods"):
                     txt = "[SIMULATION]"+txt
                 if len(txt)>1000:
                     txt=txt[:1000]+"..."
-                try:
-                    await interaction.edit_original_response(content=txt)
-                except discord.errors.HTTPException as e:
-                    # Interaction expired, send a message in the channel
-                    output_channel = bot.get_channel(channel_id)
-                    await output_channel.send(content=err_txt)
+                if not await finish_cancelable_progress(interaction, txt):
+                    try:
+                        await interaction.edit_original_response(content=txt)
+                    except discord.errors.HTTPException:
+                        output_channel = bot.get_channel(channel_id)
+                        await output_channel.send(content=txt)
             else:
                 err_txt = emojis.redcross+" "+et
 
@@ -4648,12 +4651,13 @@ class ModsCog(commands.GroupCog, name="mods"):
                     if len(err_txt)>1000:
                         err_txt=err_txt[:1000]+"..."
 
-                if not interaction.is_expired():
-                    await interaction.edit_original_response(content=err_txt)
-                else:
-                    # Interaction expired, send a message in the channel
-                    output_channel = bot.get_channel(channel_id)
-                    await output_channel.send(content=err_txt)
+                if not await finish_cancelable_progress(interaction, err_txt):
+                    if not interaction.is_expired():
+                        await interaction.edit_original_response(content=err_txt)
+                    else:
+                        # Interaction expired, send a message in the channel
+                        output_channel = bot.get_channel(channel_id)
+                        await output_channel.send(content=err_txt)
 
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
@@ -5089,7 +5093,11 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
             acquired = True
 
-            await interaction.edit_original_response(content="⏳ Préparation de l'export des mods pour Codex Remod…")
+            cancel_event, cancel_view, progress_message = await start_cancelable_progress(
+                interaction,
+                "⏳ Préparation de l'export des mods pour Codex Remod…",
+                acknowledgement="✅ Préparation du Codex Remod lancée. Suivi de l'opération dans le message ci-dessous."
+            )
             previous_export = None
             player_path = "PLAYERDATA/" + ally_code
             previous_path = player_path + "/modoptimizer_input.json"
@@ -5103,7 +5111,14 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return_initialdata=True
             )
             if ec != 0:
-                await interaction.edit_original_response(content=emojis.redcross + " " + et)
+                await finish_cancelable_progress(
+                    interaction, emojis.redcross + " " + et
+                )
+                return
+            if cancel_event.is_set():
+                await finish_cancelable_progress(
+                    interaction, emojis.warning + " Opération annulée par l'utilisateur."
+                )
                 return
 
             async def report_progress(status, done, total, pct, queue_position):
@@ -5117,7 +5132,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                         percent = 0
                     message = "⏳ Codex Remod en cours : " + str(done) + " / " + str(total) + " personnages (" + str(round(percent)) + "%)"
                 try:
-                    await interaction.edit_original_response(
+                    await progress_message.edit(
                         content=message,
                         view=CodexRemodView(
                             ally_code,
@@ -5127,10 +5142,9 @@ class ModsCog(commands.GroupCog, name="mods"):
                         )
                     )
                 except discord.errors.HTTPException:
-                    # The command's original interaction may have expired; keep the job running.
                     golog.log("WAR", "Unable to update Codex Remod progress message for " + ally_code)
 
-            await interaction.edit_original_response(
+            await progress_message.edit(
                 content="⏳ Export prêt. Envoi au serveur Codex Remod…",
                 view=CodexRemodView(
                     ally_code,
@@ -5141,10 +5155,14 @@ class ModsCog(commands.GroupCog, name="mods"):
             )
             ec, et, result_files = await run_codex_remod(dict_export, cancel_event, report_progress)
             if ec == 2:
-                await interaction.edit_original_response(content=emojis.warning + " " + et, view=None)
+                await finish_cancelable_progress(
+                    interaction, emojis.warning + " " + et
+                )
                 return
             if ec != 0:
-                await interaction.edit_original_response(content=emojis.redcross + " " + et, view=None)
+                await finish_cancelable_progress(
+                    interaction, emojis.redcross + " " + et
+                )
                 return
 
             final_view = CodexRemodView(
@@ -5155,14 +5173,21 @@ class ModsCog(commands.GroupCog, name="mods"):
                 mods_to_delete=result_files.get("mods_to_delete", []),
                 owner_id=interaction.user.id
             )
-            await interaction.edit_original_response(
-                content=emojis.check + " Remod terminé avec succès. Que souhaites-tu faire ?",
+            await finish_cancelable_progress(
+                interaction,
+                emojis.check + " Remod terminé avec succès. Que souhaites-tu faire ?",
                 view=final_view
             )
         except Exception:
             golog.log("ERR", traceback.format_exc())
             try:
-                await interaction.edit_original_response(content=emojis.redcross + " erreur inconnue pendant le Codex Remod", view=None)
+                if not await finish_cancelable_progress(
+                        interaction,
+                        emojis.redcross + " erreur inconnue pendant le Codex Remod"):
+                    await interaction.edit_original_response(
+                        content=emojis.redcross + " erreur inconnue pendant le Codex Remod",
+                        view=None
+                    )
             except Exception:
                 pass
         finally:
