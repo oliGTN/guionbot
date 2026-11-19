@@ -70,6 +70,49 @@ def get_image_from_id(character_id, dict_unitsList=None):
     char_img = char_img.resize((128,128))
     return char_img
 
+def _colorize_guild_logo(source, foreground, highlight):
+    """Map source texture brightness to the guild foreground/highlight colors.
+
+    Newer guild textures are already blue rather than monochrome.  Using their
+    brightness (rather than looking for exact black pixels) makes recoloring
+    independent of the original hue and preserves the texture's shading.
+    """
+    source = source.convert("RGBA")
+    pixels = source.load()
+    width, height = source.size
+    result = Image.new("RGBA", source.size, (0, 0, 0, 0))
+    result_pixels = result.load()
+
+    for y in range(height):
+        for x in range(width):
+            red, green, blue, alpha = pixels[x, y]
+            if alpha == 0:
+                continue
+
+            # Perceived brightness works for both the old black/white masks
+            # and the newer blue-on-blue artwork.
+            brightness = (0.299 * red + 0.587 * green + 0.114 * blue) / 255.0
+            # Keep some depth in the darkest areas and reserve the brightest
+            # source details for the edge/highlight color.
+            amount = max(0.0, min(1.0, (brightness - 0.12) / 0.78))
+            color = tuple(
+                int(foreground[i] + (highlight[i] - foreground[i]) * amount)
+                for i in range(3)
+            )
+            result_pixels[x, y] = color + (alpha,)
+
+    return result
+
+def _guild_logo_edges(logo_img, color):
+    # Build edges from the alpha silhouette, not the RGB channels. This avoids
+    # FIND_EDGES outlining the transparent canvas or the original blue hues.
+    alpha = logo_img.getchannel("A")
+    edges = alpha.filter(ImageFilter.FIND_EDGES)
+    edges = edges.point(lambda value: min(255, value * 2))
+    edge_img = Image.new("RGBA", logo_img.size, color + (0,))
+    edge_img.putalpha(edges)
+    return edge_img
+
 def get_guild_logo(dict_guild, target_size):
     logo_name = dict_guild["profile"]["bannerLogoId"]
     logo_colors = dict_guild["profile"]["bannerColorId"]
@@ -88,40 +131,34 @@ def get_guild_logo(dict_guild, target_size):
         rgb2 = (0, 0, 0)
         golog.log("WAR", "unknown color "+logo_colors)
     rgb1_dark = tuple([int(x/2) for x in rgb1])
-    rgb2_dark = tuple([int(x/2) for x in rgb2])
 
     logo_img_name = 'IMAGES'+os.path.sep+'GUILD_LOGOS'+os.path.sep+logo_name+'.png'
     if not os.path.exists(logo_img_name):
-        #url = 'https://swgoh.gg/static/img/assets/tex.' + logo_name + ".png"
         url = 'https://game-assets.swgoh.gg/textures/tex.' + logo_name + ".png"
         golog.log("INFO", "download guild logo from swgoh.gg "+url)
         r = requests.get(url, allow_redirects=True)
         f = open(logo_img_name, 'wb')
         f.write(r.content)
         f.close()
-    
+
     image = Image.new('RGBA', (128, 128), (0,0,0,0))
     image_draw = ImageDraw.Draw(image)
 
-    #Draw background circle with color2
-    if logo_name in reverse_guild_logos:
-        image_draw.ellipse((2,2,126,126), fill=rgb1_dark)
-    else:
-        image_draw.ellipse((2,2,126,126), fill=rgb2)
+    is_reversed = logo_name in reverse_guild_logos
+    background_color = rgb1_dark if is_reversed else rgb2
+    foreground_color = rgb2 if is_reversed else rgb1_dark
 
-    #Add guild image in foreground with color1
-    logo_img = Image.open(logo_img_name)
-    logo_img = logo_img.convert("RGBA")
-    if logo_name in reverse_guild_logos:
-        logo_img = replace_color(logo_img, (0, 0, 0), rgb2)
-    else:
-        logo_img = replace_color(logo_img, (0, 0, 0), rgb1_dark)
+    # Draw the circular banner background.
+    image_draw.ellipse((2,2,126,126), fill=background_color)
 
-    #Add edges
-    logo_edges = logo_img.filter(ImageFilter.FIND_EDGES)
-    logo_edges = replace_color(logo_edges, (0, 0, 0), rgb1)
+    # Recolor the complete texture using its luminance. This supports both
+    # legacy monochrome logos and newer colored (blue/blue) logo textures.
+    with Image.open(logo_img_name) as source:
+        source = source.convert("RGBA")
+        logo_img = _colorize_guild_logo(source, foreground_color, rgb1)
 
-    #mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'mask-circle-128.png')
+    logo_edges = _guild_logo_edges(logo_img, rgb1)
+
     image.paste(logo_img, (0, 0), logo_img)
     image.paste(logo_edges, (0, 0), logo_edges)
 
@@ -355,7 +392,7 @@ def get_image_from_unit(character, crew_units, game_mode, dict_unitsList=None):
 
 #################################################
 # get_image_from_defIds
-# list_character_ids: [toon1_ID, toon2_ID, ...], dict_player, 
+# list_character_ids: [toon1_ID, toon2_ID, ...]
 # dict_player: roster of the player
 # tw_territory: 'T1', 'T2', 'F1', ...
 #################################################
@@ -577,7 +614,6 @@ def get_image_from_eqpt_count(eqpt_id, needed_count, owned=None):
                 cMissionId = mission["missionIdentifier"]["campaignMissionId"]
                 mission_farm += "ABCDEFGHIJKL"[int(cMissionId[-2:])-1]
                 #print(mission_farm)
-
                 farm_locations += mission_farm + " "
 
     image_draw.text((50+MAX_LINE_SIZE+20, 25), farm_locations, (255, 255, 255), font=font12)
