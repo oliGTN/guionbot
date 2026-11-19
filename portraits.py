@@ -70,35 +70,30 @@ def get_image_from_id(character_id, dict_unitsList=None):
     char_img = char_img.resize((128,128))
     return char_img
 
-def _colorize_guild_logo(source, foreground, highlight):
-    """Map source texture brightness to the guild foreground/highlight colors.
+def _colorize_guild_logo(source, light_color, dark_color):
+    """Replace the two blue source colors with the two guild banner colors.
 
-    Newer guild textures are already blue rather than monochrome.  Using their
-    brightness (rather than looking for exact black pixels) makes recoloring
-    independent of the original hue and preserves the texture's shading.
+    The newer textures use light cyan (high green + blue) and dark blue
+    (blue without green), on a black background.  The blue-channel intensity
+    also carries the antialiasing against black, so use it as output alpha.
     """
     source = source.convert("RGBA")
     pixels = source.load()
-    width, height = source.size
     result = Image.new("RGBA", source.size, (0, 0, 0, 0))
     result_pixels = result.load()
 
-    for y in range(height):
-        for x in range(width):
-            red, green, blue, alpha = pixels[x, y]
+    for y in range(source.height):
+        for x in range(source.width):
+            red, green, blue, source_alpha = pixels[x, y]
+
+            # The original black background has no blue intensity and becomes
+            # fully transparent.  This also preserves antialiased edges.
+            alpha = min(source_alpha, max(red, green, blue))
             if alpha == 0:
                 continue
 
-            # Perceived brightness works for both the old black/white masks
-            # and the newer blue-on-blue artwork.
-            brightness = (0.299 * red + 0.587 * green + 0.114 * blue) / 255.0
-            # Keep some depth in the darkest areas and reserve the brightest
-            # source details for the edge/highlight color.
-            amount = max(0.0, min(1.0, (brightness - 0.12) / 0.78))
-            color = tuple(
-                int(foreground[i] + (highlight[i] - foreground[i]) * amount)
-                for i in range(3)
-            )
+            # Light blue has a strong green component; dark blue does not.
+            color = light_color if green > blue * 0.5 else dark_color
             result_pixels[x, y] = color + (alpha,)
 
     return result
@@ -151,11 +146,11 @@ def get_guild_logo(dict_guild, target_size):
     # Draw the circular banner background.
     image_draw.ellipse((2,2,126,126), fill=background_color)
 
-    # Recolor the complete texture using its luminance. This supports both
-    # legacy monochrome logos and newer colored (blue/blue) logo textures.
+    # Map the two source blues independently to the two selected banner colors.
+    # The source texture's black background becomes transparent, revealing the
+    # circular background drawn above.
     with Image.open(logo_img_name) as source:
-        source = source.convert("RGBA")
-        logo_img = _colorize_guild_logo(source, foreground_color, rgb1)
+        logo_img = _colorize_guild_logo(source, rgb1, rgb2)
 
     logo_edges = _guild_logo_edges(logo_img, rgb1)
 
