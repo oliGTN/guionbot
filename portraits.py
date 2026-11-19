@@ -71,11 +71,12 @@ def get_image_from_id(character_id, dict_unitsList=None):
     return char_img
 
 def _colorize_guild_logo(source, light_color, dark_color):
-    """Replace the two blue source colors with the two guild banner colors.
+    """Replace the light-cyan and dark-blue regions with the two banner colors.
 
-    The newer textures use light cyan (high green + blue) and dark blue
-    (blue without green), on a black background.  The blue-channel intensity
-    also carries the antialiasing against black, so use it as output alpha.
+    These textures have a black background, a cyan/light-blue field and
+    dark-blue details. Classify by the green-to-blue ratio (not brightness):
+    both blue regions can be bright, but only the light region contains green.
+    Black pixels are made transparent.
     """
     source = source.convert("RGBA")
     pixels = source.load()
@@ -86,13 +87,15 @@ def _colorize_guild_logo(source, light_color, dark_color):
         for x in range(source.width):
             red, green, blue, source_alpha = pixels[x, y]
 
-            # The original black background has no blue intensity and becomes
-            # fully transparent.  This also preserves antialiased edges.
-            alpha = min(source_alpha, max(red, green, blue))
+            # Preserve antialiasing while making the original black canvas
+            # transparent. The blue channel carries coverage for both colors.
+            coverage = max(red, green, blue)
+            alpha = min(source_alpha, coverage)
             if alpha == 0:
                 continue
 
-            # Light blue has a strong green component; dark blue does not.
+            # Light cyan: green and blue are both strong.
+            # Dark blue: blue is strong while green remains near zero.
             color = light_color if green > blue * 0.5 else dark_color
             result_pixels[x, y] = color + (alpha,)
 
@@ -136,26 +139,10 @@ def get_guild_logo(dict_guild, target_size):
         f.write(r.content)
         f.close()
 
-    image = Image.new('RGBA', (128, 128), (0,0,0,0))
-    image_draw = ImageDraw.Draw(image)
-
-    is_reversed = logo_name in reverse_guild_logos
-    background_color = rgb1_dark if is_reversed else rgb2
-    foreground_color = rgb2 if is_reversed else rgb1_dark
-
-    # Draw the circular banner background.
-    image_draw.ellipse((2,2,126,126), fill=background_color)
-
-    # Map the two source blues independently to the two selected banner colors.
-    # The source texture's black background becomes transparent, revealing the
-    # circular background drawn above.
+    # Recolor the two blue regions independently. The source black background
+    # stays transparent; do not paint a replacement circle behind the logo.
     with Image.open(logo_img_name) as source:
-        logo_img = _colorize_guild_logo(source, rgb1, rgb2)
-
-    logo_edges = _guild_logo_edges(logo_img, rgb1)
-
-    image.paste(logo_img, (0, 0), logo_img)
-    image.paste(logo_edges, (0, 0), logo_edges)
+        image = _colorize_guild_logo(source, rgb1, rgb2)
 
     image = image.resize(target_size)
     return image
