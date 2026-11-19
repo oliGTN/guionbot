@@ -21,9 +21,9 @@ LINE_SPACING=4
 # list for guild logos, recovered from gamedata.json / 24 / 2
 dict_colors = { "bright_orange_brown": ["0xFFCA52FF", "0x5C2C1AFF"],
                 "bright_blue_dark_blue": ["0xA4DCFFFF", "0x0020BFFF"],
-                "white_red": ["0xFFFFFFFF", "0x430000FF"],
+                "white_red": ["0xC0C0C0FF", "0x920000FF"],
                 "cyan_purple": ["0x00D4FFFF", "0x880084FF"],
-                "gold_purple": ["0xF7C419FF", "0x542583FF"],
+                "gold_purple": ["0xB88804FF", "0x542583FF"],
                 "green_blue": ["0x05FF9CFF", "0x1A427DFF"],
                 "red_white": ["0xEB2429FF", "0xEAE4D6FF"],
                 "green_dark_green": ["0xC6FA08FF", "0x283E04FF"]
