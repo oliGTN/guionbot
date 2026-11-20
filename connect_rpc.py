@@ -281,9 +281,12 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1, pres
     params = {"allyCode": txt_allyCode, "use_cache_data":use_cache_data,
               "retryAuth": retryAuth}
     req_data = json_dumps(params)
+    timing_start = time.perf_counter()
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=guild_rpc_request_start url=%s" % url)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
+                golog.log("INFO", "TW_DEPLOY_TIMING stage=guild_rpc_response_headers seconds=%.3f status=%s" % (time.perf_counter() - timing_start, resp.status))
                 golog.log("DBG", "POST guild status="+str(resp.status))
                 if resp.status==200:
                     if use_cache_data:
@@ -292,13 +295,14 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1, pres
                         guild_json = cache_json["data"]
                     else:
                         guild_json = await(resp.json())
+                    golog.log("INFO", "TW_DEPLOY_TIMING stage=guild_rpc_body_complete seconds=%.3f" % (time.perf_counter() - timing_start))
                 elif resp.status==401:
                     return 401, "authentication failed", None
                 else:
                     return 1, "Cannot get guild data from RPC", None
 
     except asyncio.exceptions.TimeoutError as e:
-        golog.log("ERR", "TW_DEPLOY_TIMING stage=player_rpc_timeout seconds=%.3f error=%s" % (time.perf_counter() - timing_start, str(e)))
+        golog.log("ERR", "TW_DEPLOY_TIMING stage=guild_rpc_timeout seconds=%.3f error=%s" % (time.perf_counter() - timing_start, str(e)))
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
@@ -315,7 +319,10 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1, pres
         return 1, "Aucune info de guilde disponible pour "+txt_allyCode, None
 
     #Push some infos in DB
+    db_start = time.perf_counter()
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=guild_db_update_start")
     await update_mysql.update_guild(dict_guild)
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=guild_db_update_complete seconds=%.3f total_seconds=%.3f" % (time.perf_counter() - db_start, time.perf_counter() - timing_start))
 
     return 0, "", dict_guild
 
