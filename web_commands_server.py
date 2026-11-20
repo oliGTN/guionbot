@@ -344,10 +344,12 @@ async def handle_deploy_tw_teams(request):
                     currentRound = tw["currentRound"]
                     dict_guild = {'profile': {'id': guild_id}} | latestTWstatus
                     ret = await connect_rpc.get_tw_status(guild_id, 0, dict_guild=dict_guild)
+                    golog.log("INFO", "TW_DEPLOY_TIMING stage=db_update_start partial=true completed=%d" % int(completed))
                     await update_mysql.update_tw(
                         guild_id, tw_id, opp_guild_id, opp_guild_name,
                         score, opp_score, currentRound, ret['homeGuild'], ret['awayGuild']
                     )
+                    golog.log("INFO", "TW_DEPLOY_TIMING stage=db_update_complete partial=true")
 
                 await send_event({
                     "type": "error", "err_code": int(err_code),
@@ -375,10 +377,12 @@ async def handle_deploy_tw_teams(request):
             ret = await connect_rpc.get_tw_status(guild_id, 0, dict_guild=dict_guild)
             homeGuild = ret['homeGuild']
             awayGuild = ret['awayGuild']
+            golog.log("INFO", "TW_DEPLOY_TIMING stage=db_update_start partial=false completed=%d" % int(completed))
             await update_mysql.update_tw(
                 guild_id, tw_id, opp_guild_id, opp_guild_name,
                 score, opp_score, currentRound, homeGuild, awayGuild
             )
+            golog.log("INFO", "TW_DEPLOY_TIMING stage=db_update_complete partial=false")
             await send_event({
                 "type": "complete", "err_code": 0,
                 "err_txt": "Successfully deployed " + str(completed) + " proposed team(s).",
