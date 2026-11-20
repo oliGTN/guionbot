@@ -308,8 +308,33 @@ async def handle_deploy_tw_teams(request):
         )
         await response.prepare(request)
 
+        # Send a first body chunk immediately. Without this, the PHP proxy and
+        # browser receive no bytes while player/guild data is being fetched.
+        write_lock = asyncio.Lock()
+
         async def send_event(event):
-            await response.write((json_dumps(event) + "\n").encode("utf-8"))
+            payload_bytes = (json_dumps(event) + "\n").encode("utf-8")
+            async with write_lock:
+                await response.write(payload_bytes)
+
+        await send_event({
+            "type": "stage", "completed": 0, "total": len(validated_teams),
+            "message": "Connecting to the game and retrieving player data..."
+        })
+
+        heartbeat_stop = asyncio.Event()
+
+        async def send_heartbeat():
+            while not heartbeat_stop.is_set():
+                try:
+                    await asyncio.wait_for(heartbeat_stop.wait(), timeout=10)
+                except asyncio.TimeoutError:
+                    await send_event({
+                        "type": "stage", "completed": 0, "total": len(validated_teams),
+                        "message": "Still retrieving game data; please wait..."
+                    })
+
+        heartbeat_task = asyncio.create_task(send_heartbeat())
 
         async def report_progress(completed_count, total_count, unit_name):
             await send_event({
@@ -320,10 +345,18 @@ async def handle_deploy_tw_teams(request):
             })
 
         try:
-            err_code, err_txt, completed, latestTWstatus = await connect_rpc.deploy_tw(
-                guild_id, ally_code, validated_teams,
-                progress_callback=report_progress,
-            )
+            try:
+                err_code, err_txt, completed, latestTWstatus = await connect_rpc.deploy_tw(
+                    guild_id, ally_code, validated_teams,
+                    progress_callback=report_progress,
+                )
+            finally:
+                heartbeat_stop.set()
+                heartbeat_task.cancel()
+                try:
+                    await heartbeat_task
+                except asyncio.CancelledError:
+                    pass
             if err_code != 0:
                 # A failed batch may still have deployed one or more teams.
                 # Refresh/save from the latest successful RPC response before
