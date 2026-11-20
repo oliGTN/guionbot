@@ -311,12 +311,12 @@ async def handle_deploy_tw_teams(request):
         async def send_event(event):
             await response.write((json_dumps(event) + "\n").encode("utf-8"))
 
-        async def report_progress(completed_count, total_count, zone_name):
+        async def report_progress(completed_count, total_count, unit_name):
             await send_event({
                 "type": "progress",
                 "completed": int(completed_count),
                 "total": int(total_count),
-                "zone": str(zone_name),
+                "unit": str(unit_name),
             })
 
         try:
@@ -325,9 +325,34 @@ async def handle_deploy_tw_teams(request):
                 progress_callback=report_progress,
             )
             if err_code != 0:
+                # A failed batch may still have deployed one or more teams.
+                # Refresh/save from the latest successful RPC response before
+                # returning the error, so the web page can reload consistent data.
+                if completed > 0 and latestTWstatus:
+                    await send_event({
+                        "type": "stage",
+                        "completed": int(completed),
+                        "total": len(validated_teams),
+                        "message": "Refreshing TW status after partial deployment...",
+                    })
+                    tw = latestTWstatus['territoryWarStatus'][0]
+                    tw_id = tw['instanceId']
+                    opp_guild_name = tw["awayGuild"]["profile"]["name"]
+                    opp_guild_id = tw["awayGuild"]["profile"]["id"]
+                    score = sum(int(x['zoneStatus']['score']) for x in tw['homeGuild']['conflictStatus'])
+                    opp_score = sum(int(x['zoneStatus']['score']) for x in tw['awayGuild']['conflictStatus'])
+                    currentRound = tw["currentRound"]
+                    dict_guild = {'profile': {'id': guild_id}} | latestTWstatus
+                    ret = await connect_rpc.get_tw_status(guild_id, 0, dict_guild=dict_guild)
+                    await update_mysql.update_tw(
+                        guild_id, tw_id, opp_guild_id, opp_guild_name,
+                        score, opp_score, currentRound, ret['homeGuild'], ret['awayGuild']
+                    )
+
                 await send_event({
                     "type": "error", "err_code": int(err_code),
                     "err_txt": str(err_txt), "completed": int(completed),
+                    "refreshed": bool(completed > 0 and latestTWstatus),
                 })
                 await response.write_eof()
                 return response

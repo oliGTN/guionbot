@@ -3229,6 +3229,9 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
     global prev_dict_guild
     global prev_mapstats
 
+    timing_start = time.perf_counter()
+    golog.log("INFO", "TW_STATUS_TIMING stage=start")
+
     dict_tw=godata.dict_tw
 
     calling_func = inspect.stack()[1][3]
@@ -3263,6 +3266,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
     else:
         dict_events=None
 
+    golog.log("INFO", "TW_STATUS_TIMING stage=guild_data_ready seconds=%.3f" % (time.perf_counter() - timing_start))
     guildId = dict_guild["profile"]["id"]
 
     tw_id=None
@@ -3282,6 +3286,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                 tw_round = -1
 
     golog.log("DBG", str(tw_id)+", "+str(tw_round))
+    golog.log("INFO", "TW_STATUS_TIMING stage=tw_identified seconds=%.3f tw_id=%s round=%s" % (time.perf_counter() - timing_start, str(tw_id), str(tw_round)))
     if tw_id == None:
         return {"tw_id": None, "rpc": {"guild": dict_guild, "events": dict_events}}
 
@@ -3324,23 +3329,32 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
     list_defenses = {}
     list_territories = {}
 
+    capa_start = time.perf_counter()
     capa_list = godata.get("unit_capa_list.json")
+    golog.log("INFO", "TW_STATUS_TIMING stage=unit_capa_loaded seconds=%.3f total_seconds=%.3f" % (time.perf_counter() - capa_start, time.perf_counter() - timing_start))
     for guild in ["homeGuild", "awayGuild"]:
+        guild_start = time.perf_counter()
+        zone_count = 0
+        squad_count = 0
+        unit_count = 0
         list_defenses[guild] = []
         list_territories[guild] = []
         if guild in cur_tw:
             for zone in cur_tw[guild]["conflictStatus"]:
+                zone_count += 1
                 zone_id = zone["zoneStatus"]["zoneId"]
                 zone_shortname = dict_tw[zone_id]
                 victories=0
                 fails=0
                 if "warSquad" in zone:
                     for squad in zone["warSquad"]:
+                        squad_count += 1
                         squad_id = squad["squadId"]
                         player_name = squad["playerName"]
                         player_id = squad["playerId"]
                         list_chars = []
                         for c in squad["squad"]["cell"]:
+                            unit_count += 1
                             unit_id = c["unitDefId"].split(":")[0]
                             my_unit = {"unitDefId": c["unitDefId"],
                                        "unitId": unit_id,
@@ -3411,6 +3425,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                 else:
                     commandState = None
                 list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg, commandState, zoneState])
+        golog.log("INFO", "TW_STATUS_TIMING stage=guild_processed guild=%s zones=%d squads=%d units=%d seconds=%.3f total_seconds=%.3f" % (guild, zone_count, squad_count, unit_count, time.perf_counter() - guild_start, time.perf_counter() - timing_start))
 
     #Detect who has attacked what
     list_attacks = []
@@ -3463,6 +3478,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                                                              "gp": team_gp,
                                                              "squad_id": squad_id})
 
+    golog.log("INFO", "TW_STATUS_TIMING stage=result_built seconds=%.3f" % (time.perf_counter() - timing_start))
     ret_dict =  {"tw_id": tw_id, \
                  "tw_round": tw_round, \
                  "homeGuild": {"list_defenses": list_defenses["homeGuild"], \
@@ -3475,6 +3491,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                  "tw_summary": tw_summary, \
                  "rpc": {"guild": dict_guild, "events": dict_events}}
 
+    golog.log("INFO", "TW_STATUS_TIMING stage=complete seconds=%.3f" % (time.perf_counter() - timing_start))
     return ret_dict
 
 async def get_tw_active_players(guild_id, force_update, allyCode=None):
@@ -3743,20 +3760,20 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
                         resp_json = await resp.json()
                     else:
                         err_txt = "Erreur en posant une def de GT - code=" + str(resp.status)
-                        return (1, err_txt, completed, None)
+                        return (1, err_txt, completed, latestTWstatus if completed else None)
         except asyncio.exceptions.TimeoutError:
             err_txt = "Timeout lors de la requete RPC, merci de ré-essayer"
-            return (1, err_txt, completed, None)
+            return (1, err_txt, completed, latestTWstatus if completed else None)
         except aiohttp.client_exceptions.ServerDisconnectedError:
             err_txt = "Erreur lors de la requete RPC, merci de ré-essayer"
-            return (1, err_txt, completed, None)
+            return (1, err_txt, completed, latestTWstatus if completed else None)
         except aiohttp.client_exceptions.ClientConnectorError:
             err_txt = "Erreur lors de la requete RPC, merci de ré-essayer"
-            return (1, err_txt, completed, None)
+            return (1, err_txt, completed, latestTWstatus if completed else None)
 
         if resp_json is not None and "err_code" in resp_json:
             err_txt = resp_json["err_txt"]
-            return (1, err_txt, completed, None)
+            return (1, err_txt, completed, latestTWstatus if completed else None)
 
         completed += 1
         latestTWstatus = resp_json
@@ -3764,7 +3781,17 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
         golog.log("INFO", "Deployed TW team for allyCode " + txt_allyCode +
                   " in zone " + team_zone_id + " (" + str(len(team["list_unit_ids"])) + " units)")
         if progress_callback is not None:
-            await progress_callback(completed, len(prepared_teams), team_zone_id)
+            first_def_id = team["def_ids"][0]
+            first_unit_name = dict_unitsList.get(first_def_id, {}).get("name", first_def_id)
+            try:
+                await progress_callback(completed, len(prepared_teams), first_unit_name)
+            except Exception as error:
+                # The browser may have disconnected after the game accepted
+                # this team. Return the latest confirmed game status so the
+                # caller can still persist it before ending the operation.
+                golog.log("WAR", "TW deployment progress stream interrupted after "
+                          + str(completed) + " team(s): " + str(error))
+                return (1, "La connexion avec la page a été interrompue", completed, latestTWstatus)
 
     return (0, 
             "Déploiement OK de " + str(completed) + " équipe(s) pour " + player_name,

@@ -1807,7 +1807,7 @@ if (zoneSelect) {
                 for (const line of lines) {
                     if (!line.trim()) continue;
                     const event = JSON.parse(line);
-                    if (event.type === 'progress') updateProgress(event.completed, 'Deploying team ' + event.completed + ' of ' + total + (event.zone ? ' (' + event.zone + ')' : '') + '...');
+                    if (event.type === 'progress') updateProgress(event.completed, 'Deploying team ' + event.completed + ' of ' + total + (event.unit ? ' (' + event.unit + ')' : '') + '...');
                     if (event.type === 'stage') updateProgress(event.completed, event.message || 'Refreshing TW status...');
                     if (event.type === 'complete' || event.type === 'error') finalResult = event;
                 }
@@ -1818,7 +1818,13 @@ if (zoneSelect) {
             }
             if (!finalResult || Number(finalResult.err_code) !== 0) {
                 const done = finalResult ? Number(finalResult.completed || completed) : completed;
-                throw new Error((finalResult && finalResult.err_txt) || 'Deployment ended without confirmation.' + (done ? ' ' + done + ' team(s) were deployed before the error.' : ''));
+                const errorMessage = (finalResult && finalResult.err_txt) || 'Deployment ended without confirmation.';
+                if (done > 0 && finalResult && finalResult.refreshed) {
+                    alert(errorMessage + ' ' + done + ' team(s) were deployed. The page will now refresh with the latest game data.');
+                    window.location.reload();
+                    return;
+                }
+                throw new Error(errorMessage + (done ? ' ' + done + ' team(s) were deployed before the error.' : ''));
             }
             updateProgress(total, 'Teams confirmed. Refreshing the page...');
             window.location.reload();
