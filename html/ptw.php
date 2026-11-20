@@ -135,6 +135,10 @@ if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METH
             flush();
         }
     }
+
+    // This request is an NDJSON streaming endpoint, not a page render.
+    // Do not append the normal PTW HTML to the stream after cURL completes.
+    exit();
 }
 include 'portrait.php';
 
