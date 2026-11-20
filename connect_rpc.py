@@ -3766,7 +3766,15 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
         if progress_callback is not None:
             first_def_id = team["def_ids"][0]
             first_unit_name = dict_unitsList.get(first_def_id, {}).get("name", first_def_id)
-            await progress_callback(completed, len(prepared_teams), first_unit_name)
+            try:
+                await progress_callback(completed, len(prepared_teams), first_unit_name)
+            except Exception as error:
+                # The browser may have disconnected after the game accepted
+                # this team. Return the latest confirmed game status so the
+                # caller can still persist it before ending the operation.
+                golog.log("WAR", "TW deployment progress stream interrupted after "
+                          + str(completed) + " team(s): " + str(error))
+                return (1, "La connexion avec la page a été interrompue", completed, latestTWstatus)
 
     return (0, 
             "Déploiement OK de " + str(completed) + " équipe(s) pour " + player_name,
