@@ -1890,6 +1890,8 @@ async def update_tw(
         currentRound,
         homeGuild, 
         awayGuild):
+    timing_start = time.perf_counter()
+    golog.log("INFO", "TW_UPDATE_TIMING stage=start guild=%s tw_id=%s" % (guild_id, tw_id))
     dict_tw = data.dict_tw
 
     # Check / Create the TW in DB
@@ -1932,6 +1934,8 @@ async def update_tw(
         golog.log("DBG", query)
         await simple_execute_async(query)
 
+    golog.log("INFO", "TW_UPDATE_TIMING stage=history_ready tw_db_id=%s seconds=%.3f" % (str(tw_db_id), time.perf_counter() - timing_start))
+
     # Get DB TW zones
     query = "SELECT id, side, zone_name, size, filled, victories, fails FROM tw_zones " \
             "WHERE tw_id="+str(tw_db_id)
@@ -1954,6 +1958,9 @@ async def update_tw(
             dict_tw_zones[side][zone_name] = [zone_id, size, filled, victories, fails]
 
     for [side, guild] in [["home", homeGuild], ["away", awayGuild]]:
+        side_start = time.perf_counter()
+        squads_processed = 0
+        cells_processed = 0
         zones = guild['list_territories']
         for zone in zones:
             zone_name = zone[0]
@@ -2039,9 +2046,12 @@ async def update_tw(
                                         is_beaten, fights, gp,
                                         datacron_id]
 
+        golog.log("INFO", "TW_UPDATE_TIMING stage=zones_ready side=%s zones=%d seconds=%.3f total_seconds=%.3f" % (side, len(zones), time.perf_counter() - side_start, time.perf_counter() - timing_start))
+
         # Now get RPC data and compare with DB, create/insert if necessary
         squads = guild['list_defenses']
         for squad in squads:
+            squads_processed += 1
             zone_name = squad["zone_short_name"]
             player_name = squad["player_name"]
             player_id = squad["player_id"]
@@ -2081,6 +2091,7 @@ async def update_tw(
             # Check / create squad cells in DB
             cellIndex = 0
             for cell in cells:
+                cells_processed += 1
                 defId = cell["unitDefId"]
                 level = cell["level"]
                 tier = cell["gear"]
@@ -2105,9 +2116,15 @@ async def update_tw(
 
                 cellIndex += 1
 
+            if squads_processed % 25 == 0:
+                golog.log("INFO", "TW_UPDATE_TIMING stage=squads_progress side=%s squads=%d/%d cells=%d seconds=%.3f" % (side, squads_processed, len(squads), cells_processed, time.perf_counter() - side_start))
+
             # breathe
             await asyncio.sleep(0)
 
+        golog.log("INFO", "TW_UPDATE_TIMING stage=side_complete side=%s squads=%d cells=%d seconds=%.3f total_seconds=%.3f" % (side, squads_processed, cells_processed, time.perf_counter() - side_start, time.perf_counter() - timing_start))
+
+    golog.log("INFO", "TW_UPDATE_TIMING stage=complete seconds=%.3f" % (time.perf_counter() - timing_start))
     return 0, ""
 
 ###########################################
