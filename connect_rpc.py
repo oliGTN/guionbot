@@ -3743,20 +3743,20 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
                         resp_json = await resp.json()
                     else:
                         err_txt = "Erreur en posant une def de GT - code=" + str(resp.status)
-                        return (1, err_txt, completed, None)
+                        return (1, err_txt, completed, latestTWstatus if completed else None)
         except asyncio.exceptions.TimeoutError:
             err_txt = "Timeout lors de la requete RPC, merci de ré-essayer"
-            return (1, err_txt, completed, None)
+            return (1, err_txt, completed, latestTWstatus if completed else None)
         except aiohttp.client_exceptions.ServerDisconnectedError:
             err_txt = "Erreur lors de la requete RPC, merci de ré-essayer"
-            return (1, err_txt, completed, None)
+            return (1, err_txt, completed, latestTWstatus if completed else None)
         except aiohttp.client_exceptions.ClientConnectorError:
             err_txt = "Erreur lors de la requete RPC, merci de ré-essayer"
-            return (1, err_txt, completed, None)
+            return (1, err_txt, completed, latestTWstatus if completed else None)
 
         if resp_json is not None and "err_code" in resp_json:
             err_txt = resp_json["err_txt"]
-            return (1, err_txt, completed, None)
+            return (1, err_txt, completed, latestTWstatus if completed else None)
 
         completed += 1
         latestTWstatus = resp_json
@@ -3764,7 +3764,9 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
         golog.log("INFO", "Deployed TW team for allyCode " + txt_allyCode +
                   " in zone " + team_zone_id + " (" + str(len(team["list_unit_ids"])) + " units)")
         if progress_callback is not None:
-            await progress_callback(completed, len(prepared_teams), team_zone_id)
+            first_def_id = team["def_ids"][0]
+            first_unit_name = dict_unitsList.get(first_def_id, {}).get("name", first_def_id)
+            await progress_callback(completed, len(prepared_teams), first_unit_name)
 
     return (0, 
             "Déploiement OK de " + str(completed) + " équipe(s) pour " + player_name,
