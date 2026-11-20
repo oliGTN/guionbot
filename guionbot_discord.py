@@ -7761,7 +7761,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emojis.redcross)
         else:
-            err_code, ret_cmd = go.print_fegv( allyCode, show_all=show_all)
+            err_code, ret_cmd = await go.print_fegv( allyCode, show_all=show_all)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
