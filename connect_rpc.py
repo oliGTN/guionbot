@@ -3651,8 +3651,13 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
     are fetched once for the entire batch.
     """
     dict_unitsList = godata.get("unitsList_dict.json")
+    timing_start = time.perf_counter()
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=preflight_start allyCode=%s teams=%d" % (txt_allyCode, len(teams)))
 
+    player_start = time.perf_counter()
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=player_data_start")
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=player_data_complete seconds=%.3f total_seconds=%.3f" % (time.perf_counter() - player_start, time.perf_counter() - timing_start))
     if err_code != 0:
         golog.log("ERR", err_txt)
         return (1, "Erreur en se connectant au compte " + txt_allyCode, 0, None)
@@ -3663,7 +3668,10 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
         defId = unit["definitionId"].split(":")[0]
         dict_roster[defId] = unit
 
+    guild_start = time.perf_counter()
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=guild_data_start")
     err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=guild_data_complete seconds=%.3f total_seconds=%.3f" % (time.perf_counter() - guild_start, time.perf_counter() - timing_start))
     if err_code != 0:
         golog.log("ERR", err_txt)
         return (1, "Erreur en récupérant les infos guilde de " + txt_allyCode, 0, None)
