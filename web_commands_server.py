@@ -311,12 +311,12 @@ async def handle_deploy_tw_teams(request):
         async def send_event(event):
             await response.write((json_dumps(event) + "\n").encode("utf-8"))
 
-        async def report_progress(completed_count, total_count, zone_name):
+        async def report_progress(completed_count, total_count, unit_name):
             await send_event({
                 "type": "progress",
                 "completed": int(completed_count),
                 "total": int(total_count),
-                "zone": str(zone_name),
+                "unit": str(unit_name),
             })
 
         try:
