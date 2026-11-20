@@ -298,6 +298,7 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1, pres
                     return 1, "Cannot get guild data from RPC", None
 
     except asyncio.exceptions.TimeoutError as e:
+        golog.log("ERR", "TW_DEPLOY_TIMING stage=player_rpc_timeout seconds=%.3f error=%s" % (time.perf_counter() - timing_start, str(e)))
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
@@ -1048,10 +1049,13 @@ async def get_bot_player_data(guild_id, use_cache_data):
     return ec, et, d
 
 async def get_player_data(txt_allyCode, use_cache_data):
+    timing_start = time.perf_counter()
     #get playerId
     query = "SELECT playerId FROM players WHERE allyCode="+txt_allyCode
     golog.log("DBG", query)
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=player_db_lookup_start")
     db_data = await connect_mysql.get_value_async(query)
+    golog.log("INFO", "TW_DEPLOY_TIMING stage=player_db_lookup_complete seconds=%.3f found=%s" % (time.perf_counter() - timing_start, db_data is not None))
     if db_data == None:
         return 1, "Le joueur "+txt_allyCode+" est inconnu du bot", None
         return 0
@@ -1064,8 +1068,11 @@ async def get_player_data(txt_allyCode, use_cache_data):
     params = {"allyCode":txt_allyCode, "player_id": player_id, "use_cache_data": use_cache_data}
     req_data = json_dumps(params)
     try:
+        rpc_start = time.perf_counter()
+        golog.log("INFO", "TW_DEPLOY_TIMING stage=player_rpc_request_start url=%s" % url)
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
+                golog.log("INFO", "TW_DEPLOY_TIMING stage=player_rpc_response_headers seconds=%.3f status=%s" % (time.perf_counter() - rpc_start, resp.status))
                 golog.log("DBG", "player status="+str(resp.status))
                 if resp.status==200:
                     if use_cache_data:
@@ -1074,6 +1081,7 @@ async def get_player_data(txt_allyCode, use_cache_data):
                         dict_player = cache_json["data"]
                     else:
                         dict_player = await(resp.json())
+                    golog.log("INFO", "TW_DEPLOY_TIMING stage=player_rpc_body_complete seconds=%.3f total_seconds=%.3f" % (time.perf_counter() - rpc_start, time.perf_counter() - timing_start))
                 else:
                     return 1, "Cannot get player data from RPC", None
 
