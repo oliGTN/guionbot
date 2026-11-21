@@ -334,6 +334,179 @@ $datacron_icons = load_datacron_icons($conn_guionbot);
 $dict_categories = load_categories();
 $FRE_FR = load_loc('FRE_FR');
 
+// Historical TW imports are loaded on demand. This endpoint deliberately runs
+// before roster and current-datacron processing so it does not repeat that work.
+if (($_GET['action'] ?? '') === 'load_tw_history' && ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    $respondHistory = function ($status, $payload) {
+        http_response_code($status);
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit();
+    };
+
+    if (empty($_SESSION['user_id']) || (!$isGuildMate && !$isAdmin)) {
+        $respondHistory(403, ['error' => 'You are not allowed to access this Territory War.']);
+    }
+
+    $historyTwId = filter_input(INPUT_GET, 'tw_id', FILTER_VALIDATE_INT);
+    if (!$historyTwId || $historyTwId < 1) {
+        $respondHistory(400, ['error' => 'Invalid Territory War.']);
+    }
+
+    try {
+        $checkHistoryStmt = $conn_guionbot->prepare(
+            "SELECT id FROM tw_history WHERE id = :tw_id AND guild_id = :guild_id LIMIT 1"
+        );
+        $checkHistoryStmt->execute([
+            ':tw_id' => $historyTwId,
+            ':guild_id' => $player['guild_id'],
+        ]);
+        if (!$checkHistoryStmt->fetchColumn()) {
+            $respondHistory(404, ['error' => 'Territory War not found.']);
+        }
+
+        $importStmt = $conn_guionbot->prepare(
+            "SELECT tw_squads.id AS squad_id, tw_squads.tw_id, tw_squads.zone_name,
+                    tw_squad_cells.defId, tw_squad_cells.cellIndex,
+                    tw_squad_cells.level, tw_squad_cells.tier,
+                    tw_squad_cells.unitRelicTier, tw_squad_cells.zetaCount,
+                    tw_squad_cells.omicronCount,
+                    datacrons.id AS datacron_id, datacrons.setId AS datacron_setId,
+                    datacrons.focused AS datacron_focused,
+                    datacrons.level_3 AS datacron_level_3, datacrons.level_6 AS datacron_level_6,
+                    datacrons.level_9 AS datacron_level_9, datacrons.level_12 AS datacron_level_12,
+                    datacrons.level_15 AS datacron_level_15
+             FROM tw_squads
+             JOIN tw_squad_cells ON tw_squad_cells.squad_id = tw_squads.id
+             LEFT JOIN datacrons ON datacrons.id = tw_squads.datacron_id
+             WHERE tw_squads.tw_id = :tw_id
+               AND tw_squads.player_name = :player_name
+             ORDER BY FIELD(tw_squads.zone_name, 'B1','T1','B2','T2','B3','T3','B4','T4','F1','F2'),
+                      tw_squads.id, tw_squad_cells.cellIndex"
+        );
+        $importStmt->execute([
+            ':tw_id' => $historyTwId,
+            ':player_name' => $player['name'],
+        ]);
+        $importSquadList = $importStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('Error fetching historical TW squads: ' . $e->getMessage());
+        $respondHistory(500, ['error' => 'Unable to load historical teams.']);
+    }
+
+    $rarityValues = [
+        'ONE_STAR' => 1, 'TWO_STAR' => 2, 'THREE_STAR' => 3,
+        'FOUR_STAR' => 4, 'FIVE_STAR' => 5, 'SIX_STAR' => 6, 'SEVEN_STAR' => 7,
+    ];
+    $importTeamsByZone = [];
+    foreach ($importSquadList as $cell) {
+        $sid = (string) $cell['squad_id'];
+        $zone = (string) $cell['zone_name'];
+        if (!isset($importTeamsByZone[$zone][$sid])) {
+            $importTeamsByZone[$zone][$sid] = [
+                'zone' => $zone,
+                'units' => [],
+                'unitData' => [],
+                'datacronId' => (string) ($cell['datacron_id'] ?? ''),
+                'datacronHtml' => '',
+                'datacron' => !empty($cell['datacron_id']) ? [
+                    'id' => $cell['datacron_id'], 'setId' => $cell['datacron_setId'],
+                    'focused' => $cell['datacron_focused'], 'level_3' => $cell['datacron_level_3'],
+                    'level_6' => $cell['datacron_level_6'], 'level_9' => $cell['datacron_level_9'],
+                    'level_12' => $cell['datacron_level_12'], 'level_15' => $cell['datacron_level_15'],
+                ] : null,
+            ];
+        }
+
+        $parts = explode(':', (string) $cell['defId']);
+        $shortId = (string) $parts[0];
+        $unitInfo = $dict_units[$shortId] ?? [];
+        $isShip = (int) ($unitInfo['combatType'] ?? 1) === 2;
+        $unitName = $unitInfo['name'] ?? $shortId;
+
+        ob_start();
+        display_portrait(
+            $shortId,
+            $unitInfo['forceAlignment'] ?? 0,
+            $rarityValues[$parts[1] ?? 'SEVEN_STAR'] ?? 7,
+            $isShip ? 0 : (int) $cell['tier'],
+            (int) $cell['unitRelicTier'],
+            (int) $cell['zetaCount'],
+            (int) $cell['omicronCount'],
+            $isShip,
+            $unitName,
+            $isShip && (int) $cell['cellIndex'] >= 4
+        );
+        $portraitHtml = ob_get_clean();
+
+        $teamRef =& $importTeamsByZone[$zone][$sid];
+        $teamRef['units'][] = $shortId;
+        if (!empty($cell['datacron_id']) && $teamRef['datacronHtml'] === '') {
+            ob_start();
+            display_datacron($teamRef['datacron'], $datacron_icons, $dict_categories, $dict_abilities, $FRE_FR, true);
+            $teamRef['datacronHtml'] = ob_get_clean();
+        }
+        $teamRef['unitData'][] = [
+            'id' => $shortId,
+            'portrait' => $portraitHtml,
+            'name' => $unitName,
+            'isShip' => $isShip,
+        ];
+        unset($teamRef);
+    }
+
+    ob_start();
+    $twZones = ['B1', 'T1', 'B2', 'T2', 'B3', 'T3', 'B4', 'T4', 'F1', 'F2'];
+    $hasTeams = false;
+    foreach ($twZones as $importZone) {
+        if (empty($importTeamsByZone[$importZone])) continue;
+        $hasTeams = true;
+        ?>
+        <div class="card tw-zone">
+            <div class="tw-zone-header">
+                <h4><?php echo htmlspecialchars($importZone, ENT_QUOTES, 'UTF-8'); ?></h4>
+                <span class="tw-zone-command"><?php echo htmlspecialchars($zones['home'][$importZone]['commandMsg'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
+            </div>
+            <?php foreach ($importTeamsByZone[$importZone] as $importTeam): ?>
+                <?php
+                $teamPayload = json_encode([
+                    'zone' => $importTeam['zone'],
+                    'units' => $importTeam['units'],
+                    'datacronId' => $importTeam['datacronId'],
+                    'datacronHtml' => $importTeam['datacronHtml'],
+                ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+                ?>
+                <div class="tw-team">
+                    <div class="tw-import-team-row">
+                        <div class="tw-team-portraits">
+                            <?php foreach ($importTeam['unitData'] as $unitIndex => $importUnit): ?>
+                                <div data-unit-id="<?php echo htmlspecialchars($importUnit['id'], ENT_QUOTES, 'UTF-8'); ?>"
+                                     data-base-title="<?php echo htmlspecialchars($importUnit['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                     <?php echo ($importUnit['isShip'] && $unitIndex >= 4) ? 'class="tw-fleet-reinforcement"' : ''; ?>
+                                     title="<?php echo htmlspecialchars($importUnit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $importUnit['portrait']; ?></div>
+                            <?php endforeach; ?>
+                            <?php if ($importTeam['datacronId'] !== ''): ?>
+                                <div class="tw-import-datacron" data-datacron-id="<?php echo htmlspecialchars($importTeam['datacronId'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $importTeam['datacronHtml']; ?></div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="tw-import-actions">
+                            <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars($teamPayload, ENT_QUOTES, 'UTF-8'); ?>">Add</button>
+                            <button type="button" class="tw-add-team tw-import-add tw-import-add-in-zone" data-team="<?php echo htmlspecialchars($teamPayload, ENT_QUOTES, 'UTF-8'); ?>">Add in <?php echo htmlspecialchars($importTeam['zone'], ENT_QUOTES, 'UTF-8'); ?></button>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <?php
+    }
+    if (!$hasTeams) {
+        echo '<p>No teams found for this player in this Territory War.</p>';
+    }
+    $historyHtml = ob_get_clean();
+    $respondHistory(200, ['html' => $historyHtml, 'teamCount' => array_sum(array_map('count', $importTeamsByZone))]);
+}
+
 $used_unit_ids = [];
 $used_datacron_ids = [];
 
@@ -529,98 +702,8 @@ $rarity_values = [
     'SEVEN_STAR' => 7,
 ];
 
-// Fetch all historical teams for this player in one query. The selector filters
-// the preloaded results client-side, so changing TW never reloads the page.
-$import_teams_by_tw = [];
-if (!empty($previous_tw_ids)) {
-    try {
-        $history_placeholders = [];
-        $history_params = [':player_name' => $player['name']];
-        foreach ($previous_tw_ids as $index => $history_tw_id) {
-            $placeholder = ':history_tw_' . $index;
-            $history_placeholders[] = $placeholder;
-            $history_params[$placeholder] = $history_tw_id;
-        }
-        $query_started_at = microtime(true);
-        $import_stmt = $conn_guionbot->prepare(
-            "SELECT tw_squads.id AS squad_id, tw_squads.tw_id, tw_squads.zone_name,
-                    tw_squad_cells.defId, tw_squad_cells.cellIndex,
-                    tw_squad_cells.level, tw_squad_cells.tier,
-                    tw_squad_cells.unitRelicTier, tw_squad_cells.zetaCount,
-                    tw_squad_cells.omicronCount,
-                    datacrons.id AS datacron_id, datacrons.setId AS datacron_setId,
-                    datacrons.focused AS datacron_focused,
-                    datacrons.level_3 AS datacron_level_3, datacrons.level_6 AS datacron_level_6,
-                    datacrons.level_9 AS datacron_level_9, datacrons.level_12 AS datacron_level_12,
-                    datacrons.level_15 AS datacron_level_15
-             FROM tw_squads
-             JOIN tw_squad_cells ON tw_squad_cells.squad_id = tw_squads.id
-             LEFT JOIN datacrons ON datacrons.id = tw_squads.datacron_id
-             WHERE tw_squads.tw_id IN (" . implode(', ', $history_placeholders) . ")
-               AND tw_squads.player_name = :player_name
-             ORDER BY tw_squads.tw_id DESC,
-                      FIELD(tw_squads.zone_name, 'B1','T1','B2','T2','B3','T3','B4','T4','F1','F2'),
-                      tw_squads.id, tw_squad_cells.cellIndex"
-        );
-        $import_stmt->execute($history_params);
-        $import_squad_list = $import_stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log('Error fetching historical TW squads: ' . $e->getMessage());
-        $import_squad_list = [];
-    }
-} else {
-    $import_squad_list = [];
-}
-$import_processing_started_at = microtime(true);
-foreach ($import_squad_list as $cell) {
-    $twKey = (string) $cell['tw_id'];
-    $sid = (string) $cell['squad_id'];
-    $zone = (string) $cell['zone_name'];
-    if (!isset($import_teams_by_tw[$twKey][$zone][$sid])) {
-        $import_teams_by_tw[$twKey][$zone][$sid] = [
-            'id' => $sid, 'twId' => (int) $cell['tw_id'], 'zone' => $zone,
-            'units' => [], 'unitData' => [],
-            'datacronId' => (string) ($cell['datacron_id'] ?? ''),
-            'datacronHtml' => '',
-            'datacron' => !empty($cell['datacron_id']) ? [
-                'id' => $cell['datacron_id'], 'setId' => $cell['datacron_setId'],
-                'focused' => $cell['datacron_focused'], 'level_3' => $cell['datacron_level_3'],
-                'level_6' => $cell['datacron_level_6'], 'level_9' => $cell['datacron_level_9'],
-                'level_12' => $cell['datacron_level_12'], 'level_15' => $cell['datacron_level_15'],
-            ] : null,
-        ];
-    }
-    $parts = explode(':', (string) $cell['defId']);
-    $shortId = (string) $parts[0];
-    $isShip = (int) ($dict_units[$shortId]['combatType'] ?? 1) === 2;
-    ob_start();
-    display_portrait(
-        $shortId,
-        $dict_units[$shortId]['forceAlignment'] ?? 0,
-        $rarity_values[$parts[1] ?? 'SEVEN_STAR'] ?? 7,
-        $isShip ? 0 : (int) $cell['tier'],
-        (int) $cell['unitRelicTier'],
-        (int) $cell['zetaCount'],
-        (int) $cell['omicronCount'],
-        $isShip,
-        $dict_units[$shortId]['name'].'XX' ?? $shortId,
-        $isShip && (int) $cell['cellIndex'] >= 4
-    );
-    $portraitHtml = ob_get_clean();
-    $teamRef =& $import_teams_by_tw[$twKey][$zone][$sid];
-    $teamRef['units'][] = $shortId;
-    if (!empty($cell['datacron_id']) && $teamRef['datacronHtml'] === '') {
-        ob_start();
-        display_datacron($teamRef['datacron'], $datacron_icons, $dict_categories, $dict_abilities, $FRE_FR, true);
-        $teamRef['datacronHtml'] = ob_get_clean();
-    }
-    $teamRef['unitData'][] = [
-        'id' => $shortId, 'portrait' => $portraitHtml,
-        'name' => $dict_units[$shortId]['name'] ?? $shortId, 'isShip' => $isShip,
-    ];
-    unset($teamRef);
-}
-$ptw_mark('historical_teams', count($import_squad_list));
+$import_teams_by_tw = []; // Loaded asynchronously when the import tab is opened.
+$ptw_mark('historical_teams_deferred', 0);
 $ptw_timings['total_php_before_html_ms'] = round((microtime(true) - $ptw_request_started_at) * 1000, 1);
 $ptw_timings['peak_memory_mb'] = round(memory_get_peak_usage(true) / 1048576, 1);
 $ptw_timings['response_content_length_before_html'] = 0;
@@ -1180,54 +1263,7 @@ foreach (array_keys($player_datacron_sets) as $set_id):
                             </select>
                         </div>
                         <div id="tw-import-teams">
-<?php if (empty($import_teams_by_tw)): ?>
-                            <p>No teams found for this player in previous Territory Wars.</p>
-<?php else: ?>
-<?php foreach ($tw_history_options as $history_index => $history): ?>
-                            <div class="tw-history-teams" data-tw-id="<?php echo (int) $history['id']; ?>" <?php echo $history_index === 0 ? '' : 'hidden'; ?>>
-<?php $import_tw_key = (string) $history['id']; ?>
-<?php if (empty($import_teams_by_tw[$import_tw_key])): ?>
-                                <p>No teams found for this player in this Territory War.</p>
-<?php else: ?>
-<?php foreach ($tw_zones as $import_zone): ?>
-<?php if (!empty($import_teams_by_tw[$import_tw_key][$import_zone])): ?>
-                                <div class="card tw-zone">
-                                    <div class="tw-zone-header"><h4><?php echo htmlspecialchars($import_zone, ENT_QUOTES, 'UTF-8'); ?></h4><span class="tw-zone-command"><?php echo htmlspecialchars($zones['home'][$import_zone]['commandMsg'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></div>
-<?php foreach ($import_teams_by_tw[$import_tw_key][$import_zone] as $import_team): ?>
-                                    <div class="tw-team">
-                                        <div class="tw-import-team-row">
-                                            <div class="tw-team-portraits">
-<?php foreach ($import_team['unitData'] as $import_unit_index => $import_unit): ?>
-                                                <div data-unit-id="<?php echo htmlspecialchars($import_unit['id'], ENT_QUOTES, 'UTF-8'); ?>" data-base-title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($import_unit['isShip'] && $import_unit_index >= 4) ? ' class="tw-fleet-reinforcement"' : ''; ?> title="<?php echo htmlspecialchars($import_unit['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_unit['portrait']; ?></div>
-<?php endforeach; ?>
-<?php if ($import_team['datacronId'] !== ''): ?>
-                                                <div class="tw-import-datacron" data-datacron-id="<?php echo htmlspecialchars($import_team['datacronId'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $import_team['datacronHtml']; ?></div>
-<?php endif; ?>
-                                            </div>
-                                            <div class="tw-import-actions">
-                                                <button type="button" class="tw-add-team tw-import-add" data-team="<?php echo htmlspecialchars(json_encode([
-                                                    'zone' => $import_team['zone'],
-                                                    'units' => $import_team['units'],
-                                                    'datacronId' => $import_team['datacronId'],
-                                                    'datacronHtml' => $import_team['datacronHtml'],
-                                                ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add</button>
-                                                <button type="button" class="tw-add-team tw-import-add tw-import-add-in-zone" data-team="<?php echo htmlspecialchars(json_encode([
-                                                    'zone' => $import_team['zone'],
-                                                    'units' => $import_team['units'],
-                                                    'datacronId' => $import_team['datacronId'],
-                                                    'datacronHtml' => $import_team['datacronHtml'],
-                                                ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8'); ?>">Add in <?php echo htmlspecialchars($import_team['zone'], ENT_QUOTES, 'UTF-8'); ?></button>
-                                            </div>
-                                        </div>
-                                    </div>
-<?php endforeach; ?>
-                                </div>
-<?php endif; ?>
-<?php endforeach; ?>
-<?php endif; ?>
-                            </div>
-<?php endforeach; ?>
-<?php endif; ?>
+                            <p>Select a previous Territory War to load its teams.</p>
                         </div>
                     </div>
                 </section>
@@ -1254,15 +1290,43 @@ document.querySelectorAll('.tw-tab').forEach((tab) => {
         document.querySelectorAll('.tw-tab-panel').forEach((panel) => {
             panel.hidden = panel.id !== tab.getAttribute('aria-controls');
         });
+        if (tab.getAttribute('aria-controls') === 'tw-import-tab' && historySelect) {
+            loadHistoryTeams(historySelect.value);
+        }
     });
 });
 const historySelect = document.getElementById('tw-history-select');
-if (historySelect) {
-    historySelect.addEventListener('change', () => {
-        document.querySelectorAll('.tw-history-teams').forEach((panel) => {
-            panel.hidden = panel.dataset.twId !== historySelect.value;
+const historyTeamsContainer = document.getElementById('tw-import-teams');
+const loadedHistoryTwIds = new Set();
+const loadingHistoryTwIds = new Set();
+
+async function loadHistoryTeams(twId) {
+    if (!historyTeamsContainer || !twId || loadedHistoryTwIds.has(twId) || loadingHistoryTwIds.has(twId)) return;
+    loadingHistoryTwIds.add(twId);
+    historyTeamsContainer.innerHTML = '<p>Loading teams…</p>';
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('action', 'load_tw_history');
+        url.searchParams.set('tw_id', twId);
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
         });
-    });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Unable to load historical teams.');
+        historyTeamsContainer.innerHTML = result.html || '<p>No teams found for this player in this Territory War.</p>';
+        loadedHistoryTwIds.add(twId);
+        document.dispatchEvent(new CustomEvent('tw-history-loaded'));
+    } catch (error) {
+        historyTeamsContainer.textContent = error.message || 'Unable to load historical teams.';
+    } finally {
+        loadingHistoryTwIds.delete(twId);
+    }
+}
+
+if (historySelect) {
+    historySelect.addEventListener('change', () => loadHistoryTeams(historySelect.value));
 }
 const twUnits = <?php echo json_encode($roster_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 const twDatacrons = <?php echo json_encode($player_datacron_html, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
@@ -1298,6 +1362,8 @@ if (zoneSelect) {
     let selectedUnits = [];
     let selectedDatacronHtml = '';
     let proposedTeams = [];
+
+    document.addEventListener('tw-history-loaded', refreshImportTeamAvailability);
 
     function refreshImportTeamAvailability() {
         // Units in the edit zone are released from their proposed team
