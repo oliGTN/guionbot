@@ -3658,7 +3658,8 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
 ##################
 # IN: teams = [{"zone_id": zone_id, "requested_defIds": , "datacron_id": }, ...]
-async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
+async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None,
+                    preflight_complete_callback=None):
     """
     Deploy a batch  of teams by using a list
     of team dictionaries. Each batch item contains zone_id,
@@ -3761,6 +3762,12 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None):
 
     # The current deployTW RPC accepts one team per request. All expensive
     # roster/guild reads are shared; only the actual deployment calls repeat.
+    if preflight_complete_callback is not None:
+        try:
+            await preflight_complete_callback()
+        except Exception as error:
+            golog.log("WAR", "TW preflight progress callback failed: " + str(error))
+
     completed = 0
     for team in prepared_teams:
         team_zone_id = team["zone_id"]
