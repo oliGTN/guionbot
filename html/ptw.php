@@ -354,6 +354,7 @@ if (($_GET['action'] ?? '') === 'load_tw_history' && ($_SERVER['REQUEST_METHOD']
         $respondHistory(400, ['error' => 'Invalid Territory War.']);
     }
 
+    $historyLoadStartedAt = microtime(true);
     try {
         $checkHistoryStmt = $conn_guionbot->prepare(
             "SELECT id FROM tw_history WHERE id = :tw_id AND guild_id = :guild_id LIMIT 1"
@@ -505,6 +506,14 @@ if (($_GET['action'] ?? '') === 'load_tw_history' && ($_SERVER['REQUEST_METHOD']
         echo '<p>No teams found for this player in this Territory War.</p>';
     }
     $historyHtml = ob_get_clean();
+    error_log('PTW_HISTORY_LOAD_TIMING ' . json_encode([
+        'tw_id' => $historyTwId,
+        'squad_cells' => count($importSquadList),
+        'teams' => array_sum(array_map('count', $importTeamsByZone)),
+        'elapsed_ms' => round((microtime(true) - $historyLoadStartedAt) * 1000, 1),
+        'html_bytes' => strlen($historyHtml),
+        'peak_memory_mb' => round(memory_get_peak_usage(true) / 1048576, 1),
+    ], JSON_UNESCAPED_SLASHES));
     $respondHistory(200, ['html' => $historyHtml, 'teamCount' => array_sum(array_map('count', $importTeamsByZone))]);
 }
 
