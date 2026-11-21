@@ -424,6 +424,7 @@ if (($_GET['action'] ?? '') === 'load_tw_history' && ($_SERVER['REQUEST_METHOD']
         $unitInfo = $dict_units[$shortId] ?? [];
         $isShip = (int) ($unitInfo['combatType'] ?? 1) === 2;
         $unitName = $unitInfo['name'] ?? $shortId;
+        $portraitName = isset($unitInfo['name']) ? $unitInfo['name'] . 'XX' : $shortId;
 
         ob_start();
         display_portrait(
@@ -435,7 +436,7 @@ if (($_GET['action'] ?? '') === 'load_tw_history' && ($_SERVER['REQUEST_METHOD']
             (int) $cell['zetaCount'],
             (int) $cell['omicronCount'],
             $isShip,
-            $unitName,
+            $portraitName,
             $isShip && (int) $cell['cellIndex'] >= 4
         );
         $portraitHtml = ob_get_clean();
