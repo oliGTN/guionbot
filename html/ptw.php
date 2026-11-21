@@ -2,6 +2,7 @@
 $ptw_request_started_at = microtime(true);
 $ptw_stage_started_at = $ptw_request_started_at;
 $ptw_timings = [];
+$ptw_cache_stats = ['hits' => 0, 'misses' => 0];
 $ptw_mark = function ($stage, $count = null) use (&$ptw_stage_started_at, &$ptw_timings) {
     $now = microtime(true);
     $ptw_timings[$stage] = round(($now - $ptw_stage_started_at) * 1000, 1);
@@ -304,52 +305,34 @@ foreach ($tw_zones as $zone_name) {
         : 0;
 }
 
-$dict_units = [];
-$dict_load_started_at = microtime(true);
 $dict_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
-$dict_units_json = is_readable($dict_units_file) ? file_get_contents($dict_units_file) : false;
-$ptw_timings['unit_dictionary_read_ms'] = round((microtime(true) - $dict_load_started_at) * 1000, 1);
-$dict_decode_started_at = microtime(true);
-if ($dict_units_json !== false) {
-    $dict_units = json_decode($dict_units_json, true) ?: [];
-}
-$ptw_timings['unit_dictionary_decode_ms'] = round((microtime(true) - $dict_decode_started_at) * 1000, 1);
-$dict_light_started_at = microtime(true);
-foreach ($dict_units as $def_id => $unit) {
-    $dict_units_light[$def_id] = [
-        'name' => $unit['name'] ?? $def_id,
-        'forceAlignment' => $unit['forceAlignment'] ?? 0,
-        'combatType' => $unit['combatType'] ?? 1,
-        'categoryId' => $unit['categoryId'] ?? [],
-    ];
-}
-unset($unit);
-$dict_units = $dict_units_light;
-unset($dict_units_light, $dict_units_json);
-$ptw_timings['unit_dictionary_slim_ms'] = round((microtime(true) - $dict_light_started_at) * 1000, 1);
-$ptw_timings['unit_dictionary_ms'] = round((microtime(true) - $dict_load_started_at) * 1000, 1);
+$dict_load_started_at = microtime(true);
+$dict_units = load_cached_json_file($dict_units_file, function ($source) {
+    $light = [];
+    foreach ($source as $def_id => $unit) {
+        $light[$def_id] = [
+            'name' => $unit['name'] ?? $def_id,
+            'forceAlignment' => $unit['forceAlignment'] ?? 0,
+            'combatType' => $unit['combatType'] ?? 1,
+            'categoryId' => $unit['categoryId'] ?? [],
+        ];
+    }
+    return $light;
+});
+$dict_units = is_array($dict_units) ? $dict_units : [];
+$ptw_timings['unit_dictionary_cached_load_ms'] = round((microtime(true) - $dict_load_started_at) * 1000, 1);
 
-$dict_capas = [];
 $dict_capas_file = __DIR__ . '/../DATA/unit_capa_list.json';
 $dict_capas_started_at = microtime(true);
-if (is_readable($dict_capas_file)) {
-    $dict_capas_json = file_get_contents($dict_capas_file);
-    $ptw_timings['capa_dictionary_read_ms'] = round((microtime(true) - $dict_capas_started_at) * 1000, 1);
-    $dict_capas = json_decode($dict_capas_json, true) ?: [];
-    unset($dict_capas_json);
-}
-$ptw_timings['capa_dictionary_ms'] = round((microtime(true) - $dict_capas_started_at) * 1000, 1);
+$dict_capas = load_cached_json_file($dict_capas_file);
+$dict_capas = is_array($dict_capas) ? $dict_capas : [];
+$ptw_timings['capa_dictionary_cached_load_ms'] = round((microtime(true) - $dict_capas_started_at) * 1000, 1);
 
-$dict_abilities = [];
 $dict_abilities_file = __DIR__ . '/../DATA/abilityList_dict.json';
 $dict_abilities_started_at = microtime(true);
-if (is_readable($dict_abilities_file)) {
-    $dict_abilities_json = file_get_contents($dict_abilities_file);
-    $ptw_timings['ability_dictionary_read_ms'] = round((microtime(true) - $dict_abilities_started_at) * 1000, 1);
-    $dict_abilities = json_decode($dict_abilities_json, true) ?: [];
-    unset($dict_abilities_json);
-}
-$ptw_timings['ability_dictionary_ms'] = round((microtime(true) - $dict_abilities_started_at) * 1000, 1);
+$dict_abilities = load_cached_json_file($dict_abilities_file);
+$dict_abilities = is_array($dict_abilities) ? $dict_abilities : [];
+$ptw_timings['ability_dictionary_cached_load_ms'] = round((microtime(true) - $dict_abilities_started_at) * 1000, 1);
 
 $icons_started_at = microtime(true);
 $datacron_icons = load_datacron_icons($conn_guionbot);
@@ -776,6 +759,8 @@ $ptw_mark('historical_teams_deferred', 0);
 $ptw_timings['total_php_before_html_ms'] = round((microtime(true) - $ptw_request_started_at) * 1000, 1);
 $ptw_timings['peak_memory_mb'] = round(memory_get_peak_usage(true) / 1048576, 1);
 $ptw_timings['response_content_length_before_html'] = 0;
+$ptw_timings['dictionary_cache_hits'] = $ptw_cache_stats['hits'];
+$ptw_timings['dictionary_cache_misses'] = $ptw_cache_stats['misses'];
 error_log('PTW_LOAD_TIMING ' . json_encode($ptw_timings, JSON_UNESCAPED_SLASHES));
 ?>
 <!DOCTYPE html>
