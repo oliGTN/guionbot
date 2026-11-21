@@ -337,6 +337,15 @@ async def handle_deploy_tw_teams(request):
 
         heartbeat_task = asyncio.create_task(send_heartbeat())
 
+        async def report_preflight_complete():
+            # Player and guild/TW data are now loaded and all teams are prepared.
+            # Stop the game-data heartbeat before the per-team deployment RPCs.
+            heartbeat_stop.set()
+            await send_event({
+                "type": "stage", "completed": 0, "total": len(validated_teams),
+                "message": "Game data loaded; deploying teams...",
+            })
+
         async def report_progress(completed_count, total_count, unit_name):
             await send_event({
                 "type": "progress",
@@ -350,6 +359,7 @@ async def handle_deploy_tw_teams(request):
                 err_code, err_txt, completed, latestTWstatus = await connect_rpc.deploy_tw(
                     guild_id, ally_code, validated_teams,
                     progress_callback=report_progress,
+                    preflight_complete_callback=report_preflight_complete,
                 )
             finally:
                 heartbeat_stop.set()
