@@ -112,19 +112,70 @@ function load_datacron_icons($conn) {
     return $icons;
 }
 
+/**
+ * Load a JSON dictionary, using APCu when available.
+ *
+ * The cache key includes the source file's path, modification time, size and
+ * inode so replacing a DATA file automatically creates a fresh cache entry.
+ * The optional transform is applied only on cache misses, allowing callers
+ * to cache a compact representation rather than a large source dictionary.
+ */
+function load_cached_json_file($file, $transform = null) {
+    clearstatcache(true, $file);
+    if (!is_readable($file)) {
+        return null;
+    }
+
+    $mtime = @filemtime($file);
+    $size = @filesize($file);
+    $inode = @fileinode($file);
+    $cacheKey = 'guionbot_json_' . sha1($file . '|' . $mtime . '|' . $size . '|' . $inode);
+    $useApcu = function_exists('apcu_fetch')
+        && function_exists('apcu_store')
+        && function_exists('apcu_enabled')
+        && apcu_enabled();
+
+    if ($useApcu) {
+        $cacheHit = false;
+        $cached = apcu_fetch($cacheKey, $cacheHit);
+        if ($cacheHit) {
+            if (isset($GLOBALS['ptw_cache_stats'])) {
+                $GLOBALS['ptw_cache_stats']['hits']++;
+            }
+            return $cached;
+        }
+    }
+
+    if (isset($GLOBALS['ptw_cache_stats'])) {
+        $GLOBALS['ptw_cache_stats']['misses']++;
+    }
+
+    $json = file_get_contents($file);
+    if ($json === false) {
+        return null;
+    }
+    $data = json_decode($json, true);
+    unset($json);
+
+    if ($transform !== null && is_callable($transform)) {
+        $data = $transform(is_array($data) ? $data : []);
+    }
+
+    if ($useApcu) {
+        // A failed store is harmless: the decoded value is still returned.
+        @apcu_store($cacheKey, $data, 86400);
+    }
+
+    return $data;
+}
+
 function load_categories() {
     $dict_categories_file = __DIR__ . '/../DATA/categoryList_dict.json';
-    if (is_readable($dict_categories_file)) {
-        $dict_categories = json_decode(file_get_contents($dict_categories_file), true);
-    }
-    return $dict_categories;
+    return load_cached_json_file($dict_categories_file);
 }
 function load_loc($loc_name) {
     $loc_file = __DIR__ . '/../DATA/'.$loc_name.'.json';
-    if (is_readable($loc_file)) {
-        $loc = json_decode(file_get_contents($loc_file), true);
-    }
-    return $loc;
+    return load_cached_json_file($loc_file);
 }
 function display_datacron($datacron, $icons, $categories, $abilities, $loc, $small = false) {
     $escape = function ($value) {
