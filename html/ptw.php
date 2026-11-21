@@ -305,6 +305,7 @@ foreach ($tw_zones as $zone_name) {
 }
 
 $dict_units = [];
+$dict_load_started_at = microtime(true);
 $dict_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
 if (is_readable($dict_units_file)) {
     $dict_units = json_decode(file_get_contents($dict_units_file), true) ?: [];
@@ -317,6 +318,7 @@ foreach ($dict_units as $def_id => $unit) {
     $dict_units_light[$def_id]['categoryId'] = $dict_units[$def_id]['categoryId'];
 }
 $dict_units = $dict_units_light;
+$ptw_timings['unit_dictionary_ms'] = round((microtime(true) - $dict_load_started_at) * 1000, 1);
 
 $dict_capas = [];
 $dict_capas_file = __DIR__ . '/../DATA/unit_capa_list.json';
@@ -333,6 +335,7 @@ if (is_readable($dict_abilities_file)) {
 $datacron_icons = load_datacron_icons($conn_guionbot);
 $dict_categories = load_categories();
 $FRE_FR = load_loc('FRE_FR');
+$ptw_mark('other_dictionaries');
 
 // Historical TW imports are loaded on demand. This endpoint deliberately runs
 // before roster and current-datacron processing so it does not repeat that work.
@@ -575,6 +578,14 @@ try {
     $ptw_timings['roster_rows'] = count($roster_rows);
 
     foreach ($roster_rows as $roster_unit) {
+    $roster_zeta_ms = 0.0;
+    $roster_portrait_ms = 0.0;
+    $roster_metadata_ms = 0.0;
+    $roster_unit_build_ms = 0.0;
+    $roster_zeta_count = 0;
+    $roster_portrait_count = 0;
+    $roster_metadata_count = 0;
+
         $def_id = (string) $roster_unit['defId'];
 
         if (!isset($dict_units[$def_id]) || isset($used_unit_ids[$def_id])) {
@@ -582,6 +593,7 @@ try {
         }
 
         $zeta_count = 0;
+        $zeta_started_at = microtime(true);
         if (isset($dict_capas[$def_id]) && !empty($roster_unit['skill_levels'])) {
             foreach (explode(',', $roster_unit['skill_levels']) as $skill_data) {
                 [$skill_name, $skill_level] = array_pad(explode(':', $skill_data, 2), 2, null);
@@ -600,7 +612,11 @@ try {
             }
         }
 
+        $roster_zeta_ms += microtime(true) - $zeta_started_at;
+        $roster_zeta_count++;
+
         // unit selector
+        $portrait_started_at = microtime(true);
         ob_start();
         display_portrait(
             $def_id,
@@ -614,7 +630,10 @@ try {
             $dict_units[$def_id]['name'] ?? $def_id
         );
         $portrait_html = ob_get_clean();
+        $roster_portrait_ms += microtime(true) - $portrait_started_at;
+        $roster_portrait_count++;
 
+        $metadata_started_at = microtime(true);
         $search_metadata = [];
         foreach (($dict_units[$def_id]['categoryId'] ?? []) as $category_id) {
             if (
@@ -626,7 +645,10 @@ try {
             }
         }
         $search_metadata = array_values(array_unique($search_metadata));
+        $roster_metadata_ms += microtime(true) - $metadata_started_at;
+        $roster_metadata_count++;
 
+        $unit_build_started_at = microtime(true);
         $roster_units[] = [
             'id' => $def_id,
             'name' => $dict_units[$def_id]['name'] ?? $def_id,
@@ -635,7 +657,16 @@ try {
             'isCapital' => strpos($def_id, 'CAPITAL') === 0,
             'portrait' => $portrait_html,
         ];
+        $roster_unit_build_ms += microtime(true) - $unit_build_started_at;
     }
+
+    $ptw_timings['roster_zeta_ms'] = round($roster_zeta_ms * 1000, 1);
+    $ptw_timings['roster_zeta_count'] = $roster_zeta_count;
+    $ptw_timings['roster_portrait_ms'] = round($roster_portrait_ms * 1000, 1);
+    $ptw_timings['roster_portrait_count'] = $roster_portrait_count;
+    $ptw_timings['roster_metadata_ms'] = round($roster_metadata_ms * 1000, 1);
+    $ptw_timings['roster_metadata_count'] = $roster_metadata_count;
+    $ptw_timings['roster_unit_build_ms'] = round($roster_unit_build_ms * 1000, 1);
 }
 
 catch (PDOException $e) {
