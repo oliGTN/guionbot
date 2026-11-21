@@ -1965,8 +1965,10 @@ if (zoneSelect) {
 
     let previousFleetStatus = fleetZone();
 
-    document.querySelectorAll('.tw-import-add').forEach((button) => {
-        button.addEventListener('click', () => {
+    if (historyTeamsContainer) {
+        historyTeamsContainer.addEventListener('click', (event) => {
+            const button = event.target.closest('.tw-import-add');
+            if (!button || !historyTeamsContainer.contains(button)) return;
             // Remove the persistent keyboard/mouse focus highlight after
             // choosing the historical zone-specific import action.
             if (button.classList.contains('tw-import-add-in-zone')) {
@@ -2031,7 +2033,7 @@ if (zoneSelect) {
             updateDatacrons();
             refreshImportTeamAvailability();
         });
-    });
+    }
 
     createTeamButton.addEventListener('click', createProposedTeam);
     pushProposedButton.addEventListener('click', pushProposedTeams);
