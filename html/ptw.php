@@ -1374,7 +1374,7 @@ if (zoneSelect) {
             (team.units || []).forEach((unitId) => unavailableIds.add(unitId));
         });
 
-        document.querySelectorAll('.tw-history-teams').forEach((historyPanel) => {
+        document.querySelectorAll('#tw-import-teams').forEach((historyPanel) => {
             historyPanel.querySelectorAll('.tw-import-team-row').forEach((teamRow) => {
                 const addButton = teamRow.querySelector('.tw-import-add');
                 if (!addButton) return;
