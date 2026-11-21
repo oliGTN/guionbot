@@ -307,34 +307,59 @@ foreach ($tw_zones as $zone_name) {
 $dict_units = [];
 $dict_load_started_at = microtime(true);
 $dict_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
-if (is_readable($dict_units_file)) {
-    $dict_units = json_decode(file_get_contents($dict_units_file), true) ?: [];
+$dict_units_json = is_readable($dict_units_file) ? file_get_contents($dict_units_file) : false;
+$ptw_timings['unit_dictionary_read_ms'] = round((microtime(true) - $dict_load_started_at) * 1000, 1);
+$dict_decode_started_at = microtime(true);
+if ($dict_units_json !== false) {
+    $dict_units = json_decode($dict_units_json, true) ?: [];
 }
+$ptw_timings['unit_dictionary_decode_ms'] = round((microtime(true) - $dict_decode_started_at) * 1000, 1);
+$dict_light_started_at = microtime(true);
 foreach ($dict_units as $def_id => $unit) {
-    $dict_units_light[$def_id] = [];
-    $dict_units_light[$def_id]['name'] = $dict_units[$def_id]['name'];
-    $dict_units_light[$def_id]['forceAlignment'] = $dict_units[$def_id]['forceAlignment'];
-    $dict_units_light[$def_id]['combatType'] = $dict_units[$def_id]['combatType'];
-    $dict_units_light[$def_id]['categoryId'] = $dict_units[$def_id]['categoryId'];
+    $dict_units_light[$def_id] = [
+        'name' => $unit['name'] ?? $def_id,
+        'forceAlignment' => $unit['forceAlignment'] ?? 0,
+        'combatType' => $unit['combatType'] ?? 1,
+        'categoryId' => $unit['categoryId'] ?? [],
+    ];
 }
+unset($unit);
 $dict_units = $dict_units_light;
+unset($dict_units_light, $dict_units_json);
+$ptw_timings['unit_dictionary_slim_ms'] = round((microtime(true) - $dict_light_started_at) * 1000, 1);
 $ptw_timings['unit_dictionary_ms'] = round((microtime(true) - $dict_load_started_at) * 1000, 1);
 
 $dict_capas = [];
 $dict_capas_file = __DIR__ . '/../DATA/unit_capa_list.json';
+$dict_capas_started_at = microtime(true);
 if (is_readable($dict_capas_file)) {
-    $dict_capas = json_decode(file_get_contents($dict_capas_file), true) ?: [];
+    $dict_capas_json = file_get_contents($dict_capas_file);
+    $ptw_timings['capa_dictionary_read_ms'] = round((microtime(true) - $dict_capas_started_at) * 1000, 1);
+    $dict_capas = json_decode($dict_capas_json, true) ?: [];
+    unset($dict_capas_json);
 }
+$ptw_timings['capa_dictionary_ms'] = round((microtime(true) - $dict_capas_started_at) * 1000, 1);
 
 $dict_abilities = [];
 $dict_abilities_file = __DIR__ . '/../DATA/abilityList_dict.json';
+$dict_abilities_started_at = microtime(true);
 if (is_readable($dict_abilities_file)) {
-    $dict_abilities = json_decode(file_get_contents($dict_abilities_file), true) ?: [];
+    $dict_abilities_json = file_get_contents($dict_abilities_file);
+    $ptw_timings['ability_dictionary_read_ms'] = round((microtime(true) - $dict_abilities_started_at) * 1000, 1);
+    $dict_abilities = json_decode($dict_abilities_json, true) ?: [];
+    unset($dict_abilities_json);
 }
+$ptw_timings['ability_dictionary_ms'] = round((microtime(true) - $dict_abilities_started_at) * 1000, 1);
 
+$icons_started_at = microtime(true);
 $datacron_icons = load_datacron_icons($conn_guionbot);
+$ptw_timings['datacron_icons_ms'] = round((microtime(true) - $icons_started_at) * 1000, 1);
+$categories_started_at = microtime(true);
 $dict_categories = load_categories();
+$ptw_timings['categories_dictionary_ms'] = round((microtime(true) - $categories_started_at) * 1000, 1);
+$localization_started_at = microtime(true);
 $FRE_FR = load_loc('FRE_FR');
+$ptw_timings['localization_dictionary_ms'] = round((microtime(true) - $localization_started_at) * 1000, 1);
 $ptw_mark('other_dictionaries');
 
 // Historical TW imports are loaded on demand. This endpoint deliberately runs
@@ -577,7 +602,6 @@ try {
     $ptw_timings['roster_sql_ms'] = round(($roster_processing_started_at - $query_started_at) * 1000, 1);
     $ptw_timings['roster_rows'] = count($roster_rows);
 
-    foreach ($roster_rows as $roster_unit) {
     $roster_zeta_ms = 0.0;
     $roster_portrait_ms = 0.0;
     $roster_metadata_ms = 0.0;
@@ -585,10 +609,13 @@ try {
     $roster_zeta_count = 0;
     $roster_portrait_count = 0;
     $roster_metadata_count = 0;
+    $roster_skipped_count = 0;
 
+    foreach ($roster_rows as $roster_unit) {
         $def_id = (string) $roster_unit['defId'];
 
         if (!isset($dict_units[$def_id]) || isset($used_unit_ids[$def_id])) {
+            $roster_skipped_count++;
             continue;
         }
 
@@ -667,6 +694,7 @@ try {
     $ptw_timings['roster_metadata_ms'] = round($roster_metadata_ms * 1000, 1);
     $ptw_timings['roster_metadata_count'] = $roster_metadata_count;
     $ptw_timings['roster_unit_build_ms'] = round($roster_unit_build_ms * 1000, 1);
+    $ptw_timings['roster_skipped_count'] = $roster_skipped_count;
 }
 
 catch (PDOException $e) {
