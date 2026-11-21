@@ -1,4 +1,13 @@
 <?php
+$ptw_request_started_at = microtime(true);
+$ptw_stage_started_at = $ptw_request_started_at;
+$ptw_timings = [];
+$ptw_mark = function ($stage, $count = null) use (&$ptw_stage_started_at, &$ptw_timings) {
+    $now = microtime(true);
+    $ptw_timings[$stage] = round(($now - $ptw_stage_started_at) * 1000, 1);
+    $ptw_stage_started_at = $now;
+    if ($count !== null) $ptw_timings[$stage . '_count'] = $count;
+};
 require_once 'security.php';
 
 ini_set('session.gc_maxlifetime', 3600 * 24 * 7);
@@ -38,6 +47,7 @@ $allycode = get_required_ally_code();
 [$isMyAllycode, $isMyAllycodeConfirmed, $isGuildMate] = set_session_rights_for_allycode($allycode);
 
 include 'pdata.php';
+$ptw_mark('pdata');
 
 if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     header('Content-Type: application/x-ndjson; charset=utf-8');
@@ -141,6 +151,7 @@ if (($_GET['action'] ?? '') === 'push_proposed_teams' && ($_SERVER['REQUEST_METH
     exit();
 }
 include 'portrait.php';
+$ptw_mark('portrait_include');
 
 // Find the most recent TW recorded for the player's current guild.
 $tw_id = null;
@@ -167,6 +178,7 @@ if ($tw_id !== false && $tw_id !== null) {
     $twvariables_started_at = microtime(true);
     include 'twvariables.php';
 }
+$ptw_mark('twvariables');
 
 // Load all recorded TWs for the player's guild. The current/latest TW is
 // intentionally omitted from the import selector and historical team list.
@@ -376,6 +388,8 @@ try {
     $stmt->execute([':allycode' => $allycode]);
     $roster_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $roster_processing_started_at = microtime(true);
+    $ptw_timings['roster_sql_ms'] = round(($roster_processing_started_at - $query_started_at) * 1000, 1);
+    $ptw_timings['roster_rows'] = count($roster_rows);
 
     foreach ($roster_rows as $roster_unit) {
         $def_id = (string) $roster_unit['defId'];
@@ -444,6 +458,7 @@ try {
 catch (PDOException $e) {
     error_log('Error fetching player roster for TW team creator: ' . $e->getMessage());
 }
+$ptw_mark('roster_processing', count($roster_units));
 
 $player_datacrons = [];
 if ($tw) {
@@ -494,12 +509,15 @@ if ($tw) {
     $player_datacron_ids = [];
 }
 
+$ptw_mark('datacron_queries', count($player_datacrons));
 $player_datacron_html = [];
 foreach ($player_datacrons as $datacron) {
     ob_start();
     display_datacron($datacron, $datacron_icons, $dict_categories, $dict_abilities, $FRE_FR, true);
     $player_datacron_html[(string) $datacron['id']] = ob_get_clean();
 }
+
+$ptw_mark('datacron_rendering', count($player_datacron_html));
 
 $rarity_values = [
     'ONE_STAR' => 1,
@@ -602,6 +620,11 @@ foreach ($import_squad_list as $cell) {
     ];
     unset($teamRef);
 }
+$ptw_mark('historical_teams', count($import_squad_list));
+$ptw_timings['total_php_before_html_ms'] = round((microtime(true) - $ptw_request_started_at) * 1000, 1);
+$ptw_timings['peak_memory_mb'] = round(memory_get_peak_usage(true) / 1048576, 1);
+$ptw_timings['response_content_length_before_html'] = 0;
+error_log('PTW_LOAD_TIMING ' . json_encode($ptw_timings, JSON_UNESCAPED_SLASHES));
 ?>
 <!DOCTYPE html>
 <html>
