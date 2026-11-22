@@ -643,7 +643,20 @@ async def apply_codex_allocations(
 
 async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu, 
                                          interaction=None, initialdata=None):
-    modopti_progress = json.loads(modopti_content)
+    try:
+        modopti_progress = json.loads(modopti_content)
+    except json.JSONDecodeError as e:
+        golog.log(
+            "WAR",
+            "Invalid Mod Optimizer JSON: "
+            + str(e)
+            + " (content length=" + str(len(modopti_content)) + ")"
+        )
+        return 1, (
+            "Le fichier Mod Optimizer est incomplet ou contient un JSON invalide "
+            + "(ligne " + str(e.lineno) + ", colonne " + str(e.colno) + "). "
+            + "Veuillez le réexporter depuis Mod Optimizer puis réessayer."
+        ), {}
 
     #basic check of JSON format
     if not "profiles" in modopti_progress:
