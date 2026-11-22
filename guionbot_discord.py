@@ -4586,7 +4586,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
 
             try:
-                    #Run the function
+                #Run the function
                 player_path = "PLAYERDATA/"+txt_allyCode
                 if not os.path.isdir(player_path):
                     os.mkdir(player_path)
