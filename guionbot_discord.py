@@ -4585,80 +4585,83 @@ class ModsCog(commands.GroupCog, name="mods"):
                 remove_command_from_queue(interaction)
                 return
 
-            #Run the function
-            player_path = "PLAYERDATA/"+txt_allyCode
-            if not os.path.isdir(player_path):
-                os.mkdir(player_path)
-            file_savename = player_path+"/modoptimizer_input.json"
-            await fichier.save(file_savename)
-            file_content = await fichier.read()
             try:
-                json_content = file_content.decode('utf-8')
-            except :
-                await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
-                remove_command_from_queue(interaction)
-                return
+                    #Run the function
+                player_path = "PLAYERDATA/"+txt_allyCode
+                if not os.path.isdir(player_path):
+                    os.mkdir(player_path)
+                file_savename = player_path+"/modoptimizer_input.json"
+                await fichier.save(file_savename)
+                file_content = await fichier.read()
+                try:
+                    json_content = file_content.decode('utf-8')
+                except :
+                    await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
+                    remove_command_from_queue(interaction)
+                    return
 
-            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(
-                                        json_content, 
-                                        txt_allyCode, 
-                                        simulation, 
-                                        interaction=interaction)
-
-            await release_sem(txt_allyCode)
+                ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(
+                                            json_content, 
+                                            txt_allyCode, 
+                                            simulation, 
+                                            interaction=interaction)
 
 
-            # Prepare warning info, to be displayed if error or success
-            cost_and_missing = ""
-            if "cost" in ret_data:
-                cost_and_missing += ret_data["cost"]
-            if "missing" in ret_data and len(ret_data["missing"])>0:
-                for unit in ret_data["missing"]:
-                    value=len(ret_data["missing"][unit])
-                    if value==1:
-                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod n'existe plus"
-                    else:
-                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ils n'existent plus"
-            if "forbidden" in ret_data and len(ret_data["forbidden"])>0:
-                for unit in ret_data["forbidden"]:
-                    value=len(ret_data["forbidden"][unit])
-                    if value==1:
-                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod est de niveau or pour un perso de gear inférieur à 12"
-                    else:
-                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ces mods sont de niveau or pour un perso de gear inférieur à 12"
 
-            if ec == 0:
-                # The cost gets a SUCCESS sign
-                txt = emojis.check+" "+ cost_and_missing
-                if simulation:
-                    txt = "[SIMULATION]"+txt
-                if len(txt)>1000:
-                    txt=txt[:1000]+"..."
-                if not await finish_cancelable_progress(interaction, txt):
-                    try:
-                        await interaction.edit_original_response(content=txt)
-                    except discord.errors.HTTPException:
-                        output_channel = bot.get_channel(channel_id)
-                        await output_channel.send(content=txt)
-            else:
-                err_icon = emojis.warning if ec == 2 and not simulation else emojis.redcross
-                err_txt = err_icon+" "+et
+                # Prepare warning info, to be displayed if error or success
+                cost_and_missing = ""
+                if "cost" in ret_data:
+                    cost_and_missing += ret_data["cost"]
+                if "missing" in ret_data and len(ret_data["missing"])>0:
+                    for unit in ret_data["missing"]:
+                        value=len(ret_data["missing"][unit])
+                        if value==1:
+                            cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod n'existe plus"
+                        else:
+                            cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ils n'existent plus"
+                if "forbidden" in ret_data and len(ret_data["forbidden"])>0:
+                    for unit in ret_data["forbidden"]:
+                        value=len(ret_data["forbidden"][unit])
+                        if value==1:
+                            cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod est de niveau or pour un perso de gear inférieur à 12"
+                        else:
+                            cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ces mods sont de niveau or pour un perso de gear inférieur à 12"
 
-                # error happening in the middle of a simulation does not display cost
-                # simulation going to its end but failing displays cost
-                if not simulation or ec==2:
-                    if len(cost_and_missing) > 0:
-                        err_txt += "\n "+cost_and_missing
-                    if len(err_txt)>1000:
-                        err_txt=err_txt[:1000]+"..."
+                if ec == 0:
+                    # The cost gets a SUCCESS sign
+                    txt = emojis.check+" "+ cost_and_missing
+                    if simulation:
+                        txt = "[SIMULATION]"+txt
+                    if len(txt)>1000:
+                        txt=txt[:1000]+"..."
+                    if not await finish_cancelable_progress(interaction, txt):
+                        try:
+                            await interaction.edit_original_response(content=txt)
+                        except discord.errors.HTTPException:
+                            output_channel = bot.get_channel(channel_id)
+                            await output_channel.send(content=txt)
+                else:
+                    err_icon = emojis.warning if ec == 2 and not simulation else emojis.redcross
+                    err_txt = err_icon+" "+et
 
-                if not await finish_cancelable_progress(interaction, err_txt):
-                    if not interaction.is_expired():
-                        await interaction.edit_original_response(content=err_txt)
-                    else:
-                        # Interaction expired, send a message in the channel
-                        output_channel = bot.get_channel(channel_id)
-                        await output_channel.send(content=err_txt)
+                    # error happening in the middle of a simulation does not display cost
+                    # simulation going to its end but failing displays cost
+                    if not simulation or ec==2:
+                        if len(cost_and_missing) > 0:
+                            err_txt += "\n "+cost_and_missing
+                        if len(err_txt)>1000:
+                            err_txt=err_txt[:1000]+"..."
+
+                    if not await finish_cancelable_progress(interaction, err_txt):
+                        if not interaction.is_expired():
+                            await interaction.edit_original_response(content=err_txt)
+                        else:
+                            # Interaction expired, send a message in the channel
+                            output_channel = bot.get_channel(channel_id)
+                            await output_channel.send(content=err_txt)
+
+            finally:
+                await release_sem(txt_allyCode)
 
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
