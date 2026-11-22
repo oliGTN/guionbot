@@ -653,9 +653,9 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
             + " (content length=" + str(len(modopti_content)) + ")"
         )
         return 1, (
-            "Le fichier Mod Optimizer est incomplet ou contient un JSON invalide "
+            "Le fichier est incomplet ou contient un JSON invalide "
             + "(ligne " + str(e.lineno) + ", colonne " + str(e.colno) + "). "
-            + "Veuillez le réexporter depuis Mod Optimizer puis réessayer."
+            + "Veuillez le corriger puis réessayer."
         ), {}
 
     #basic check of JSON format
