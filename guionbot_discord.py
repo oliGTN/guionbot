@@ -5418,7 +5418,8 @@ class AuthCog(commands.GroupCog, name="connect"):
 
             query = (
                 "INSERT INTO user_bot_infos(allyCode, channel_id) "
-                "VALUES(%s, %s)"
+                "VALUES(%s, %s) "
+                "ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id)"
             )
             await connect_mysql.simple_execute_async(
                 query, (allycode, str(interaction.channel_id))
