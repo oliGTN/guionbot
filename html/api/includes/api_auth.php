@@ -22,7 +22,7 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
         $respond(503, ['success' => false, 'error' => 'Service unavailable']);
     }
     $config = require $configPath;
-    if (!is_array($config) || empty($config['guild_id']) || !is_string($config['guild_id'])) {
+    if (!is_array($config) || !isset($config['api_clients']) || !is_array($config['api_clients'])) {
         error_log('API configuration has an invalid format');
         $respond(503, ['success' => false, 'error' => 'Service unavailable']);
     }
@@ -59,13 +59,6 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
                 break;
             }
         }
-    }
-    // Keep the original single-key configuration working during migration.
-    // This lets the existing client retain its exact key and unrestricted access.
-    if ($clientId === null && isset($config['api_key']) && is_string($config['api_key']) &&
-        $config['api_key'] !== '' && hash_equals($config['api_key'], $presentedKey)) {
-        $clientId = 'legacy';
-        $client = ['enabled' => true, 'endpoints' => ['*']];
     }
 
     if ($clientId === null || !is_array($client) || empty($client['enabled'])) {
@@ -142,8 +135,13 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
     $GLOBALS['apiSecurityClientId'] = $clientId;
     apiSecurityLog('AUTH_SUCCESS', 'INFO', ['endpoint' => $endpoint, 'bucket' => $bucket]);
 
+    // Guild and game account are scoped to the matched API key, never global config.
+    $clientConfig = $config;
+    $clientConfig['guild_id'] = $client['guild_id'] ?? null;
+    $clientConfig['allyCode'] = $client['allyCode'] ?? null;
+
     return [
-        'config' => $config,
+        'config' => $clientConfig,
         'client_id' => $clientId,
         'remaining' => max(0, $perMinute - count($recent) - 1),
         'limit' => $perMinute
