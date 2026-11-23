@@ -5316,6 +5316,132 @@ class AuthCog(commands.GroupCog, name="connect"):
         self.bot = bot
         super().__init__()
 
+    async def _get_channel_visible_ally_codes(self, interaction: discord.Interaction,
+                                               current: str = ""):
+        """Return allyCodes linked to Discord members who can view this channel."""
+        if interaction.guild is None or interaction.channel is None:
+            return []
+
+        visible_discord_ids = []
+        for member in interaction.guild.members:
+            try:
+                if interaction.channel.permissions_for(member).view_channel:
+                    visible_discord_ids.append(str(member.id))
+            except Exception:
+                continue
+
+        if not visible_discord_ids:
+            return []
+
+        placeholders = ", ".join(["%s"] * len(visible_discord_ids))
+        query = (
+            "SELECT DISTINCT pd.allyCode, p.name "
+            "FROM player_discord pd "
+            "JOIN players p ON p.allyCode=pd.allyCode "
+            "WHERE pd.discord_id IN (" + placeholders + ") "
+            "ORDER BY p.name"
+        )
+        rows = await connect_mysql.get_table_async(query, tuple(visible_discord_ids))
+        if not rows:
+            return []
+
+        current = (current or "").strip().lower()
+        choices = []
+        for ally_code, player_name in rows:
+            ally_code = str(ally_code)
+            player_name = str(player_name or ally_code)
+            if current and current not in ally_code.lower() and current not in player_name.lower():
+                continue
+            choices.append((ally_code, player_name))
+        return choices
+
+    async def allycode_autocomplete(self, interaction: discord.Interaction,
+                                    current: str):
+        if str(interaction.user.id) not in config.GO_ADMIN_IDS.split():
+            return []
+        try:
+            rows = await self._get_channel_visible_ally_codes(interaction, current)
+            return [
+                app_commands.Choice(name=(ally_code + " (" + player_name + ")")[:100],
+                                    value=ally_code)
+                for ally_code, player_name in rows[:25]
+            ]
+        except Exception:
+            golog.log("ERR", traceback.format_exc())
+            return []
+
+    @app_commands.command(name="ea", description="Connecte un compte EA à un code allié")
+    @app_commands.describe(allycode="Code allié du joueur", email="Adresse e-mail du compte EA")
+    @app_commands.autocomplete(allycode=allycode_autocomplete)
+    @golog.with_operation_context("auth.ea_connect")
+    async def ea_connect(self, interaction: discord.Interaction,
+                         allycode: str, email: str):
+        try:
+            if str(interaction.user.id) not in config.GO_ADMIN_IDS.split():
+                await interaction.response.send_message(
+                    emojis.prohibited + " Commande réservée aux administrateurs du bot.",
+                    ephemeral=True
+                )
+                return
+
+            await interaction.response.defer(thinking=True, ephemeral=True)
+
+            allycode = str(allycode).strip()
+            email = email.strip()
+            if not re.fullmatch(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+", email):
+                await interaction.edit_original_response(
+                    content=emojis.redcross + " ERR: adresse e-mail invalide."
+                )
+                return
+
+            eligible_allycodes = {
+                code for code, _name
+                in await self._get_channel_visible_ally_codes(interaction)
+            }
+            if allycode not in eligible_allycodes:
+                await interaction.edit_original_response(
+                    content=emojis.redcross + " ERR: ce code allié n'est pas associé à un utilisateur pouvant voir ce salon."
+                )
+                return
+
+            ec, ret_txt = await connect_rpc.auth_ea_connect(allycode, email)
+            if ec != 0:
+                await interaction.edit_original_response(
+                    content=emojis.redcross + " ERR: " + ret_txt
+                )
+                return
+
+            ec, ret_txt = await connect_rpc.auth_reload()
+            if ec != 0:
+                await interaction.edit_original_response(
+                    content=emojis.redcross + " ERR lors du rechargement de l'authentification: " + ret_txt
+                )
+                return
+
+            query = (
+                "INSERT INTO user_bot_infos(allyCode, channel_id) "
+                "VALUES(%s, %s) "
+                "ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id)"
+            )
+            await connect_mysql.simple_execute_async(
+                query, (allycode, str(interaction.channel_id))
+            )
+
+            await interaction.edit_original_response(
+                content="Compte EA connecté avec succès pour le code allié " + allycode + "."
+            )
+
+        except Exception:
+            golog.log("ERR", traceback.format_exc())
+            if interaction.response.is_done():
+                await interaction.edit_original_response(
+                    content=emojis.redcross + " erreur inconnue"
+                )
+            else:
+                await interaction.response.send_message(
+                    emojis.redcross + " erreur inconnue", ephemeral=True
+                )
+
     @app_commands.command(name="envoie-otc")
     @golog.with_operation_context("auth.send_otc")
     async def send_otc(self, interaction: discord.Interaction,
