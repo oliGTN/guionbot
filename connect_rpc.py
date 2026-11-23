@@ -247,6 +247,46 @@ async def get_guild_data_from_id(
 ##############################################
 # AUTH functions
 ##############################################
+async def _auth_rpc_call(rpc_path, params):
+    """Call an authentication RPC endpoint that may return an empty HTTP 200 body."""
+    url = "http://localhost:8000/" + rpc_path
+    req_data = json_dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                golog.log("DBG", rpc_path + " status=" + str(resp.status))
+                response_text = await resp.text()
+                if resp.status != 200:
+                    return 1, "Erreur durant la requête " + rpc_path + " - code " + str(resp.status)
+
+    except asyncio.exceptions.TimeoutError:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ServerDisconnectedError:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ClientConnectorError:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    if response_text.strip():
+        try:
+            resp_json = json_loads(response_text)
+        except Exception:
+            return 1, "Réponse invalide du serveur RPC (" + rpc_path + ")"
+        if "err_code" in resp_json:
+            return resp_json["err_code"], resp_json.get("err_txt", "Erreur RPC")
+    return 0, ""
+
+
+async def auth_ea_connect(txt_allyCode, email):
+    return await _auth_rpc_call(
+        "auth_ea_connect",
+        {"allyCode": str(txt_allyCode), "email": email}
+    )
+
+
+async def auth_reload():
+    return await _auth_rpc_call("auth_reload", {})
+
+
 async def send_ea_otc(txt_allyCode, otc):
     # RPC REQUEST for sending OTC
     url = "http://localhost:8000/auth_ea_otc"
