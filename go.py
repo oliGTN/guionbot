@@ -7025,3 +7025,22 @@ async def print_coliseum_guild(guild_id, allyCode=None):
     t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
 
     return 0, t.draw()
+
+async def estimate_raidDD_score(guild_id):
+    raid_teams = [
+            ['STORMTROOPERLUKE', 'CASSIANUNDERCOVER', 'KLEYA', 'CINTA', 'VEL'],
+            ['MAJORPARTAGAZ', 'DEDRAMEERO', 'KXSECURITYDROID', 'MAULHATEFUELED', 'REMNANTSNOWCOMMANDER'],
+            ['DARTHJARJAR', 'VADERDUELSEND', 'YODADSV', 'THERONIN', 'INQUISITORBARRISS'],
+            ]
+
+    score = 0
+    for team in raid_teams:
+        query = "SELECT players.allyCode, MIN(relic_currentTier)-2  as `min_relic`, count(*) "
+        query+= "FROM roster "
+        query+= "JOIN players ON players.allyCode=roster.allyCode "
+        query+= "WHERE defId IN "+str(set(team))+" AND guildName = 'Kangoo Light Side' "
+        query+= "GROUP BY players.allyCode "
+        query+= "HAVING count(*)=5 "
+
+        golog.log("DBG", query)
+

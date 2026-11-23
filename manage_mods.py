@@ -139,6 +139,9 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                                 dict_player=None,
                                 initialdata=None,
                                 initial_message=None):
+
+    golog.log("INFO", "START allyCode="+allyCode)
+
     if interaction is None:
         print("Récupération des infos du joueur...")
 

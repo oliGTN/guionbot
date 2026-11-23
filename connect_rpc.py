@@ -1007,6 +1007,8 @@ async def get_extplayer_data(ac_or_id, load_roster=True):
     return 0, "", dict_player
 
 async def get_player_initialdata(ac, use_cache_data=False):
+    golog.log("INFO", "START ac="+ac)
+
     # RPC REQUEST for initial data
     url = "http://localhost:8000/initialdata"
     params = {"allyCode": ac,
@@ -1032,6 +1034,8 @@ async def get_player_initialdata(ac, use_cache_data=False):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    golog.log("RETURN", "START ac="+ac)
 
     if "err_code" in initialdata_player:
         return initialdata_player["err_code"], initialdata_player["err_txt"], None
