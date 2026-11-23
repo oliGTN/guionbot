@@ -6,11 +6,10 @@ declare(strict_types=1);
  *
  * Config format in SERVER_SECRETS/web_api.php:
  * 'api_clients' => [
- *   'existing' => ['key_hash' => '<sha256 hex>', 'enabled' => true,
- *     'endpoints' => ['*'], 'rate_limits' => ['read' => ['per_minute' => 5, 'per_day' => 1000],
- *       'deploy' => ['per_minute' => 20, 'per_day' => 100]]],
- *   'new_client' => ['key_hash' => '<sha256 hex>', 'enabled' => true,
- *     'endpoints' => ['tb-history']]
+ *   'existing' => ['api_key' => '<secret>', 'enabled' => true,
+ *     'guild_id' => '<SWGOH guild ID>', 'allyCode' => '<9-digit ally code>',
+ *     'endpoints' => ['tb-history', 'tb-mapstats', 'guild', 'tb-events'],
+ *     'rate_limits' => ['read' => ['per_minute' => 5, 'per_day' => 1000]]]
  * ]
  */
 function apiAuthenticate(string $endpoint, callable $respond, string $bucket = 'read'): array
