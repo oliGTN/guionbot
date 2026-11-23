@@ -190,14 +190,18 @@ async def _api_rpc_authorized(request):
 
 def _validate_api_guild_account(payload):
     if not isinstance(payload, dict):
-        return None, None
+        return None, None, False
     guild_id = payload.get("guild_id")
     ally_code = payload.get("allyCode")
-    if not isinstance(guild_id, str) or not re.fullmatch(r"[0-9]{1,24}", guild_id):
-        return None, None
-    if not isinstance(ally_code, str) or not re.fullmatch(r"[0-9]{9}", ally_code):
-        return None, None
-    return guild_id, ally_code
+    if guild_id is not None and (
+        not isinstance(guild_id, str) or not re.fullmatch(r"[0-9]{1,24}", guild_id)
+    ):
+        return None, None, False
+    if ally_code is not None and (
+        not isinstance(ally_code, str) or not re.fullmatch(r"[0-9]{9}", ally_code)
+    ):
+        return None, None, False
+    return guild_id, ally_code, True
 
 
 async def handle_api_tb_mapstats(request):
@@ -205,8 +209,8 @@ async def handle_api_tb_mapstats(request):
         return web.json_response({"err_code": 401, "err_txt": "Unauthorized"}, status=401)
     try:
         payload = await request.json()
-        guild_id, ally_code = _validate_api_guild_account(payload)
-        if guild_id is None:
+        guild_id, ally_code, valid = _validate_api_guild_account(payload)
+        if not valid:
             return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
         err_code, err_txt, data = await connect_rpc.get_TBmapstats_data(
             guild_id, True, allyCode=ally_code
@@ -227,8 +231,8 @@ async def handle_api_guild(request):
         return web.json_response({"err_code": 401, "err_txt": "Unauthorized"}, status=401)
     try:
         payload = await request.json()
-        guild_id, ally_code = _validate_api_guild_account(payload)
-        if guild_id is None:
+        guild_id, ally_code, valid = _validate_api_guild_account(payload)
+        if not valid:
             return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
         err_code, err_txt, data = await connect_rpc.get_guild_data_from_id(
             guild_id, True, allyCode=ally_code
@@ -249,8 +253,8 @@ async def handle_api_tb_events(request):
         return web.json_response({"err_code": 401, "err_txt": "Unauthorized"}, status=401)
     try:
         payload = await request.json()
-        guild_id, ally_code = _validate_api_guild_account(payload)
-        if guild_id is None:
+        guild_id, ally_code, valid = _validate_api_guild_account(payload)
+        if not valid:
             return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
         err_code, err_txt, dict_guild = await connect_rpc.get_guild_data_from_id(
             guild_id, True, allyCode=ally_code
