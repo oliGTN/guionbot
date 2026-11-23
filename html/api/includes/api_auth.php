@@ -6,11 +6,10 @@ declare(strict_types=1);
  *
  * Config format in SERVER_SECRETS/web_api.php:
  * 'api_clients' => [
- *   'existing' => ['key_hash' => '<sha256 hex>', 'enabled' => true,
- *     'endpoints' => ['*'], 'rate_limits' => ['read' => ['per_minute' => 5, 'per_day' => 1000],
- *       'deploy' => ['per_minute' => 20, 'per_day' => 100]]],
- *   'new_client' => ['key_hash' => '<sha256 hex>', 'enabled' => true,
- *     'endpoints' => ['tb-history']]
+ *   'existing' => ['api_key' => '<secret>', 'enabled' => true,
+ *     'guild_id' => '<SWGOH guild ID>', 'allyCode' => '<9-digit ally code>',
+ *     'endpoints' => ['tb-history', 'tb-mapstats', 'guild', 'tb-events'],
+ *     'rate_limits' => ['read' => ['per_minute' => 5, 'per_day' => 1000]]]
  * ]
  */
 function apiAuthenticate(string $endpoint, callable $respond, string $bucket = 'read'): array
@@ -22,7 +21,7 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
         $respond(503, ['success' => false, 'error' => 'Service unavailable']);
     }
     $config = require $configPath;
-    if (!is_array($config) || empty($config['guild_id']) || !is_string($config['guild_id'])) {
+    if (!is_array($config) || !isset($config['api_clients']) || !is_array($config['api_clients'])) {
         error_log('API configuration has an invalid format');
         $respond(503, ['success' => false, 'error' => 'Service unavailable']);
     }
@@ -59,13 +58,6 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
                 break;
             }
         }
-    }
-    // Keep the original single-key configuration working during migration.
-    // This lets the existing client retain its exact key and unrestricted access.
-    if ($clientId === null && isset($config['api_key']) && is_string($config['api_key']) &&
-        $config['api_key'] !== '' && hash_equals($config['api_key'], $presentedKey)) {
-        $clientId = 'legacy';
-        $client = ['enabled' => true, 'endpoints' => ['*']];
     }
 
     if ($clientId === null || !is_array($client) || empty($client['enabled'])) {
@@ -142,8 +134,13 @@ function apiAuthenticate(string $endpoint, callable $respond, string $bucket = '
     $GLOBALS['apiSecurityClientId'] = $clientId;
     apiSecurityLog('AUTH_SUCCESS', 'INFO', ['endpoint' => $endpoint, 'bucket' => $bucket]);
 
+    // Guild and game account are scoped to the matched API key, never global config.
+    $clientConfig = $config;
+    $clientConfig['guild_id'] = $client['guild_id'] ?? null;
+    $clientConfig['allyCode'] = $client['allyCode'] ?? null;
+
     return [
-        'config' => $config,
+        'config' => $clientConfig,
         'client_id' => $clientId,
         'remaining' => max(0, $perMinute - count($recent) - 1),
         'limit' => $perMinute

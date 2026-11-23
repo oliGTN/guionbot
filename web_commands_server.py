@@ -183,6 +183,95 @@ async def handle_tb_mapstats(request):
         )
 
 
+async def _api_rpc_authorized(request):
+    expected_token = request.app["token"]
+    return bool(expected_token) and request.headers.get("Authorization", "") == "Bearer " + expected_token
+
+
+def _validate_api_guild_account(payload):
+    if not isinstance(payload, dict):
+        return None, None
+    guild_id = payload.get("guild_id")
+    ally_code = payload.get("allyCode")
+    if not isinstance(guild_id, str) or not re.fullmatch(r"[0-9]{1,24}", guild_id):
+        return None, None
+    if not isinstance(ally_code, str) or not re.fullmatch(r"[0-9]{9}", ally_code):
+        return None, None
+    return guild_id, ally_code
+
+
+async def handle_api_tb_mapstats(request):
+    if not await _api_rpc_authorized(request):
+        return web.json_response({"err_code": 401, "err_txt": "Unauthorized"}, status=401)
+    try:
+        payload = await request.json()
+        guild_id, ally_code = _validate_api_guild_account(payload)
+        if guild_id is None:
+            return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
+        err_code, err_txt, data = await connect_rpc.get_TBmapstats_data(
+            guild_id, True, allyCode=ally_code
+        )
+        if err_code != 0:
+            golog.log("WAR", "API TB mapstats failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
+            return web.json_response({"err_code": 502, "err_txt": "Unable to retrieve TB mapstats"}, status=502)
+        response = web.json_response({"success": True, "data": data})
+        response.enable_compression()
+        return response
+    except Exception as error:
+        golog.log("ERR", "API TB mapstats command error: " + str(error))
+        return web.json_response({"err_code": 500, "err_txt": "Internal server error"}, status=500)
+
+
+async def handle_api_guild(request):
+    if not await _api_rpc_authorized(request):
+        return web.json_response({"err_code": 401, "err_txt": "Unauthorized"}, status=401)
+    try:
+        payload = await request.json()
+        guild_id, ally_code = _validate_api_guild_account(payload)
+        if guild_id is None:
+            return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
+        err_code, err_txt, data = await connect_rpc.get_guild_data_from_id(
+            guild_id, True, allyCode=ally_code
+        )
+        if err_code != 0:
+            golog.log("WAR", "API guild retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
+            return web.json_response({"err_code": 502, "err_txt": "Unable to retrieve guild data"}, status=502)
+        response = web.json_response({"success": True, "data": data})
+        response.enable_compression()
+        return response
+    except Exception as error:
+        golog.log("ERR", "API guild command error: " + str(error))
+        return web.json_response({"err_code": 500, "err_txt": "Internal server error"}, status=500)
+
+
+async def handle_api_tb_events(request):
+    if not await _api_rpc_authorized(request):
+        return web.json_response({"err_code": 401, "err_txt": "Unauthorized"}, status=401)
+    try:
+        payload = await request.json()
+        guild_id, ally_code = _validate_api_guild_account(payload)
+        if guild_id is None:
+            return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
+        err_code, err_txt, dict_guild = await connect_rpc.get_guild_data_from_id(
+            guild_id, True, allyCode=ally_code
+        )
+        if err_code != 0:
+            golog.log("WAR", "API TB events guild retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
+            return web.json_response({"err_code": 502, "err_txt": "Unable to retrieve guild data"}, status=502)
+        err_code, err_txt, data = await connect_rpc.get_event_data(
+            dict_guild, ["TB"], True, allyCode=None
+        )
+        if err_code != 0:
+            golog.log("WAR", "API TB events retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
+            return web.json_response({"err_code": 502, "err_txt": "Unable to retrieve TB events"}, status=502)
+        response = web.json_response({"success": True, "data": data})
+        response.enable_compression()
+        return response
+    except Exception as error:
+        golog.log("ERR", "API TB events command error: " + str(error))
+        return web.json_response({"err_code": 500, "err_txt": "Internal server error"}, status=500)
+
+
 async def handle_sell_mods(request):
     expected_token = request.app["token"]
     authorization = request.headers.get("Authorization", "")
@@ -787,6 +876,9 @@ def create_app():
     app["token"] = TOKEN
     app.router.add_post("/GuildConnectedAccounts", handle_guild_connected_accounts)
     app.router.add_post("/TBmapstats", handle_tb_mapstats)
+    app.router.add_post("/ApiTBMapstats", handle_api_tb_mapstats)
+    app.router.add_post("/ApiGuild", handle_api_guild)
+    app.router.add_post("/ApiTBEvents", handle_api_tb_events)
     app.router.add_post("/TBzoneOrder", handle_tbzone_order)
     app.router.add_post("/SellMods", handle_sell_mods)
     app.router.add_post("/DeployTWTeams", handle_deploy_tw_teams)
