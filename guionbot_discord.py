@@ -2877,6 +2877,8 @@ async def store_wookiebot_raid_estimates(message):
                 raid_name = "kraytdragon"
             elif raid_shortname=="endor":
                 raid_name = "speederbike"
+            elif raid_shortname=="droid-destruction-guild.csv":
+                raid_name = "droiddestruction"
             else:
                 raid_name = raid_shortname
 
