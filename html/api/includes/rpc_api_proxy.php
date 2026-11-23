@@ -69,9 +69,11 @@ function rpcApiRun(string $endpoint, string $authName): void
     $guildId = $config['guild_id'] ?? null;
     $allyCode = $config['allyCode'] ?? null;
 
-    if (!is_string($guildId) || !preg_match('/^[0-9]{1,24}$/', $guildId) ||
-        !is_string($allyCode) || !preg_match('/^[0-9]{9}$/', $allyCode)) {
-        rpcApiRespond(503, ['success' => false, 'error' => 'API key is missing a valid guild_id or allyCode']);
+    // Missing per-key values are deliberately forwarded as JSON null.
+    // Validate only values that are explicitly configured.
+    if (($guildId !== null && (!is_string($guildId) || !preg_match('/^[0-9]{1,24}$/', $guildId))) ||
+        ($allyCode !== null && (!is_string($allyCode) || !preg_match('/^[0-9]{9}$/', $allyCode)))) {
+        rpcApiRespond(503, ['success' => false, 'error' => 'API key has an invalid guild_id or allyCode']);
     }
 
     $tokenPath = '/home/pi/GuionBot/SERVER_SECRETS/web_commands.token';
