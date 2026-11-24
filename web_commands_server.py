@@ -26,6 +26,7 @@ TOKEN = os.environ.get("GUIONBOT_WEB_COMMANDS_TOKEN")
 # The account is part of the key because guild data is retrieved through an EA account.
 API_GUILD_CACHE_TTL = 15 * 60
 _api_guild_cache = {}
+_api_guild_event_cache = {}
 
 
 def _get_cached_api_guild(guild_id, ally_code):
@@ -40,6 +41,23 @@ def _get_cached_api_guild(guild_id, ally_code):
 
 def _cache_api_guild(guild_id, ally_code, guild_data):
     _api_guild_cache[(guild_id, ally_code)] = {
+        "cached_at": time.monotonic(),
+        "data": guild_data,
+    }
+
+
+def _get_cached_api_guild_events(guild_id, ally_code):
+    cache_entry = _api_guild_event_cache.get((guild_id, ally_code))
+    if cache_entry is None:
+        return None
+    if time.monotonic() - cache_entry["cached_at"] >= API_GUILD_CACHE_TTL:
+        _api_guild_event_cache.pop((guild_id, ally_code), None)
+        return None
+    return cache_entry["data"]
+
+
+def _cache_api_guild_events(guild_id, ally_code, guild_data):
+    _api_guild_event_cache[(guild_id, ally_code)] = {
         "cached_at": time.monotonic(),
         "data": guild_data,
     }
@@ -283,13 +301,17 @@ async def handle_api_tb_events(request):
             return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
         dict_guild = _get_cached_api_guild(guild_id, ally_code)
         if dict_guild is None:
+            dict_guild = _get_cached_api_guild_events(guild_id, ally_code)
+        if dict_guild is None:
             err_code, err_txt, dict_guild = await connect_rpc.get_guild_data_from_id(
                 guild_id, True, allyCode=ally_code, category="EVENT_SYNC"
             )
             if err_code != 0:
                 golog.log("WAR", "API TB events guild retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
                 return web.json_response({"err_code": 502, "err_txt": "Unable to retrieve guild data"}, status=502)
-            _cache_api_guild(guild_id, ally_code, dict_guild)
+            # Keep the subset separate: the Guild endpoint's cache must always
+            # contain the complete response contract.
+            _cache_api_guild_events(guild_id, ally_code, dict_guild)
         err_code, err_txt, data = await connect_rpc.get_event_data(
             dict_guild, ["TB"], True, allyCode=ally_code
         )
