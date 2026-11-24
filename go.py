@@ -365,7 +365,9 @@ async def load_guild(txt_allyCode, load_players, cmd_request,
 
     if db_result == None or db_result == "":
         golog.log("WAR", 'Guild ID not found for '+txt_allyCode)
-        ec, et, dict_guild = await connect_rpc.get_extguild_data_from_ac(txt_allyCode, False)
+        ec, et, dict_guild = await connect_rpc.get_extguild_data_from_ac(
+            txt_allyCode, False, category="CACHE_REFRESH"
+        )
         if ec != 0:
             golog.log("ERR", "Cannot get guild data for "+txt_allyCode)
             return 2, "ERR Cannot get guild data for "+txt_allyCode, None
@@ -386,7 +388,9 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                              force_update=False):
     #Get RPC guild data
     golog.log('DBG', 'Requesting RPC data for guild ' + guild_id)
-    ec, et, dict_guild = await connect_rpc.get_extguild_data_from_id(guild_id, False)
+    ec, et, dict_guild = await connect_rpc.get_extguild_data_from_id(
+        guild_id, False, category="CACHE_REFRESH"
+    )
     if ec != 0:
         json_file = "GUILDS/"+guild_id+".json"
         if os.path.isfile(json_file):

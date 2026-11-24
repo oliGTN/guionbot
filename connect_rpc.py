@@ -138,7 +138,8 @@ async def get_guild_rpc_data(
                 guild_id, 
                 force_update, 
                 allyCode=allyCode,
-                guild_bots=guild_bots)
+                guild_bots=guild_bots,
+                category="EVENT_SYNC")
 
         if ec!=0:
             golog.log("WAR", [ec, et])
@@ -228,7 +229,8 @@ async def get_guild_data_from_id(
         guild_id, 
         force_update, 
         allyCode=None,
-        guild_bots=None):
+        guild_bots=None,
+        category="FULL"):
 
     err_c, err_t, \
     bot_allyCode, \
@@ -242,7 +244,9 @@ async def get_guild_data_from_id(
     if err_c != 0:
         return err_c, err_t, None
 
-    return await get_guild_data_from_ac(bot_allyCode, use_cache_data, retryAuth=retryAuth)
+    return await get_guild_data_from_ac(
+        bot_allyCode, use_cache_data, retryAuth=retryAuth, category=category
+    )
 
 ##############################################
 # AUTH functions
@@ -315,11 +319,13 @@ async def send_ea_otc(txt_allyCode, otc):
 
 #########################################
 # Get full guild data, using the allyCode
-async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1, preserve_ea_code=False):
+async def get_guild_data_from_ac(
+        txt_allyCode, use_cache_data, retryAuth=1, preserve_ea_code=False,
+        category="FULL"):
     # RPC REQUEST for guild
     url = "http://localhost:8000/guild"
     params = {"allyCode": txt_allyCode, "use_cache_data":use_cache_data,
-              "retryAuth": retryAuth}
+              "retryAuth": retryAuth, "category": category}
     req_data = json_dumps(params)
     timing_start = time.perf_counter()
     golog.log("INFO", "TW_DEPLOY_TIMING stage=guild_rpc_request_start url=%s" % url)
@@ -975,7 +981,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
 
     return 0, "", dict_events
 
-async def get_extguild_data_from_ac(txt_allyCode, use_cache_data):
+async def get_extguild_data_from_ac(txt_allyCode, use_cache_data, category="FULL"):
     ec, et, dict_player = await get_extplayer_data(txt_allyCode)
     if ec != 0:
         return 1, et, None
@@ -987,13 +993,15 @@ async def get_extguild_data_from_ac(txt_allyCode, use_cache_data):
     if guild_id == None or guild_id == "":
         return 1, "ERR: ce joueur n'a pas de guilde", None
 
-    ec, et, dict_guild = await get_extguild_data_from_id(guild_id, use_cache_data)
+    ec, et, dict_guild = await get_extguild_data_from_id(
+        guild_id, use_cache_data, category=category
+    )
 
     return ec, et, dict_guild
 
-async def get_extguild_data_from_id(guild_id, use_cache_data):
+async def get_extguild_data_from_id(guild_id, use_cache_data, category="FULL"):
     url = "http://localhost:8000/extguild"
-    params = {"guild_id": guild_id}
+    params = {"guild_id": guild_id, "category": category}
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -1153,7 +1161,9 @@ async def join_tw(guild_id):
     if not guild_id in dict_bot_accounts:
         return 1, "Ce serveur discord n'a pas de warbot", None
 
-    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, -1)
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(
+        guild_id, -1, category="TW_COMMAND"
+    )
     if err_code != 0:
         golog.log("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -1200,7 +1210,9 @@ async def join_tw(guild_id):
 # OUT: platoons_actual_strategy = {"GLS1-mid-2": {"filled": 14, strategy_full: True}...}
 ##################################################
 async def get_platoon_actual_strategy(guild_id, force_update, allyCode=None):
-    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(
+        guild_id, force_update, allyCode=allyCode, category="TB_COMMAND"
+    )
 
     if err_code != 0:
         golog.log("ERR", err_txt)
@@ -1273,7 +1285,9 @@ async def get_platoon_actual_strategy_from_dict(dict_guild):
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
 ##################################################
 async def get_actual_tb_platoons(guild_id, force_update, allyCode=None):
-    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(
+        guild_id, force_update, allyCode=allyCode, category="TB_COMMAND"
+    )
 
     if err_code != 0:
         golog.log("ERR", err_txt)
@@ -1452,7 +1466,9 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
     golog.log("INFO", chatLatest_ts, identifier=guild_id)
 
     if dict_guild==None:
-        err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+        err_code, err_txt, dict_guild = await get_guild_data_from_id(
+            guild_id, force_update, allyCode=allyCode, category="EVENT_SYNC"
+        )
         if err_code != 0:
             golog.log("ERR", err_txt)
             return 1, err_txt, None
@@ -3218,9 +3234,13 @@ async def get_tb_guild_scores(guild_id, dict_phase, dict_strike_zones, list_open
 ########################################
 async def get_tw_opponent_leader(guild_id, allyCode=None):
     if allyCode == None:
-        ec, et, dict_guild = await get_guild_data_from_id(guild_id, -1)
+        ec, et, dict_guild = await get_guild_data_from_id(
+            guild_id, -1, category="TW_COMMAND"
+        )
     else:
-        ec, et, dict_guild = await get_guild_data_from_id(guild_id, 1, allyCode)
+        ec, et, dict_guild = await get_guild_data_from_id(
+            guild_id, 1, allyCode, category="TW_COMMAND"
+        )
 
     if ec!=0:
         return 1, et, None
@@ -3238,7 +3258,9 @@ async def get_tw_opponent_leader(guild_id, allyCode=None):
     if opp_guild_id == None:
         return 1, "Adversaire de GT pas encore connu", None
 
-    ec, et, dict_guild = await get_extguild_data_from_id(opp_guild_id, False)
+    ec, et, dict_guild = await get_extguild_data_from_id(
+        opp_guild_id, False, category="CACHE_REFRESH"
+    )
     if ec != 0:
         return ec, et, None
 
@@ -3554,7 +3576,9 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
     return ret_dict
 
 async def get_tw_active_players(guild_id, force_update, allyCode=None):
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+    ec, et, dict_guild = await get_guild_data_from_id(
+        guild_id, force_update, allyCode=allyCode, category="TW_COMMAND"
+    )
     if ec!=0:
         return 1, et, None
 
@@ -4194,7 +4218,9 @@ async def get_tw_participation(guild_id, force_update, allyCode=None):
 # OUT: rpc: {"dict_guild": dict_guild}
 ########################################
 async def get_raid_status(guild_id, target_percent, force_update, allyCode=None, ignored_allyCodes=[]):
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+    ec, et, dict_guild = await get_guild_data_from_id(
+        guild_id, force_update, allyCode=allyCode, category="RAID_COMMAND"
+    )
     if ec!=0:
         return None, None, [], 0, 0, None
 
