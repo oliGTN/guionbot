@@ -1054,13 +1054,14 @@ async def get_extplayer_data(ac_or_id, load_roster=True):
 
     return 0, "", dict_player
 
-async def get_player_initialdata(ac, use_cache_data=False):
+async def get_player_initialdata(ac, use_cache_data=False, category="FULL"):
     golog.log("INFO", "START ac="+ac)
 
     # RPC REQUEST for initial data
     url = "http://localhost:8000/initialdata"
     params = {"allyCode": ac,
-              "use_cache_data":use_cache_data}
+              "use_cache_data":use_cache_data,
+              "category": category}
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
