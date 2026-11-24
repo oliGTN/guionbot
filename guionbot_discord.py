@@ -4672,7 +4672,9 @@ class ModsCog(commands.GroupCog, name="mods"):
 
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
-            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            error_message = emojis.redcross + " erreur inconnue"
+            if not await finish_cancelable_progress(interaction, error_message):
+                await interaction.edit_original_response(content=error_message)
 
         remove_command_from_queue(interaction)
         return
@@ -4960,7 +4962,9 @@ class ModsCog(commands.GroupCog, name="mods"):
 
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
-            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            error_message = emojis.redcross + " erreur inconnue"
+            if not await finish_cancelable_progress(interaction, error_message):
+                await interaction.edit_original_response(content=error_message)
 
         remove_command_from_queue(interaction)
         return
