@@ -457,8 +457,12 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         #breathe
         await asyncio_sleep(0)
 
-    # Keep the progress message and its cancellation control alive until the
-    # command handler publishes the final result on that same message.
+    # The command handler will publish the final result on this message.
+    # Stop the cancel listener now; the handler will remove its button when it
+    # edits the message with the final result.
+    if cancel_view is not None:
+        cancel_view.stop()
+
     ret_code = 0
     ret_txt = ""
     if is_simu:
