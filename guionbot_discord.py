@@ -4526,8 +4526,9 @@ class CodexRemodView(discord.ui.View):
                         owner_id=self.owner_id,
                         needs_sell=True
                     )
-                    await interaction.edit_original_response(
-                        content=result + "\n\nL'inventaire est devenu plein pendant l'application. Il faut libérer "
+                    await finish_cancelable_progress(
+                        interaction,
+                        result + "\n\nL'inventaire est devenu plein pendant l'application. Il faut libérer "
                         + str(inventory_shortfall) + " places. Confirme la vente des mods proposés pour relancer.",
                         view=sell_view
                     )
@@ -4535,10 +4536,13 @@ class CodexRemodView(discord.ui.View):
 
             for child in self.children:
                 child.disabled = True
-            await interaction.edit_original_response(content=result, view=None)
+            if not await finish_cancelable_progress(interaction, result, view=None):
+                await interaction.edit_original_response(content=result, view=None)
         except Exception:
             golog.log("ERR", "Codex remod apply callback failed: " + traceback.format_exc())
-            await interaction.edit_original_response(content=emojis.redcross + " Erreur pendant l'application des mods.", view=None)
+            error_message = emojis.redcross + " Erreur pendant l'application des mods."
+            if not await finish_cancelable_progress(interaction, error_message, view=None):
+                await interaction.edit_original_response(content=error_message, view=None)
         finally:
             if acquired:
                 await release_sem(self.ally_code)
