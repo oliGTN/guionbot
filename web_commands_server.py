@@ -263,7 +263,7 @@ async def handle_api_tb_events(request):
             golog.log("WAR", "API TB events guild retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
             return web.json_response({"err_code": 502, "err_txt": "Unable to retrieve guild data"}, status=502)
         err_code, err_txt, data = await connect_rpc.get_event_data(
-            dict_guild, ["TB"], True, allyCode=None
+            dict_guild, ["TB"], True, allyCode=ally_code
         )
         if err_code != 0:
             golog.log("WAR", "API TB events retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
