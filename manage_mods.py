@@ -138,7 +138,9 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                                 interaction=None, 
                                 dict_player=None,
                                 initialdata=None,
-                                initial_message=None):
+                                initial_message=None,
+                                progress=None,
+                                update_acknowledgement=True):
 
     golog.log("INFO", "START allyCode="+allyCode)
 
@@ -195,12 +197,20 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
     cancel_event = None
     cancel_view = None
     cancel_message = None
-    if interaction is not None:
-        cancel_event, cancel_view, cancel_message = await start_cancelable_progress(
-            interaction,
-            emojis.hourglass + " Préparation des déplacements...",
-            initial_message=initial_message,
-            acknowledgement="✅ Récupération de la liste des mods : OK. Suivi des déplacements dans le message ci-dessous.")
+    if interaction is not None and (not is_simu or progress is not None):
+        if progress is None:
+            cancel_event, cancel_view, cancel_message = await start_cancelable_progress(
+                interaction,
+                emojis.hourglass + " Préparation des déplacements...",
+                initial_message=initial_message,
+                acknowledgement="✅ Récupération de la liste des mods : OK. Suivi des déplacements dans le message ci-dessous.",
+                update_interaction_response=update_acknowledgement)
+        else:
+            cancel_event, cancel_view, cancel_message = progress
+            await update_cancelable_progress(
+                cancel_message,
+                emojis.hourglass + " Préparation des déplacements...",
+                cancel_view)
 
     while(len(mod_allocations)>0):
         if cancel_event is not None and cancel_event.is_set():
@@ -447,9 +457,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         #breathe
         await asyncio_sleep(0)
 
-    if cancel_view is not None or cancel_message is not None:
-        await stop_cancelable_progress(cancel_view, cancel_message, final_content="⌛ Finalisation du résultat...")
-
+    # Keep the progress message and its cancellation control alive until the
+    # command handler publishes the final result on that same message.
     ret_code = 0
     ret_txt = ""
     if is_simu:
@@ -644,8 +653,9 @@ async def apply_codex_allocations(
     return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu, 
                                        interaction=interaction, initialdata=initialdata)
 
-async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu, 
-                                         interaction=None, initialdata=None):
+async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
+                                         interaction=None, initialdata=None,
+                                         update_acknowledgement=True):
     try:
         modopti_progress = json.loads(modopti_content)
     except json.JSONDecodeError as e:
@@ -718,16 +728,18 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
         mod_allocations.append(mod_allocation)
 
     #Apply modifications
-    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu, 
-                                       interaction=interaction, initialdata=initialdata)
+    return await apply_mod_allocations(
+        mod_allocations, txt_allyCode, is_simu,
+        interaction=interaction, initialdata=initialdata,
+        update_acknowledgement=update_acknowledgement)
 
-async def apply_config_allocations(config_name, txt_allyCode, is_simu, interaction=None):
+async def apply_config_allocations(config_name, txt_allyCode, is_simu, interaction=None, progress=None):
     e, t, mod_allocations = await get_mod_config(config_name, txt_allyCode)
     if e!=0:
         return 1, t, {}
 
     return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu,
-                                       interaction=interaction)
+                                       interaction=interaction, progress=progress)
 
 ########################################
 async def get_modopti_export(txt_allyCode, prev_modopti_content=None, return_initialdata=False):
