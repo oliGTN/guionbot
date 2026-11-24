@@ -255,7 +255,7 @@ async def handle_api_tb_mapstats(request):
         if not valid:
             return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
         err_code, err_txt, data = await connect_rpc.get_TBmapstats_data(
-            guild_id, True, allyCode=ally_code, category="FULL"
+            guild_id, True, allyCode=ally_code
         )
         if err_code != 0:
             golog.log("WAR", "API TB mapstats failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
@@ -277,7 +277,7 @@ async def handle_api_guild(request):
         if not valid:
             return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
         err_code, err_txt, data = await connect_rpc.get_guild_data_from_id(
-            guild_id, True, allyCode=ally_code
+            guild_id, True, allyCode=ally_code, category="FULL"
         )
         if err_code != 0:
             golog.log("WAR", "API guild retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
