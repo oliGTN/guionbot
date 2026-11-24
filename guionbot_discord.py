@@ -5076,16 +5076,27 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=emojis.redcross+" "+et)
             else:
                 export_path="/tmp/modoptiRestoreMyProgress_"+txt_allyCode+".json"
+                export_zip_path="/tmp/modoptiRestoreMyProgress_"+txt_allyCode+".zip"
                 export_txt = json_dumps(dict_export, separators=(",", ":"))
                 with open(export_path, "w", encoding="utf-8") as export_file:
                     export_file.write(export_txt)
 
-                file_size = os.path.getsize(export_path)
+                json_size = os.path.getsize(export_path)
+                with zipfile.ZipFile(
+                    export_zip_path,
+                    "w",
+                    compression=zipfile.ZIP_DEFLATED,
+                    compresslevel=9
+                ) as export_zip:
+                    export_zip.write(export_path, arcname=os.path.basename(export_path))
+
+                file_size = os.path.getsize(export_zip_path)
                 file_size_mb = file_size / (1024 * 1024)
+                json_size_mb = json_size / (1024 * 1024)
                 golog.log(
                     "INFO",
-                    f"Mod Optimizer export size: {file_size_mb:.2f} MB "
-                    f"({file_size} bytes)"
+                    f"Mod Optimizer export size: JSON={json_size_mb:.2f} MB, "
+                    f"ZIP={file_size_mb:.2f} MB ({file_size} bytes)"
                 )
 
                 # Discord's upload limit depends on the server's configuration.
@@ -5095,7 +5106,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                     await interaction.edit_original_response(
                         content=(
                             emojis.redcross
-                            + f" fichier trop volumineux ({file_size_mb:.2f} MB). "
+                            + f" fichier ZIP trop volumineux ({file_size_mb:.2f} MB). "
                             + f"Limite Discord : {limit_mb:.2f} MB."
                         )
                     )
@@ -5103,20 +5114,20 @@ class ModsCog(commands.GroupCog, name="mods"):
 
                 try:
                     await interaction.edit_original_response(
-                        content=emojis.check+" fichier prêt",
-                        attachments=[discord.File(export_path)]
+                        content=emojis.check+" fichier prêt (ZIP)",
+                        attachments=[discord.File(export_zip_path)]
                     )
                 except discord.HTTPException as upload_error:
                     if upload_error.status == 413:
                         golog.log(
                             "WAR",
-                            f"Discord rejected Mod Optimizer export "
+                            f"Discord rejected Mod Optimizer ZIP export "
                             f"({file_size_mb:.2f} MB, allyCode={txt_allyCode})"
                         )
                         await interaction.edit_original_response(
                             content=(
                                 emojis.redcross
-                                + " Discord a refusé le fichier car il dépasse "
+                                + " Discord a refusé le fichier ZIP car il dépasse "
                                 + "la taille maximale autorisée."
                             )
                         )
