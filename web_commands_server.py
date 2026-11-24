@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import time
 
 import aiohttp
 from aiohttp import web
@@ -19,6 +20,29 @@ from json import dumps as json_dumps
 HOST = "127.0.0.1"
 PORT = 9000
 TOKEN = os.environ.get("GUIONBOT_WEB_COMMANDS_TOKEN")
+
+
+# Cache guild snapshots shared by the API guild and TB-events endpoints.
+# The account is part of the key because guild data is retrieved through an EA account.
+API_GUILD_CACHE_TTL = 15 * 60
+_api_guild_cache = {}
+
+
+def _get_cached_api_guild(guild_id, ally_code):
+    cache_entry = _api_guild_cache.get((guild_id, ally_code))
+    if cache_entry is None:
+        return None
+    if time.monotonic() - cache_entry["cached_at"] >= API_GUILD_CACHE_TTL:
+        _api_guild_cache.pop((guild_id, ally_code), None)
+        return None
+    return cache_entry["data"]
+
+
+def _cache_api_guild(guild_id, ally_code, guild_data):
+    _api_guild_cache[(guild_id, ally_code)] = {
+        "cached_at": time.monotonic(),
+        "data": guild_data,
+    }
 
 
 async def handle_tbzone_order(request):
@@ -240,6 +264,7 @@ async def handle_api_guild(request):
         if err_code != 0:
             golog.log("WAR", "API guild retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
             return web.json_response({"err_code": 502, "err_txt": "Unable to retrieve guild data"}, status=502)
+        _cache_api_guild(guild_id, ally_code, data)
         response = web.json_response({"success": True, "data": data})
         response.enable_compression()
         return response
@@ -256,12 +281,15 @@ async def handle_api_tb_events(request):
         guild_id, ally_code, valid = _validate_api_guild_account(payload)
         if not valid:
             return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
-        err_code, err_txt, dict_guild = await connect_rpc.get_guild_data_from_id(
-            guild_id, True, allyCode=ally_code
-        )
-        if err_code != 0:
-            golog.log("WAR", "API TB events guild retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
-            return web.json_response({"err_code": 502, "err_txt": "Unable to retrieve guild data"}, status=502)
+        dict_guild = _get_cached_api_guild(guild_id, ally_code)
+        if dict_guild is None:
+            err_code, err_txt, dict_guild = await connect_rpc.get_guild_data_from_id(
+                guild_id, True, allyCode=ally_code
+            )
+            if err_code != 0:
+                golog.log("WAR", "API TB events guild retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
+                return web.json_response({"err_code": 502, "err_txt": "Unable to retrieve guild data"}, status=502)
+            _cache_api_guild(guild_id, ally_code, dict_guild)
         err_code, err_txt, data = await connect_rpc.get_event_data(
             dict_guild, ["TB"], True, allyCode=ally_code
         )
