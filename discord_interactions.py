@@ -191,7 +191,8 @@ class CancelOperationView(discord_ui.View):
         self.stop()
 
 
-async def start_cancelable_progress(ctx_interaction, content, initial_message=None, acknowledgement=None):
+async def start_cancelable_progress(ctx_interaction, content, initial_message=None,
+                                    acknowledgement=None, update_interaction_response=True):
     """Create a normal channel progress message and preserve a clean command acknowledgement."""
     cancel_event = asyncio.Event()
     user = getattr(ctx_interaction, "user", None) or getattr(ctx_interaction, "author", None)
@@ -205,10 +206,11 @@ async def start_cancelable_progress(ctx_interaction, content, initial_message=No
         acknowledgement = "✅ Préparation terminée. Suivi de l'opération dans le message ci-dessous."
     if type(ctx_interaction) == Interaction:
         _cancelable_progress_messages[ctx_interaction.id] = message
-        try:
-            await ctx_interaction.edit_original_response(content=acknowledgement)
-        except Exception as e:
-            golog.log("WAR", "Unable to acknowledge long-operation preparation: " + repr(e))
+        if update_interaction_response:
+            try:
+                await ctx_interaction.edit_original_response(content=acknowledgement)
+            except Exception as e:
+                golog.log("WAR", "Unable to acknowledge long-operation preparation: " + repr(e))
     elif initial_message is not None:
         try:
             await initial_message.edit(content=acknowledgement)
