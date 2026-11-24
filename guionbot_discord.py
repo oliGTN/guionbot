@@ -5076,14 +5076,52 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=emojis.redcross+" "+et)
             else:
                 export_path="/tmp/modoptiRestoreMyProgress_"+txt_allyCode+".json"
-                export_file = open(export_path, "w")
-                export_txt = json_dumps(dict_export, indent=4)
-                export_file.write(export_txt)
-                export_file.close()
+                export_txt = json_dumps(dict_export, separators=(",", ":"))
+                with open(export_path, "w", encoding="utf-8") as export_file:
+                    export_file.write(export_txt)
 
-                await interaction.edit_original_response(
-                        content=emojis.check+" fichier prêt", 
-                        attachments=[discord.File(export_path)])
+                file_size = os.path.getsize(export_path)
+                file_size_mb = file_size / (1024 * 1024)
+                golog.log(
+                    "INFO",
+                    f"Mod Optimizer export size: {file_size_mb:.2f} MB "
+                    f"({file_size} bytes)"
+                )
+
+                # Discord's upload limit depends on the server's configuration.
+                upload_limit = getattr(interaction.guild, "filesize_limit", None)
+                if upload_limit is not None and file_size > upload_limit:
+                    limit_mb = upload_limit / (1024 * 1024)
+                    await interaction.edit_original_response(
+                        content=(
+                            emojis.redcross
+                            + f" fichier trop volumineux ({file_size_mb:.2f} MB). "
+                            + f"Limite Discord : {limit_mb:.2f} MB."
+                        )
+                    )
+                    return
+
+                try:
+                    await interaction.edit_original_response(
+                        content=emojis.check+" fichier prêt",
+                        attachments=[discord.File(export_path)]
+                    )
+                except discord.HTTPException as upload_error:
+                    if upload_error.status == 413:
+                        golog.log(
+                            "WAR",
+                            f"Discord rejected Mod Optimizer export "
+                            f"({file_size_mb:.2f} MB, allyCode={txt_allyCode})"
+                        )
+                        await interaction.edit_original_response(
+                            content=(
+                                emojis.redcross
+                                + " Discord a refusé le fichier car il dépasse "
+                                + "la taille maximale autorisée."
+                            )
+                        )
+                    else:
+                        raise
 
         except Exception as e:
             golog.log("ERR", traceback.format_exc())
