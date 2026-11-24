@@ -194,7 +194,7 @@ def _validate_api_guild_account(payload):
     guild_id = payload.get("guild_id")
     ally_code = payload.get("allyCode")
     if guild_id is not None and (
-        not isinstance(guild_id, str) or not re.fullmatch(r"[0-9]{1,24}", guild_id)
+        not isinstance(guild_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,22}", guild_id)
     ):
         return None, None, False
     if ally_code is not None and (
