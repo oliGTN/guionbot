@@ -4434,7 +4434,7 @@ class CodexRemodView(discord.ui.View):
                 self.progress_json,
                 self.ally_code,
                 True,
-                interaction=interaction,
+                interaction=None,
                 initialdata=self.initialdata
             )
             if not isinstance(sim_data, dict):
@@ -4501,7 +4501,8 @@ class CodexRemodView(discord.ui.View):
                 self.ally_code,
                 False,
                 interaction=interaction,
-                initialdata=self.initialdata
+                initialdata=self.initialdata,
+                update_acknowledgement=False
             )
             if not isinstance(ret_data, dict):
                 ret_data = {}
@@ -4891,12 +4892,21 @@ class ModsCog(commands.GroupCog, name="mods"):
                 remove_command_from_queue(interaction)
                 return
 
+            # Use one channel message for configuration retrieval, mod preparation,
+            # deployment progress and the final result.
+            progress = await start_cancelable_progress(
+                interaction,
+                emojis.hourglass + " Récupération de la configuration...",
+                acknowledgement="✅ Commande lancée. Préparation des déplacements en cours."
+            )
+
             #Run the function
             ec, et, ret_data = await manage_mods.apply_config_allocations(
-                                        conf_name, 
-                                        txt_allyCode, 
-                                        simulation, 
-                                        interaction=interaction)
+                                        conf_name,
+                                        txt_allyCode,
+                                        simulation,
+                                        interaction=interaction,
+                                        progress=progress)
 
             await release_sem(txt_allyCode)
 
