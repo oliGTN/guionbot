@@ -284,7 +284,7 @@ async def handle_api_tb_events(request):
         dict_guild = _get_cached_api_guild(guild_id, ally_code)
         if dict_guild is None:
             err_code, err_txt, dict_guild = await connect_rpc.get_guild_data_from_id(
-                guild_id, True, allyCode=ally_code
+                guild_id, True, allyCode=ally_code, category="EVENT_SYNC"
             )
             if err_code != 0:
                 golog.log("WAR", "API TB events guild retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
