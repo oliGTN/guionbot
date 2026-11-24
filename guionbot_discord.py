@@ -4869,6 +4869,7 @@ class ModsCog(commands.GroupCog, name="mods"):
     async def apply_conf(self, interaction: discord.Interaction,
                          conf_name: str,
                          simulation: bool=False):
+        sem_acquired = False
         try:
             # Add command to queue, check if bot is locked, check queue size
             ret_add, resp_msg = await add_command_to_queue(interaction)
@@ -4897,6 +4898,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=txt)
                 remove_command_from_queue(interaction)
                 return
+            sem_acquired = True
 
             # Use one channel message for configuration retrieval, mod preparation,
             # deployment progress and the final result.
@@ -4913,9 +4915,6 @@ class ModsCog(commands.GroupCog, name="mods"):
                                         simulation,
                                         interaction=interaction,
                                         progress=progress)
-
-            await release_sem(txt_allyCode)
-
 
             # Prepare warning info, to be displayed if error or sucess
             cost_and_missing = ""
@@ -4965,6 +4964,9 @@ class ModsCog(commands.GroupCog, name="mods"):
             error_message = emojis.redcross + " erreur inconnue"
             if not await finish_cancelable_progress(interaction, error_message):
                 await interaction.edit_original_response(content=error_message)
+        finally:
+            if sem_acquired:
+                await release_sem(txt_allyCode)
 
         remove_command_from_queue(interaction)
         return
