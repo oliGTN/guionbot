@@ -5110,6 +5110,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                             + f"Limite Discord : {limit_mb:.2f} MB."
                         )
                     )
+                    remove_command_from_queue(interaction)
                     return
 
                 try:
