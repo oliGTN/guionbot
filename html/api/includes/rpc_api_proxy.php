@@ -71,7 +71,7 @@ function rpcApiRun(string $endpoint, string $authName): void
 
     // Missing per-key values are deliberately forwarded as JSON null.
     // Validate only values that are explicitly configured.
-    if (($guildId !== null && (!is_string($guildId) || !preg_match('/^[0-9]{1,24}$/', $guildId))) ||
+    if (($guildId !== null && (!is_string($guildId) || !preg_match('/^[A-Za-z0-9_-]{1,22}$/', $guildId))) ||
         ($allyCode !== null && (!is_string($allyCode) || !preg_match('/^[0-9]{9}$/', $allyCode)))) {
         rpcApiRespond(503, ['success' => false, 'error' => 'API key has an invalid guild_id or allyCode']);
     }
