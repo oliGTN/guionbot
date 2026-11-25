@@ -3669,29 +3669,11 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
         if zone_id in dict_zone_states:
             knownCommandState = dict_zone_states[zone_id]
-            zone_param = tb_id+":"+zone_id+":"+knownCommandState
         else:
-            zone_param = tb_id+":"+zone_id
+            knownCommandState = None
 
     if len(list_unit_ids) == 0:
         return 1, "Plus rien à déployer"
-
-    # Launch the actual command
-    """
-    process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tb.sh", txt_allyCode, zone_param]+list_unit_ids
-    golog.log("DBG", process_cmd_list)
-    process = subprocess_run(process_cmd_list)
-    golog.log("DBG", "deploy_tb code="+str(process.returncode))
-    if process.returncode!=0:
-        if process.returncode == 202:
-            return 1, "Erreur en déployant en TB - pas de TB en cours"
-        elif process.returncode == 203:
-            return 1, "Erreur en déployant en TB - rien à déployer"
-        elif process.returncode == 44:
-            return 1, "Erreur en déployant en TB - incohérence des ordres de zone (ouvert / bloqué), essayez avec le territoire ouvert"
-        elif process.returncode != 0:
-            return 1, "Erreur en déployant en TB - code="+str(process.returncode)
-    """
 
     # RPC REQUEST for deployTB
     url = "http://localhost:8000/deployTB"
