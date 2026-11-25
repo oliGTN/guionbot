@@ -685,6 +685,7 @@ async def handle_deploy_tb_platoons(request):
         partial_count = 0
         failed_count = 0
         rpc_http_statuses = []
+        dict_player = None
         for group in groups.values():
             err_code, err_txt, result = await connect_rpc.platoon_tb(
                 ally_code,
@@ -693,6 +694,7 @@ async def handle_deploy_tb_platoons(request):
                 group["requested_defIds"],
                 preload=(group["platoon_strategy"] == "PRELOAD"),
                 round=phase,
+                dict_player=dict_player
                 disable_rpc_call=False,
             )
 
@@ -768,6 +770,10 @@ async def handle_deploy_tb_platoons(request):
                 else:
                     status_name = "FAILED"
                     failed_count += 1
+
+                #prepare next iteration of the loop
+                if "rpc" in result_data and "dict_player" in result_data["rpc"]:
+                    dict_player = result_data["rpc"]["dict_player"]
 
             if status_name == "ERROR":
                 failed_count += 1
@@ -850,7 +856,8 @@ async def handle_mod_inventory(request):
         # Always bypass cached initialdata: the caller expects the live mod inventory.
         err_code, err_txt, initialdata = await connect_rpc.get_player_initialdata(
             ac=ally_code,
-            use_cache_data=False
+            use_cache_data=False,
+            category="MOD_INVENTORY"
         )
         if err_code == 100:
             # EA has emailed an OTC. The user must submit it through GuionBot's
