@@ -814,17 +814,6 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
         else:
             continue
 
-        # --------------------------------------------------------
-        # eventLatest_ts == None means erroneous configuration.
-        #
-        # In that case, don't store events.
-        # --------------------------------------------------------
-
-        # A missing eventLatest_ts is an invalid configuration: keep
-        # the existing behavior of not storing events in this case.
-        if store_events and eventLatest_ts is None:
-            continue
-
         if event_ts > max_event_ts:
             max_event_ts = event_ts
 
