@@ -3946,7 +3946,9 @@ async def platoon_tb(
     # get guild tb info, including player deployed units
     # use CACHE data to speed up the command, with the risk that another player deploys
     # the same unit at the same place
-    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
+    err_code, err_txt, dict_guild = await get_guild_data_from_ac(
+        txt_allyCode, False, category="TB_COMMAND"
+    )
     if err_code != 0:
         golog.log("ERR", err_txt)
         return (100 if err_code == 100 else 1), "Erreur en récupérant les infos guilde de "+txt_allyCode+": "+err_txt, None
