@@ -55,12 +55,28 @@ function rpcApiRun(string $endpoint, string $authName): void
     if ($raw === false) {
         rpcApiRespond(400, ['success' => false, 'error' => 'Invalid request body']);
     }
+    $requestParams = [];
     if (trim($raw) !== '') {
         $request = json_decode($raw);
-        if (json_last_error() !== JSON_ERROR_NONE || !($request instanceof stdClass) ||
-            count(get_object_vars($request)) !== 0) {
-            rpcApiRespond(400, ['success' => false, 'error' => 'Request body must be empty or an empty JSON object']);
+        if (json_last_error() !== JSON_ERROR_NONE || !($request instanceof stdClass)) {
+            rpcApiRespond(400, ['success' => false, 'error' => 'Request body must be a JSON object']);
         }
+        $requestParams = get_object_vars($request);
+    }
+
+    // Only tb-events accepts a public request parameter. Guild/account
+    // identity always comes from the API key configuration below.
+    if ($endpoint === 'tb-events') {
+        $unknownParams = array_diff(array_keys($requestParams), ['earliest_timestamp']);
+        if (count($unknownParams) > 0) {
+            rpcApiRespond(400, ['success' => false, 'error' => 'Unsupported request parameter']);
+        }
+        if (array_key_exists('earliest_timestamp', $requestParams) &&
+            (!is_int($requestParams['earliest_timestamp']) || $requestParams['earliest_timestamp'] < 0)) {
+            rpcApiRespond(400, ['success' => false, 'error' => 'Invalid earliest_timestamp']);
+        }
+    } elseif (count($requestParams) > 0) {
+        rpcApiRespond(400, ['success' => false, 'error' => 'Request body must be empty or an empty JSON object']);
     }
 
     require_once dirname(__DIR__) . '/includes/api_auth.php';
@@ -98,7 +114,10 @@ function rpcApiRun(string $endpoint, string $authName): void
             'Content-Type: application/json',
             'Authorization: Bearer ' . $token
         ],
-        CURLOPT_POSTFIELDS => json_encode(['guild_id' => $guildId, 'allyCode' => $allyCode]),
+        CURLOPT_POSTFIELDS => json_encode(array_merge(
+            ['guild_id' => $guildId, 'allyCode' => $allyCode],
+            $requestParams
+        )),
         CURLOPT_CONNECTTIMEOUT => 3,
         CURLOPT_TIMEOUT => 180
     ]);
