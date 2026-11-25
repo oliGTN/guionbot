@@ -320,7 +320,7 @@ async def send_ea_otc(txt_allyCode, otc):
 #########################################
 # Get full guild data, using the allyCode
 async def get_guild_data_from_ac(
-        txt_allyCode, use_cache_data, retryAuth=1, preserve_ea_code=False,
+        txt_allyCode, use_cache_data, retryAuth=1,
         category="FULL"):
     # RPC REQUEST for guild
     url = "http://localhost:8000/guild"
@@ -357,7 +357,7 @@ async def get_guild_data_from_ac(
 
     if "err_code" in guild_json:
         rpc_err_code = guild_json["err_code"]
-        return (100 if preserve_ea_code and rpc_err_code == 100 else 1), guild_json["err_txt"], None
+        return (100 if rpc_err_code == 100 else 1), guild_json["err_txt"], None
 
     if "guild" in guild_json:
         dict_guild = guild_json["guild"]
@@ -3669,15 +3669,12 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
         if zone_id in dict_zone_states:
             knownCommandState = dict_zone_states[zone_id]
-            zone_param = tb_id+":"+zone_id+":"+knownCommandState
         else:
             knownCommandState = None
-            zone_param = tb_id+":"+zone_id
 
     if len(list_unit_ids) == 0:
         return 1, "Plus rien à déployer"
 
-    # Launch the actual command
     # RPC REQUEST for deployTB
     url = "http://localhost:8000/deployTB"
     params = {"allyCode": txt_allyCode,
@@ -3931,7 +3928,9 @@ async def platoon_tb(
     # get guild tb info, including player deployed units
     # use CACHE data to speed up the command, with the risk that another player deploys
     # the same unit at the same place
-    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
+    err_code, err_txt, dict_guild = await get_guild_data_from_ac(
+        txt_allyCode, False, category="TB_COMMAND"
+    )
     if err_code != 0:
         golog.log("ERR", err_txt)
         return (100 if err_code == 100 else 1), "Erreur en récupérant les infos guilde de "+txt_allyCode+": "+err_txt, None
