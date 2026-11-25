@@ -599,7 +599,10 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
             "WHERE guild_id='" + guild_id + "'"
         )
         golog.log("DBG", query)
-        eventLatest_ts = await connect_mysql.get_value_async(query)
+        event_latest_task = asyncio.create_task(
+            connect_mysql.get_value_async(query)
+        )
+        eventLatest_ts = await event_latest_task
     else:
         eventLatest_ts = earliest_timestamp
 
@@ -729,66 +732,246 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
         list_rpc_events.extend(resp_events["event"])
 
     # ------------------------------------------------------------
-    # Process returned events. TB/TW are no longer persisted to event
-    # files. CHAT retains its existing file-backed behaviour.
+    # Process events
     # ------------------------------------------------------------
 
-    dict_events = {}
+    golog.log("DBG", "start loop list_rpc_events")
+
+    max_event_ts = 0
+
+    dict_new_events = {}
+
+    dict_event_counts = {
+        "chat": 0,
+        "tb": 0,
+        "tw": 0
+    }
+
+    # Sets are considerably faster than repeatedly searching lists.
     chat_file_ids = set()
-    chat_events_by_file = {}
+    tb_file_ids = set()
+    tw_file_ids = set()
 
     for event in list_rpc_events:
         channel_id = event["channelId"]
+        event_ts = int(event["timestamp"])
+
+        # --------------------------------------------------------
+        # CHAT
+        # --------------------------------------------------------
+
         if channel_id.startswith("guild-{"):
-            event_day_ts = int(event["timestamp"] / 1000 / 86400) * 86400 * 1000
+            event_day_ts = (
+                int(event_ts / 1000 / 86400)
+                * 86400
+                * 1000
+            )
+
             event_file_id = "GUILD_CHAT:" + str(event_day_ts)
+
             chat_file_ids.add(event_file_id)
-            chat_events_by_file.setdefault(event_file_id, []).append(event)
-        elif "TB_EVENT" in channel_id or "TERRITORY_WAR" in channel_id:
-            ret_re = re.search(".*\\-\\{.*\\}\\-(.*)\\-.*", channel_id)
+
+            event_type = "chat"
+
+        # --------------------------------------------------------
+        # TB
+        # --------------------------------------------------------
+
+        elif "TB_EVENT" in channel_id:
+            ret_re = re.search(
+                ".*\\-\\{.*\\}\\-(.*)\\-.*",
+                channel_id
+            )
+
             if ret_re is None:
                 continue
+
             event_file_id = ret_re.group(1)
-            if not store_events:
-                dict_events.setdefault(event_file_id, {})
-                dict_events[event_file_id][event["id"]] = event
+
+            tb_file_ids.add(event_file_id)
+
+            event_type = "tb"
+
+        # --------------------------------------------------------
+        # TW
+        # --------------------------------------------------------
+
+        elif "TERRITORY_WAR" in channel_id:
+            ret_re = re.search(
+                ".*\\-\\{.*\\}\\-(.*)\\-.*",
+                channel_id
+            )
+
+            if ret_re is None:
+                continue
+
+            event_file_id = ret_re.group(1)
+
+            tw_file_ids.add(event_file_id)
+
+            event_type = "tw"
+
+        else:
+            continue
+
+        # --------------------------------------------------------
+        # eventLatest_ts == None means erroneous configuration.
+        #
+        # In that case, don't store events.
+        # --------------------------------------------------------
+
+        # A missing eventLatest_ts is an invalid configuration: keep
+        # the existing behavior of not storing events in this case.
+        if store_events and eventLatest_ts is None:
+            continue
+
+        if event_ts > max_event_ts:
+            max_event_ts = event_ts
+
+        dict_event_counts[event_type] += 1
+
+        dict_new_events.setdefault(
+            event_file_id,
+            []
+        ).append(event)
+
+    golog.log("DBG", "end loop list_rpc_events")
+
+    # ------------------------------------------------------------
+    # Update latest timestamp
+    # ------------------------------------------------------------
+
+    if store_events and max_event_ts != 0 and eventLatest_ts is not None:
+        query = (
+            "UPDATE guild_bot_infos "
+            "SET eventLatest_ts=" + str(max_event_ts) + " "
+            "WHERE guild_id='" + guild_id + "'"
+        )
+
+        golog.log(
+            "INFO",
+            query,
+            identifier=guild_id
+        )
+
+        await connect_mysql.simple_execute_async(query)
+
+    golog.log(
+        "INFO",
+        "New events: " + str(dict_event_counts),
+        identifier=guild_id
+    )
+
+    # ------------------------------------------------------------
+    # Prepare dict_events
+    # ------------------------------------------------------------
+
+    golog.log("DBG", "start loop dict_new_events")
+
+    dict_events = {}
+
+    # ------------------------------------------------------------
+    # Helper functions for file I/O
+    #
+    # They run in a worker thread so that JSON/file operations do
+    # not block the asyncio event loop.
+    # ------------------------------------------------------------
 
     def read_events_file(filename):
         if not os.path.exists(filename):
             return {}
+
         try:
             with open(filename, "r") as f:
                 return json_load(f)
+
         except Exception:
             return None
 
     def write_events_file(filename, events):
         with open(filename, "w") as f:
-            f.write(json_dumps(events, indent=4))
-
-    # Keep existing CHAT file workflow only for bot calls, and only when
-    # the DB synchronization timestamp is configured.
-    for event_file_id in chat_file_ids:
-        fevents = "EVENTS/" + guild_id + "_" + event_file_id + "_events.json"
-        await acquire_sem(fevents)
-        try:
-            file_events = await asyncio.to_thread(read_events_file, fevents)
-            if file_events is None:
-                golog.log("WAR", "error while reading " + fevents + " ... ignoring", identifier=guild_id)
-                file_events = {}
-            new_chat_events = (
-                chat_events_by_file.get(event_file_id, [])
-                if store_events and eventLatest_ts is not None
-                else []
+            f.write(
+                json_dumps(
+                    events,
+                    indent=4
+                )
             )
-            for event in new_chat_events:
-                file_events[event["id"]] = event
-            if new_chat_events:
-                await asyncio.to_thread(write_events_file, fevents, file_events)
-            dict_events[event_file_id] = file_events
-        finally:
-            await release_sem(fevents)
 
+    # ------------------------------------------------------------
+    # Read/write event files
+    # ------------------------------------------------------------
+
+    for event_type, file_ids in [
+        ("CHAT", chat_file_ids),
+        ("TB", tb_file_ids),
+        ("TW", tw_file_ids)
+    ]:
+
+        if event_type not in event_types:
+            continue
+
+        for event_file_id in file_ids:
+
+            fevents = (
+                "EVENTS/"
+                + guild_id
+                + "_"
+                + event_file_id
+                + "_events.json"
+            )
+
+            await acquire_sem(fevents)
+
+            try:
+                # ------------------------------------------------
+                # Read previous events without blocking the
+                # asyncio event loop.
+                # ------------------------------------------------
+
+                file_events = await asyncio.to_thread(
+                    read_events_file,
+                    fevents
+                )
+
+                if file_events is None:
+                    golog.log(
+                        "WAR",
+                        "error while reading "
+                        + fevents
+                        + " ... ignoring",
+                        identifier=guild_id
+                    )
+
+                    file_events = {}
+
+                # ------------------------------------------------
+                # Add new events
+                # ------------------------------------------------
+
+                if event_file_id in dict_new_events:
+
+                    for event in dict_new_events[event_file_id]:
+                        event_id = event["id"]
+                        file_events[event_id] = event
+
+                    # --------------------------------------------
+                    # Write without blocking the event loop.
+                    # --------------------------------------------
+
+                    await asyncio.to_thread(
+                        write_events_file,
+                        fevents,
+                        file_events
+                    )
+
+                # ------------------------------------------------
+                # Add all events to returned dictionary
+                # ------------------------------------------------
+
+                dict_events[event_file_id] = file_events
+
+            finally:
+                await release_sem(fevents)
 
     golog.log("DBG", "end loop dict_new_events")
 
