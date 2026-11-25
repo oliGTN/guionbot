@@ -730,8 +730,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
 
     # ------------------------------------------------------------
     # Process returned events. TB/TW are no longer persisted to event
-    # files. The API returns them directly, grouped by event file ID.
-    # CHAT retains its existing file-backed behaviour.
+    # files. CHAT retains its existing file-backed behaviour.
     # ------------------------------------------------------------
 
     dict_events = {}
@@ -754,7 +753,21 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
                 dict_events.setdefault(event_file_id, {})
                 dict_events[event_file_id][event["id"]] = event
 
-    # CHAT files are kept as before, merged by event ID.
+    def read_events_file(filename):
+        if not os.path.exists(filename):
+            return {}
+        try:
+            with open(filename, "r") as f:
+                return json_load(f)
+        except Exception:
+            return None
+
+    def write_events_file(filename, events):
+        with open(filename, "w") as f:
+            f.write(json_dumps(events, indent=4))
+
+    # Keep existing CHAT file workflow only for bot calls, and only when
+    # the DB synchronization timestamp is configured.
     for event_file_id in chat_file_ids:
         fevents = "EVENTS/" + guild_id + "_" + event_file_id + "_events.json"
         await acquire_sem(fevents)
@@ -763,9 +776,14 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
             if file_events is None:
                 golog.log("WAR", "error while reading " + fevents + " ... ignoring", identifier=guild_id)
                 file_events = {}
-            for event in chat_events_by_file.get(event_file_id, []):
+            new_chat_events = (
+                chat_events_by_file.get(event_file_id, [])
+                if store_events and eventLatest_ts is not None
+                else []
+            )
+            for event in new_chat_events:
                 file_events[event["id"]] = event
-            if chat_events_by_file.get(event_file_id):
+            if new_chat_events:
                 await asyncio.to_thread(write_events_file, fevents, file_events)
             dict_events[event_file_id] = file_events
         finally:
