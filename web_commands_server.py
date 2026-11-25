@@ -299,6 +299,13 @@ async def handle_api_tb_events(request):
         guild_id, ally_code, valid = _validate_api_guild_account(payload)
         if not valid:
             return web.json_response({"err_code": 400, "err_txt": "Invalid guild_id or allyCode"}, status=400)
+        earliest_timestamp = payload.get("earliest_timestamp")
+        if earliest_timestamp is not None and (
+            isinstance(earliest_timestamp, bool)
+            or not isinstance(earliest_timestamp, int)
+            or earliest_timestamp < 0
+        ):
+            return web.json_response({"err_code": 400, "err_txt": "Invalid earliest_timestamp"}, status=400)
         dict_guild = _get_cached_api_guild(guild_id, ally_code)
         if dict_guild is None:
             dict_guild = _get_cached_api_guild_events(guild_id, ally_code)
@@ -313,7 +320,8 @@ async def handle_api_tb_events(request):
             # contain the complete response contract.
             _cache_api_guild_events(guild_id, ally_code, dict_guild)
         err_code, err_txt, data = await connect_rpc.get_event_data(
-            dict_guild, ["TB"], True, allyCode=ally_code
+            dict_guild, ["TB"], True, allyCode=ally_code,
+            store_events=False, earliest_timestamp=earliest_timestamp
         )
         if err_code != 0:
             golog.log("WAR", "API TB events retrieval failed for guild " + guild_id + ": " + str(err_code) + " " + str(err_txt))
