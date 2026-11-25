@@ -547,7 +547,6 @@ async def get_tb_triggers(guild_id: str, force_load):
                 golog.log(
                     "WAR",
                     "Spreadsheet not found: " + repr(gfile_name)
-                    + "\\n" + traceback.format_exc()
                 )
                 return 1, [None, 0]
         except:
