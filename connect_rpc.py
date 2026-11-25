@@ -3911,6 +3911,7 @@ async def platoon_tb(
         requested_defIds, 
         preload=False,
         round=None,
+        dict_player=None,
         disable_rpc_call=False):
 
     calling_func = inspect.stack()[1][3]
@@ -3925,11 +3926,12 @@ async def platoon_tb(
             +" from "+str(calling_func))
 
     # get player roster
-    # use CACHE data as unit IDs do not change often
-    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
-    if err_code != 0:
-        golog.log("ERR", err_txt)
-        return (100 if err_code == 100 else 1), "Erreur en se connectant au compte "+txt_allyCode+": "+err_txt, None
+    if dict_player is None:
+        #ext player is enough to get unit IDs
+        err_code, err_txt, dict_player = await get_extplayer_data(txt_allyCode)
+        if err_code != 0:
+            golog.log("ERR", err_txt)
+            return 1, "Erreur en se connectant au compte "+txt_allyCode+": "+err_txt, None
     
     player_name = dict_player["name"]
     dict_roster = {} # this dict may be used with defId or unit ID as a key
@@ -4085,7 +4087,9 @@ async def platoon_tb(
     return 0, "", {"noneedToDeploy_defIds": noneedToDeploy_defIds,
                    "playerUsed_defIds": playerUsed_defIds,
                    "alreadyDeployed_defIds": alreadyDeployed_defIds,
-                   "deployed_defIds": toDeploy_defIds}
+                   "deployed_defIds": toDeploy_defIds,
+                   "rpc": {"dict_player": dict_player}
+                   }
 
 async def update_K1_players():
     url = "http://localhost:8000/gacleaderboard"
