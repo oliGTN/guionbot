@@ -294,7 +294,7 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
     if check_owned:
         # Connected user, get full player data
         if initialdata_player==None:
-            ec, et, i_player = await connect_rpc.get_player_initialdata(allyCode)
+            ec, et, i_player = await connect_rpc.get_player_initialdata(allyCode, category="EQUIPMENT")
             if ec != 0:
                 return 1, et, None
         else:
@@ -951,7 +951,7 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
         return
 
     if with_inventory:
-        ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
+        ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode, category="MOD_INVENTORY")
         if ec!=0:
             await command_error(ctx_interaction, resp_msg, et)
             remove_command_from_queue(ctx_interaction)
@@ -1035,7 +1035,7 @@ async def upgrade_mod_slice_up(ctx_interaction, target_rarity_tier, list_alias_t
                 return
 
     # Initial data is needed for the complete mod inventory and for simulation.
-    ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
+    ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode, category="MOD_MANAGEMENT")
     if ec != 0:
         await command_error(ctx_interaction, resp_msg, et)
         remove_command_from_queue(ctx_interaction)
@@ -1158,7 +1158,7 @@ async def allocate_random_mods(ctx_interaction):
         remove_command_from_queue(ctx_interaction)
         return
 
-    ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
+    ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode, category="MOD_MANAGEMENT")
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
         remove_command_from_queue(ctx_interaction)

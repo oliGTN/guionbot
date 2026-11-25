@@ -155,7 +155,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
     #Get player API initialdata
     if initialdata==None:
-        ec, et, initialdata = await connect_rpc.get_player_initialdata(allyCode)
+        ec, et, initialdata = await connect_rpc.get_player_initialdata(allyCode, category="MOD_MANAGEMENT")
         if ec!=0:
             return ec, et, {}
 
@@ -756,7 +756,7 @@ async def get_modopti_export(txt_allyCode, prev_modopti_content=None, return_ini
     dict_player = goutils.roster_from_dict_to_list(dict_player)
 
     #Get player API initialdata
-    ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
+    ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode, category="MOD_INVENTORY")
     if ec!=0:
         golog.log("WAR", "cannot get initialdata for "+txt_allyCode+" > assume empty")
         return (ec, et, None, None) if return_initialdata else (ec, et, None)
@@ -1320,7 +1320,7 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
 
     #Get player API initialdata
     if initialdata==None:
-        ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
+        ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode, category="MOD_INVENTORY")
         if ec!=0:
             return ec, et, {}
 

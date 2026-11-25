@@ -856,7 +856,8 @@ async def handle_mod_inventory(request):
         # Always bypass cached initialdata: the caller expects the live mod inventory.
         err_code, err_txt, initialdata = await connect_rpc.get_player_initialdata(
             ac=ally_code,
-            use_cache_data=False
+            use_cache_data=False,
+            category="MOD_INVENTORY"
         )
         if err_code == 100:
             # EA has emailed an OTC. The user must submit it through GuionBot's
