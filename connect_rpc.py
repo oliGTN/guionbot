@@ -592,7 +592,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
 
     # Bot workflow: use the DB synchronization timestamp. API workflow:
     # use its caller-supplied timestamp and never query/update this DB value.
-    if store_events:
+    if earliest_timestamp is None:
         query = (
             "SELECT eventLatest_ts "
             "FROM guild_bot_infos "
