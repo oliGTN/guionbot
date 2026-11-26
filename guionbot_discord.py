@@ -9750,7 +9750,7 @@ async def run_scheduled_platoons(guild_id, output_channel):
         return
     ec, ret_txt = await check_and_deploy_platoons(
         guild_id, bot_infos["tbChanRead_id"], bot_infos["echostation_id"],
-        None, None, False, filter_zones=[],
+        None, None, True, filter_zones=[],
         connected_allyCode=bot_infos["allyCode"]
     )
     if ec != 0:
@@ -9773,6 +9773,7 @@ async def run_scheduled_deployments(guild_id, output_channel):
         return
     lines = ret_data["lines_player"]
     end_time = ret_data["round_endTime"]
+    dict_players_by_IG = (await get_mysql.load_config_players(guild_id=guild_id))[0]
     expire_time_txt = datetime.datetime.fromtimestamp(
         int(end_time / 1000), guild_timezone
     ).strftime("le %A %d %B à %H:%M (" + config.GUILD_TIMEZONE + ")")
@@ -9782,7 +9783,11 @@ async def run_scheduled_deployments(guild_id, output_channel):
     )
     if lines:
         for player_name, player_status in sorted(lines, key=lambda x: x[0].lower()):
-            output_txt += "**" + player_name + "**: " + player_status + "\n"
+            if player_name in dict_players_by_IG:
+                player_name_txt = dict_players_by_IG[player_name][1]
+            else:
+                player_name_txt = "**" + player_name + "**"
+            output_txt += player_name_txt + ": " + player_status + "\n"
         output_txt += "\n__Total__ : " + ret_data["total"]
     else:
         output_txt += "Aucun"
