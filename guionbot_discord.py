@@ -9455,10 +9455,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     return
 
                 guild_id = bot_infos["guild_id"]
-                if guild_id == None:
-                    await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
-                    await ctx.message.add_reaction(emojis.redcross)
-                    return
 
                 tw_mode = True
                 ec, et, opp_allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
@@ -9467,12 +9463,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.message.add_reaction(emojis.redcross)
                     return
 
-                ec, et, bot_player = await connect_rpc.get_bot_player_data(guild_id, False)
-                if ec != 0:
-                    await ctx.send(et)
-                    await ctx.message.add_reaction(emojis.redcross)
-                    return
-                allyCode = str(bot_player["allyCode"])
+                allyCode = bot_infos["allyCode"]
             else:
                 tw_mode = False
                 allyCode = args[0]
