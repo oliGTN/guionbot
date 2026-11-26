@@ -9859,8 +9859,7 @@ class ScheduledGuildEventsCog(commands.Cog):
             await connect_mysql.simple_execute_async(
                 "INSERT INTO guild_scheduled_events "
                 "(event_type, daytime, guild_id, channel_id) VALUES (%s, %s, %s, %s) "
-                "ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id), "
-                "last_run_date=NULL, last_run_at=NULL",
+                "ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id)",
                 (event_type, daytime, guild_id, int(output_channel.id))
             )
             await ctx.send(
@@ -9916,16 +9915,12 @@ class ScheduledGuildEventsCog(commands.Cog):
         if not rows:
             return
         for schedule_id, event_type, guild_id, channel_id in rows:
-            await connect_mysql.simple_execute_async(
+            claimed_rows = await connect_mysql.simple_execute_async(
                 "UPDATE guild_scheduled_events SET last_run_date=%s, last_run_at=NOW() "
                 "WHERE id=%s AND (last_run_date IS NULL OR last_run_date < %s)",
                 (run_date, schedule_id, run_date)
             )
-            claimed = await connect_mysql.get_value_async(
-                "SELECT last_run_date FROM guild_scheduled_events WHERE id=%s",
-                (schedule_id,)
-            )
-            if claimed is None or str(claimed) != run_date:
+            if claimed_rows != 1:
                 continue
             channel = self.bot.get_channel(int(channel_id))
             if channel is None:
@@ -9935,8 +9930,8 @@ class ScheduledGuildEventsCog(commands.Cog):
                     golog.log("ERR", f"Scheduled event {schedule_id}: channel {channel_id} unavailable")
                     continue
             try:
-                with golog.operation_context(f"scheduled_{event_type}", identifier=str(guild_id)):
-                    golog.log("INFO", f"Running scheduled event id={schedule_id} type={event_type} guild={guild_id}")
+                with golog.operation_context(f"scheduled_{event_type}"):
+                    golog.log("INFO", f"Running scheduled event id={schedule_id} type={event_type} guild={guild_id}", identifier=guild_id)
                     if event_type == "platoons":
                         await run_scheduled_platoons(guild_id, channel)
                     elif event_type == "deployments":
