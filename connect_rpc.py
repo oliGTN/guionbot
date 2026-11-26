@@ -43,8 +43,8 @@ async def get_dict_bot_accounts():
     ret_dict = {}
     if db_data != None:
         for line in db_data:
-            ret_dict[line[0]] = {"allyCode": str(line[1]), 
-                                 "locked_since": line[2], 
+            ret_dict[line[0]] = {"allyCode": str(line[1]),
+                                 "locked_since": line[2],
                                  "priority_cache":line[3],
                                  "lock_when_played":line[4],
                                  "force_auth":line[5],
@@ -110,18 +110,18 @@ async def ispriority_cache_bot_account(bot_allyCode):
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
 #event_type: []/None, ["TB"], ["TW", CHAT"], ...
 async def get_guild_rpc_data(
-        guild_id, 
-        event_types, 
-        force_update, 
+        guild_id,
+        event_types,
+        force_update,
         allyCode=None,
-        dict_guild=None, 
+        dict_guild=None,
         dict_TBmapstats=None,
-        dict_events=None, 
+        dict_events=None,
         guild_bots=None):
 
     calling_func = inspect.stack()[1][3]
     golog.log(
-            "INFO", 
+            "INFO",
             "START ("+guild_id \
             +", "+str(event_types) \
             +", "+str(force_update) \
@@ -135,8 +135,8 @@ async def get_guild_rpc_data(
     ### guild
     if dict_guild==None:
         ec, et, dict_guild = await get_guild_data_from_id(
-                guild_id, 
-                force_update, 
+                guild_id,
+                force_update,
                 allyCode=allyCode,
                 guild_bots=guild_bots,
                 category="EVENT_SYNC")
@@ -180,8 +180,8 @@ async def get_guild_rpc_data(
 #########################################
 # Get connection data
 async def get_connection_parameters(
-        guild_id, 
-        force_update, 
+        guild_id,
+        force_update,
         allyCode,
         guild_bots=None):
 
@@ -226,8 +226,8 @@ async def get_connection_parameters(
 #########################################
 # Get full guild data, using the bot account
 async def get_guild_data_from_id(
-        guild_id, 
-        force_update, 
+        guild_id,
+        force_update,
         allyCode=None,
         guild_bots=None,
         category="FULL"):
@@ -236,8 +236,8 @@ async def get_guild_data_from_id(
     bot_allyCode, \
     use_cache_data, \
     retryAuth = await get_connection_parameters(
-            guild_id, 
-            force_update, 
+            guild_id,
+            force_update,
             allyCode,
             guild_bots=guild_bots)
 
@@ -375,7 +375,7 @@ async def get_guild_data_from_ac(
 async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
     calling_func = inspect.stack()[1][3]
     golog.log(
-            "INFO", 
+            "INFO",
             "START ("+str(guild_id) \
             +", "+str(allyCode)+")" \
             +" from "+str(calling_func))
@@ -390,7 +390,7 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
 
     # RPC REQUEST for TBmapstats
     url = "http://localhost:8000/TBmapstats"
-    params = {"allyCode": bot_allyCode, 
+    params = {"allyCode": bot_allyCode,
               "guild_id": guild_id,
               "use_cache_data":use_cache_data,
               "retryAuth":retryAuth}
@@ -922,12 +922,12 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
             ("TB", tb_file_ids),
             ("TW", tw_file_ids)
         ]:
-    
+
             if event_type not in event_types:
                 continue
-    
+
             for event_file_id in file_ids:
-    
+
                 fevents = (
                     "EVENTS/"
                     + guild_id
@@ -935,20 +935,20 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
                     + event_file_id
                     + "_events.json"
                 )
-    
+
                 await acquire_sem(fevents)
-    
+
                 try:
                     # ------------------------------------------------
                     # Read previous events without blocking the
                     # asyncio event loop.
                     # ------------------------------------------------
-    
+
                     file_events = await asyncio.to_thread(
                         read_events_file,
                         fevents
                     )
-    
+
                     if file_events is None:
                         golog.log(
                             "WAR",
@@ -957,38 +957,38 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
                             + " ... ignoring",
                             identifier=guild_id
                         )
-    
+
                         file_events = {}
-    
+
                     # ------------------------------------------------
                     # Add new events
                     # ------------------------------------------------
-    
+
                     if event_file_id in dict_new_events:
-    
+
                         for event in dict_new_events[event_file_id]:
                             event_id = event["id"]
                             file_events[event_id] = event
-    
+
                         # --------------------------------------------
                         # Write without blocking the event loop.
                         # --------------------------------------------
-    
+
                         await asyncio.to_thread(
                             write_events_file,
                             fevents,
                             file_events
                         )
-    
+
                     # ------------------------------------------------
                     # Add all events to returned dictionary
                     # ------------------------------------------------
-    
+
                     dict_events[event_file_id] = file_events
-    
+
                 finally:
                     await release_sem(fevents)
-    
+
 
     golog.log("DBG", "end loop dict_new_events")
 
@@ -1279,17 +1279,17 @@ async def get_platoon_actual_strategy_from_dict(dict_guild):
 
     platoon_actual_strategy = {}
     for line in db_data:
-        platoon_actual_strategy[line[0]+"-1"] = {"filled": line[1], 
+        platoon_actual_strategy[line[0]+"-1"] = {"filled": line[1],
                                                  "strategy": bool(line[7])}
-        platoon_actual_strategy[line[0]+"-2"] = {"filled": line[2], 
+        platoon_actual_strategy[line[0]+"-2"] = {"filled": line[2],
                                                  "strategy": bool(line[8])}
-        platoon_actual_strategy[line[0]+"-3"] = {"filled": line[3], 
+        platoon_actual_strategy[line[0]+"-3"] = {"filled": line[3],
                                                  "strategy": bool(line[9])}
-        platoon_actual_strategy[line[0]+"-4"] = {"filled": line[4], 
+        platoon_actual_strategy[line[0]+"-4"] = {"filled": line[4],
                                                  "strategy": bool(line[10])}
-        platoon_actual_strategy[line[0]+"-5"] = {"filled": line[5], 
+        platoon_actual_strategy[line[0]+"-5"] = {"filled": line[5],
                                                  "strategy": bool(line[11])}
-        platoon_actual_strategy[line[0]+"-6"] = {"filled": line[6], 
+        platoon_actual_strategy[line[0]+"-6"] = {"filled": line[6],
                                                  "strategy": bool(line[12])}
 
     return 0, "", platoon_actual_strategy
@@ -1433,7 +1433,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
         return 1, "No open territory", {}
 
     return 0, "", {"tb_id": tb_id,
-                   "round": active_round, 
+                   "round": active_round,
                    "platoons": dict_platoons,
                    "open_territories": list_open_territories}
 
@@ -1442,7 +1442,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
 
     calling_func = inspect.stack()[1][3]
     golog.log(
-            "INFO", 
+            "INFO",
             "START ("+str(guild_id) \
             +", "+str(onlyLatest) \
             +", "+str(force_update) \
@@ -1533,7 +1533,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
 async def get_logs_from_events(dict_events, guild_id, chatLatest_ts, phases=[]):
     calling_func = inspect.stack()[1][3]
     golog.log(
-            "INFO", 
+            "INFO",
             "START ("+str(guild_id) \
             +", "+str(chatLatest_ts)+")" \
             +" from "+str(calling_func))
@@ -1622,7 +1622,7 @@ async def get_logs_from_events(dict_events, guild_id, chatLatest_ts, phases=[]):
                                         #Display the link to swgoh.gg
                                         player_ac = dict_player["allyCode"]
                                         txt_activity = txt_activity + " https://swgoh.gg/p/"+str(player_ac)+"/"
-                                        
+
                                     else:
                                         golog.log("WAR", "load_player error: "+et)
                                 else:
@@ -1813,7 +1813,7 @@ async def get_logs_from_events(dict_events, guild_id, chatLatest_ts, phases=[]):
 async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None,
                                     ignored_allyCodes=[]):
     dict_tb=godata.get("tb_definition.json")
-    ec, et, tb_data = await get_tb_status(guild_id, "", force_update, 
+    ec, et, tb_data = await get_tb_status(guild_id, "", force_update,
                                           ignored_allyCodes=ignored_allyCodes,
                                           allyCode=allyCode)
     if ec!=0:
@@ -1954,7 +1954,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         compute_estimated_fights=True,
                         fight_estimation_type=0,
                         targets_fights=None,
-                        targets_platoons=None, 
+                        targets_platoons=None,
                         allyCode=None,
                         my_tb_round=None, my_list_open_zones=None,
                         dict_guild=None, dict_TBmapstats=None,
@@ -1967,7 +1967,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     calling_func = inspect.stack()[1][3]
     golog.log(
-            "INFO", 
+            "INFO",
             "START ("+str(guild_id) \
             +", "+str(list_target_zone_steps) \
             +", "+str(simulated_tb) \
@@ -1978,9 +1978,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     ##################
     # Get guild current data from RPC
-    ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"], 
+    ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"],
                                   force_update, allyCode=allyCode,
-                                  dict_guild=dict_guild, 
+                                  dict_guild=dict_guild,
                                   dict_TBmapstats=dict_TBmapstats,
                                   dict_events=dict_all_events)
     if ec!=0:
@@ -2008,7 +2008,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
         #######################
         # Case of simulated TB - from the beginning
-        # In that case the TB is initialized from scratch 
+        # In that case the TB is initialized from scratch
         # independent from the fact if there is a TB ongoing or not
         #######################
 
@@ -2051,7 +2051,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     elif prev_round!=None:
         #######################
         # Case of simulated TB - ongoing (2nd or more round)
-        # In that case the TB is initialized from a previous round 
+        # In that case the TB is initialized from a previous round
         # What was estimation is condered a fact
         # Then the TB moves to the next round, and opens zones if possible
         #######################
@@ -2325,10 +2325,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     dict_recon_zones = {}
     list_open_zones = []
     dict_zones = {}
-    dict_phase = {"id": battle_id, 
-                  "round": tb_round, 
-                  "round_endTime": tb_round_endTime, 
-                  "type": tb_type, 
+    dict_phase = {"id": battle_id,
+                  "round": tb_round,
+                  "round_endTime": tb_round_endTime,
+                  "type": tb_type,
                   "name": dict_tb[tb_type]["name"]}
 
     ######################
@@ -2379,7 +2379,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                                                                       "deployedMix": 0,
                                                                       "deployed": 0,
                                                                       "Platoons": 0,
-                                                                      "strikes": 0} 
+                                                                      "strikes": 0}
             dict_tb_players[player_name]["rounds"][phase]["strikes"] = {} # "conflixtX_strikeY": "1/4"
             dict_tb_players[player_name]["rounds"][phase]["strike_attempts"] = 0
             dict_tb_players[player_name]["rounds"][phase]["strike_waves"] = 0
@@ -2517,8 +2517,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 cmdCmd = 1
 
             zone_name = recon_name[:-len(recon_shortname)-1]
-            dict_zones[zone_name]["platoons"] = {"cmdMsg": cmdMsg, 
-                                                 "cmdCmd": cmdCmd, 
+            dict_zones[zone_name]["platoons"] = {"cmdMsg": cmdMsg,
+                                                 "cmdCmd": cmdCmd,
                                                  "filling": {}}
 
             for platoon in zone["platoon"]:
@@ -2695,7 +2695,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 dict_remaining_deploy["ships"]["officers"] += player_remain_deploy_ships
                 dict_remaining_deploy["chars"]["officers"] += player_remain_deploy_chars
                 dict_remaining_deploy["mix"]["officers"] += player_remain_deploy_mix
-            
+
     dict_phase["availableShipDeploy"] = dict_remaining_deploy["ships"]["all"]
     dict_phase["availableCharDeploy"] = dict_remaining_deploy["chars"]["all"]
     dict_phase["availableMixDeploy"] = dict_remaining_deploy["mix"]["all"]
@@ -2717,7 +2717,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
             #depending on the TB, playing in ships/chars, or in mix,
             # detect if the player has finished playing, by checking if all is deployed
-            # If the player has deployed < 99%, he is considered not finished 
+            # If the player has deployed < 99%, he is considered not finished
             # and count as +1 in the remaining players to fight
             # LIMITATION: a player who has done all fights but not deployed
             #             will count as not finished, and his fights will
@@ -3202,18 +3202,18 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     #Update DB
     if simulated_tb==None and update_db:
         #website only updated from periodic computations, not from commands
-        await update_mysql.update_tb_round(guild_id, 
-                                            dict_phase["id"], 
-                                            dict_phase["round"], 
+        await update_mysql.update_tb_round(guild_id,
+                                            dict_phase["id"],
+                                            dict_phase["round"],
                                             dict_phase,
-                                            dict_zones, 
+                                            dict_zones,
                                             dict_strike_zones,
-                                            list_open_zones, 
+                                            list_open_zones,
                                             dict_tb_players)
 
-    return 0, "", {"phase": dict_phase, 
-                   "strike_zones": dict_strike_zones, 
-                   "players": dict_tb_players, 
+    return 0, "", {"phase": dict_phase,
+                   "strike_zones": dict_strike_zones,
+                   "players": dict_tb_players,
                    "open_zones": list_open_zones,
                    "zones": dict_zones,
                    "guild": dict_guild,
@@ -3294,32 +3294,32 @@ async def get_tw_opponent_leader(guild_id, allyCode=None):
 # get_tw_status
 # get status of territories in attack and def
 # {
-#   "tw_id": None / "TERRITORY_WAR_EVENT_C:01681236000000", 
-#   "tw_round": tw_round, 
+#   "tw_id": None / "TERRITORY_WAR_EVENT_C:01681236000000",
+#   "tw_round": tw_round,
 #   "homeGuild": {"list_defenses": [{"zone_short_name": "T1",
 #                                    "zone_id": "tw_jakku01_phase04_conflict03",
 #                                    "player_name": "Karcot",
 #                                    "player_id": <player id>,
-#                                    "list_defId": ["GENERALSKYWALGER", "ARCTROOPER", ...], 
-#                                    "is_beaten": <is_beaten>, 
+#                                    "list_defId": ["GENERALSKYWALGER", "ARCTROOPER", ...],
+#                                    "is_beaten": <is_beaten>,
 #                                    "fights": <fights>, "
 #                                    "team_gp": <team gp>, "
-#                                    "squad_id": <squad_id>, 
+#                                    "squad_id": <squad_id>,
 #                                    "datacron_id": <datacron_id>},
 #                                   {"zone_short_name": "T1",
 #                                    "playerName": "JeanLuc",
 #                                    ...}
 #                                  ]
 #                 "list_territories": [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>, <status>], ...]
-#                }, 
+#                },
 #   "awayGuild": {"list_defenses": ...,
 #                 "list_territories": ...
-#                }, 
-#   "opp_guildName": name, 
+#                },
+#   "opp_guildName": name,
 #   "opp_guildId": id
 # }
 ########################################
-async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=None, 
+async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=None,
                         manage_tw_end=False, dict_guild=None):
     global prev_dict_guild
     global prev_mapstats
@@ -3331,7 +3331,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
 
     calling_func = inspect.stack()[1][3]
     golog.log(
-            "INFO", 
+            "INFO",
             "START ("+guild_id \
             +", "+str(force_update) \
             +", "+str(with_attacks) \
@@ -3341,15 +3341,15 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
             +" from "+str(calling_func))
 
     if with_attacks or allyCode!=None:
-        #events are gathered when necessary (with_attacks) 
-        # or just when command launched from connected user 
+        #events are gathered when necessary (with_attacks)
+        # or just when command launched from connected user
         # (as this kind of user may benefit fr go.logs command)
         event_types="TW"
     else:
         event_types=""
 
     if with_attacks or dict_guild==None:
-        ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update, 
+        ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update,
                                                 allyCode=allyCode,
                                                 dict_guild=dict_guild)
         if ec!=0:
@@ -3491,10 +3491,10 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                                        "player_name": player_name,
                                        "player_id": player_id,
                                        "list_defId": list_chars,
-                                       "is_beaten": is_beaten, 
+                                       "is_beaten": is_beaten,
                                        "fights": fights,
                                        "team_gp": team_gp,
-                                       "squad_id": squad_id, 
+                                       "squad_id": squad_id,
                                        "datacron_id": datacron_id
                                       }
                         list_defenses[guild].append(my_defense)
@@ -3566,10 +3566,10 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
 
                                             list_chars.append(my_unit)
 
-                                        list_attacks.append({"zone": zone_shortname, 
-                                                             "attacker": attacker_name, 
+                                        list_attacks.append({"zone": zone_shortname,
+                                                             "attacker": attacker_name,
                                                              "defenser": defenser_name,
-                                                             "list_chars": list_chars, 
+                                                             "list_chars": list_chars,
                                                              "gp": team_gp,
                                                              "squad_id": squad_id})
 
@@ -3887,7 +3887,7 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None,
                           + str(completed) + " team(s): " + str(error))
                 return (1, "La connexion avec la page a été interrompue", completed, latestTWstatus)
 
-    return (0, 
+    return (0,
             "Déploiement OK de " + str(completed) + " équipe(s) pour " + player_name,
             completed,
             latestTWstatus)
@@ -3901,10 +3901,10 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None,
 # OUT: err_code = 2 > not the correct round
 ################################################
 async def platoon_tb(
-        txt_allyCode, 
-        zone_id, 
-        platoon_id, 
-        requested_defIds, 
+        txt_allyCode,
+        zone_id,
+        platoon_id,
+        requested_defIds,
         preload=False,
         round=None,
         dict_player=None,
@@ -3912,7 +3912,7 @@ async def platoon_tb(
 
     calling_func = inspect.stack()[1][3]
     golog.log(
-            "INFO", 
+            "INFO",
             "START ("+txt_allyCode \
             +", "+zone_id \
             +", "+platoon_id \
@@ -3928,7 +3928,7 @@ async def platoon_tb(
         if err_code != 0:
             golog.log("ERR", err_txt)
             return 1, "Erreur en se connectant au compte "+txt_allyCode+": "+err_txt, None
-    
+
     player_name = dict_player["name"]
     dict_roster = {} # this dict may be used with defId or unit ID as a key
     for unit in dict_player["rosterUnit"]:
@@ -4128,7 +4128,7 @@ async def get_coliseum_guild_status(guild_id, force_update=0, allyCode=None):
 
     #Launch HTTP request
     url = "http://localhost:8000/guildcoliseum"
-    params = {"allyCode": bot_allyCode, 
+    params = {"allyCode": bot_allyCode,
               "use_cache_data": use_cache_data,
               "retryAuth": retryAuth}
     req_data = json_dumps(params)
@@ -4308,7 +4308,7 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None,
         if member_id in dict_raid_members_by_id:
             score = int(dict_raid_members_by_id[member_id]["memberProgress"])
         else:
-            #If the member if not in the raid status, 
+            #If the member if not in the raid status,
             # consider he has not played
             score = 0
 
@@ -4363,35 +4363,35 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
 
 async def reveal_stat_mods(list_mods, txt_allyCode):
     return await generic_rpc_call(
-                    "revealMods", 
+                    "revealMods",
                     {"allyCode": txt_allyCode,
                     "list_mods": list_mods})
 
 async def upgrade_level_mods(list_mods, target_level, txt_allyCode):
     return await generic_rpc_call(
-                    "levelMods", 
+                    "levelMods",
                     {"allyCode": txt_allyCode,
                     "list_mods": list_mods,
                     "mod_level": target_level})
 
 async def get_metadata():
     return await generic_rpc_call(
-                    "metadata", 
-                    {}, 
+                    "metadata",
+                    {},
                     return_data=True)
 
 async def get_shard(allyCode_txt, shard_type):
     return await generic_rpc_call(
-                    "shardleaderboard", 
-                    {"allyCode": txt_allyCode, "shard_type": shard_type}, 
+                    "shardleaderboard",
+                    {"allyCode": txt_allyCode, "shard_type": shard_type},
                     return_data=True)
 
 async def set_zoneOrder(
-        guild_id, 
+        guild_id,
         map_id,
-        zone_id, 
-        zone_msg, 
-        zone_cmd, 
+        zone_id,
+        zone_msg,
+        zone_cmd,
         zone_instance,
         allyCode=None,
         session=None):
@@ -4401,7 +4401,7 @@ async def set_zoneOrder(
 
         if not guild_id in dict_bot_accounts:
             return 1, "Ce serveur discord n'a pas de warbot"
-        
+
         islocked = (dict_bot_accounts[guild_id]['locked_since']!=None)
         if islocked:
             err_msg = "the connected account is being used... cannot launch request"
@@ -4459,7 +4459,7 @@ async def get_guild_connected_accounts(guild_id):
     return await generic_rpc_call("auth_check", params, return_data=True)
 
 ##################################
-# specific error messages in case of error codes 
+# specific error messages in case of error codes
 # from the RPC server
 rpc_call_errcodes = {
         "sellMods": {
@@ -4477,8 +4477,8 @@ rpc_call_errcodes = {
 # Generic RPC call, preventing to copy/paste
 # the code every tome there is a new RPC path
 async def generic_rpc_call(
-        rpc_path, 
-        params, 
+        rpc_path,
+        params,
         return_data=False):
 
     golog.log("INFO", "START ("+rpc_path+", "+str(params)+", return_data="+str(return_data)+")")
