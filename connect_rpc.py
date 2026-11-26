@@ -499,6 +499,8 @@ async def _get_event_events(session, event_type, guild_id, bot_allyCode,
     ):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
+##########################
+#IN store_events: used for web api calls
 async def get_event_data(dict_guild, event_types, force_update, allyCode=None, store_events=True, earliest_timestamp=None):
     guild_id = dict_guild["profile"]["id"]
 
@@ -592,7 +594,10 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
 
     # Bot workflow: use the DB synchronization timestamp. API workflow:
     # use its caller-supplied timestamp and never query/update this DB value.
-    if earliest_timestamp is None:
+    if not store_events:
+        # API workflow: no implicit filtering.
+        eventLatest_ts = earliest_timestamp
+    elif earliest_timestamp is None:
         query = (
             "SELECT eventLatest_ts "
             "FROM guild_bot_infos "
@@ -605,6 +610,8 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
         eventLatest_ts = await event_latest_task
     else:
         eventLatest_ts = earliest_timestamp
+
+    golog.log("INFO", "eventLatest_ts="+str(eventLatest_ts))
 
     # ------------------------------------------------------------
     # RPC requests
