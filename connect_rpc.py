@@ -3634,6 +3634,14 @@ async def get_tw_active_players(guild_id, force_update, allyCode=None):
 
 async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
+    calling_func = inspect.stack()[1][3]
+    golog.log(
+            "INFO",
+            "START ("+txt_allyCode \
+            +", "+zone_id \
+            +", "+str(requested_defIds) \
+            +" from "+str(calling_func))
+
     # transform list of defId (LOBOT) into unit id (dkh65_TR-CxrT5jk547)
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
@@ -3668,6 +3676,8 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
                 zone_status = zone["zoneStatus"]
                 if "commandState" in zone["zoneStatus"]:
                     dict_zone_states[zone_status["zoneId"]] = zone_status["commandState"]
+                else:
+                    dict_zone_states[zone_status["zoneId"]] = 'NOCOMMAND'
             if "playerStatus" in tb:
                 if "unitStatus" in tb["playerStatus"]:
                     for unit in tb["playerStatus"]["unitStatus"]:
@@ -3684,6 +3694,7 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
             knownCommandState = dict_zone_states[zone_id]
         else:
             knownCommandState = None
+            return 1, "zone_id "+zone_id+" is not part of opened zones "+str(dict_zone_states)
 
     if len(list_unit_ids) == 0:
         return 1, "Plus rien à déployer"
