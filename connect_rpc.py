@@ -1104,23 +1104,6 @@ async def get_player_initialdata(ac, use_cache_data=False, category="FULL"):
 
     return 0, "", initialdata_player
 
-async def get_bot_player_data(guild_id, use_cache_data):
-    # Get allyCode from guild ID
-    bot_allyCode = await connect_mysql.get_value_async("SELECT allyCode from guild_bots WHERE guild_id='"+guild_id+"'")
-    if bot_allyCode == None:
-        return 1, "Ce serveur discord n'a pas de warbot", None
-    bot_allyCode = str(bot_allyCode)
-    golog.log("DBG", "bot account for "+guild_id+" is "+bot_allyCode)
-
-    # Manage cache
-    use_cache_data = False
-    if await islocked_bot_account(bot_allyCode):
-        use_cache_data = True
-        golog.log("WAR", "the bot account is being used... using cached data")
-
-    ec, et, d = await get_player_data(bot_allyCode, use_cache_data)
-    return ec, et, d
-
 async def get_player_data(txt_allyCode, use_cache_data):
     timing_start = time.perf_counter()
     #get playerId
