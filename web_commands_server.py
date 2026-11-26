@@ -694,7 +694,7 @@ async def handle_deploy_tb_platoons(request):
                 group["requested_defIds"],
                 preload=(group["platoon_strategy"] == "PRELOAD"),
                 round=phase,
-                dict_player=dict_player
+                dict_player=dict_player,
                 disable_rpc_call=False,
             )
 

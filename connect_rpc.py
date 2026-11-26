@@ -3641,7 +3641,7 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
         return 1, "Plus rien à déployer"
 
     # Remove already deployed units
-    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False, preserve_ea_code=True)
+    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
     if err_code != 0:
         golog.log("ERR", err_txt)
         return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode
