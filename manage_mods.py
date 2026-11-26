@@ -184,6 +184,17 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
         if "currency" in currencyItem and currencyItem["currency"] == "GRIND":
             player_credits = int(currencyItem["quantity"])
 
+    # The RPC returns rosterUnit as a list, whereas the mod-management
+    # helpers expect the dictionary representation produced by go.load_player().
+    # Convert only the roster here; this does not enrich stats or touch caches/DB.
+    stage_start = time.perf_counter()
+    dict_player = goutils.roster_from_list_to_dict(dict_player)
+    golog.log(
+        "INFO",
+        "stage=mods_prepare_roster_index seconds=%.3f units=%d"
+        % (time.perf_counter() - stage_start, len(dict_player["rosterUnit"]))
+    )
+
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot
     if interaction is None:
