@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS guild_scheduled_events (
     daytime TIME NOT NULL,
     guild_id VARCHAR(64) NOT NULL,
     channel_id BIGINT UNSIGNED NOT NULL,
+    tag_officers BOOLEAN NOT NULL DEFAULT TRUE,
     last_run_date DATE DEFAULT NULL,
     last_run_at DATETIME DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
