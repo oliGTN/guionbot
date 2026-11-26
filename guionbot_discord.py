@@ -2808,36 +2808,6 @@ async def on_message_edit(before, after):
 
                                 golog.log("INFO", "Registering "+allyCode_txt+" for <@"+discord_id_txt+">")
 
-        #Read messages from FFDroid
-        if after.author.id == config.FFDROID_DISCORD_ID:
-            ret_re = re.search("Absence registered to (.*): (\d{4}-\d{2}-\d{2}) (\d{4}-\d{2}-\d{2}) :", after.content)
-            if ret_re != None:
-                player_name = ret_re.group(1)
-                start_date = ret_re.group(2)
-                end_date = ret_re.group(3)
-                interaction_metadata = after.interaction_metadata
-                if interaction_metadata is None or interaction_metadata.user is None:
-                    golog.log("WAR", "FFDroid absence response has no interaction user metadata")
-                    return
-                caller_id = interaction_metadata.user.id
-                query = "SELECT allyCode FROM players " \
-                        "WHERE name='"+player_name+"' " \
-                        "AND guildId IN ( " \
-                        "   SELECT guildId FROM players " \
-                        "   JOIN player_discord ON players.allyCode = player_discord.allyCode " \
-                        "   WHERE discord_id="+str(caller_id)+") "
-                golog.log("DBG", query)
-                db_data = await connect_mysql.get_value_async(query)
-                if db_data != None:
-                    allyCode = db_data
-
-                    query = "INSERT INTO attendency(allyCode, startDate, endDate) " \
-                            "VALUES("+str(allyCode)+", '"+start_date+"', '"+end_date+"') "
-                    golog.log("DBG", query)
-                    await connect_mysql.simple_execute_async(query)
-
-                    await after.channel.send("Absence enregistrée pour "+player_name+" entre le "+start_date+" et le "+end_date)
-
     except Exception as e:
         golog.log("ERR", traceback.format_exc())
 
@@ -2872,12 +2842,10 @@ async def store_wookiebot_raid_estimates(message):
             if not filename.endswith(".csv"):
                 continue
 
-            # Droid Destruction CSVs are intentionally not handled here.
-            if filename == "droid-destruction-guild.csv":
-                continue
-
             raid_shortname = filename.split("_")[0]
-            if raid_shortname == "krayt":
+            if filename == "droid-destruction-guild.csv":
+                raid_name = "droiddestruction"
+            elif raid_shortname == "krayt":
                 raid_name = "kraytdragon"
             elif raid_shortname == "endor":
                 raid_name = "speederbike"
