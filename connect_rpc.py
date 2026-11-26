@@ -3643,7 +3643,8 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
             +" from "+str(calling_func))
 
     # transform list of defId (LOBOT) into unit id (dkh65_TR-CxrT5jk547)
-    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
+    #ext player is enough to get unit IDs
+    err_code, err_txt, dict_player = await get_extplayer_data(txt_allyCode)
     if err_code != 0:
         golog.log("ERR", err_txt)
         return 1, "Erreur en récupérant les infos joueur de "+txt_allyCode
@@ -3747,13 +3748,17 @@ async def deploy_tw(guild_id, txt_allyCode, teams, progress_callback=None,
 
     player_start = time.perf_counter()
     golog.log("INFO", "stage=player_data_start")
-    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
+
+    # transform list of defId (LOBOT) into unit id (dkh65_TR-CxrT5jk547)
+    #ext player is enough to get unit IDs
+    err_code, err_txt, dict_player = await get_extplayer_data(txt_allyCode)
     golog.log("INFO", "stage=player_data_complete seconds=%.3f total_seconds=%.3f" % (time.perf_counter() - player_start, time.perf_counter() - timing_start))
     if err_code != 0:
         golog.log("ERR", err_txt)
         return (1, "Erreur en se connectant au compte " + txt_allyCode, 0, None)
 
     player_name = dict_player["name"]
+
     dict_roster = {}
     for unit in dict_player["rosterUnit"]:
         defId = unit["definitionId"].split(":")[0]
