@@ -1042,12 +1042,11 @@ async def get_extguild_data_from_id(guild_id, use_cache_data, category="FULL"):
 
     return 0, "", dict_guild
 
-async def get_extplayer_data(ac_or_id, load_roster=True, category="FULL"):
+async def get_extplayer_data(ac_or_id, category="FULL"):
     timing_start = time.perf_counter()
     url = "http://localhost:8000/extplayer"
     params = {
         "player_id": ac_or_id,
-        "noroster": not load_roster,
         "category": category,
     }
     req_data = json_dumps(params)
@@ -1069,8 +1068,8 @@ async def get_extplayer_data(ac_or_id, load_roster=True, category="FULL"):
 
     golog.log(
         "INFO",
-        "stage=extplayer_client_complete seconds=%.3f category=%s load_roster=%s"
-        % (time.perf_counter() - timing_start, category, load_roster)
+        "stage=extplayer_client_complete seconds=%.3f category=%s"
+        % (time.perf_counter() - timing_start, category)
     )
     if "err_code" in dict_player:
         return 1, dict_player["err_txt"], None

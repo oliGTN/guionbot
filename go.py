@@ -253,8 +253,8 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         golog.log("DBG", 'Requesting RPC data for player ' + ac_or_id + '...')
         ec, et, dict_player_list = await connect_rpc.get_extplayer_data(
-                                               ac_or_id, 
-                                               load_roster=load_roster)
+                                               ac_or_id,
+                                               category="FULL" if load_roster else "PROFILE")
         if ec != 0:
             golog.log("WAR", "RPC error ("+et+"). Using cache data from json")
             dict_player_list = prev_dict_player_list
