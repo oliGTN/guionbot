@@ -147,16 +147,35 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
     if interaction is None:
         print("Récupération des infos du joueur...")
 
-    # Get player data
-    if dict_player==None:
-        e, t, dict_player = await go.load_player(allyCode, 1, False)
+    # Get a fresh roster directly from the RPC. Mod management only needs
+    # the raw roster and must not trigger Crinolo enrichment, cache writes or
+    # database updates performed by go.load_player().
+    preparation_start = time.perf_counter()
+    if dict_player is None:
+        stage_start = time.perf_counter()
+        e, t, dict_player = await connect_rpc.get_extplayer_data(
+            allyCode, load_roster=True, category="ROSTER"
+        )
+        golog.log(
+            "INFO",
+            "stage=mods_prepare_extplayer seconds=%.3f success=%s"
+            % (time.perf_counter() - stage_start, e == 0)
+        )
         if e != 0:
-            return 1, "ERR: "+t, {}
+            return 1, "ERR: " + t, {}
 
-    #Get player API initialdata
-    if initialdata==None:
-        ec, et, initialdata = await connect_rpc.get_player_initialdata(allyCode, category="MOD_MANAGEMENT")
-        if ec!=0:
+    # Get fresh player inventory data (unequipped mods and credits).
+    if initialdata is None:
+        stage_start = time.perf_counter()
+        ec, et, initialdata = await connect_rpc.get_player_initialdata(
+            allyCode, category="MOD_MANAGEMENT"
+        )
+        golog.log(
+            "INFO",
+            "stage=mods_prepare_initialdata seconds=%.3f success=%s"
+            % (time.perf_counter() - stage_start, ec == 0)
+        )
+        if ec != 0:
             return ec, et, {}
 
     # Get player credits
@@ -169,10 +188,27 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
     #AND modify the mod list of every unit by a dict, by slot
     if interaction is None:
         print("Récupération de la liste des mods...")
+    stage_start = time.perf_counter()
     dict_player_mods = get_dict_player_mods(dict_player, initialdata)
+    golog.log(
+        "INFO",
+        "stage=mods_prepare_mod_index seconds=%.3f mods=%d"
+        % (time.perf_counter() - stage_start, len(dict_player_mods))
+    )
 
-    # transform mod list into dict of mod_id by slot
+    # Transform mod list into dict of mod_id by slot.
+    stage_start = time.perf_counter()
     transform_mod_list_to_dict(dict_player)
+    golog.log(
+        "INFO",
+        "stage=mods_prepare_roster_transform seconds=%.3f units=%d"
+        % (time.perf_counter() - stage_start, len(dict_player["rosterUnit"]))
+    )
+    golog.log(
+        "INFO",
+        "stage=mods_prepare_complete seconds=%.3f"
+        % (time.perf_counter() - preparation_start)
+    )
 
     #Get the free space in mod inventory
     initial_inventory = len(initialdata["inventory"]["unequippedMod"])
