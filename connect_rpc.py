@@ -894,80 +894,101 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None, s
             )
 
     # ------------------------------------------------------------
-    # Read/write event files
+    # Prepare returned events / read-write event files
     # ------------------------------------------------------------
 
-    for event_type, file_ids in [
-        ("CHAT", chat_file_ids),
-        ("TB", tb_file_ids),
-        ("TW", tw_file_ids)
-    ]:
+    if not store_events:
+        # API calls are read-only: return only events fetched in this
+        # request, using the same event_file_id -> event_id mapping as
+        # the bot workflow, without touching the local event files.
+        for event_type, file_ids in [
+            ("CHAT", chat_file_ids),
+            ("TB", tb_file_ids),
+            ("TW", tw_file_ids)
+        ]:
 
-        if event_type not in event_types:
-            continue
+            if event_type not in event_types:
+                continue
 
-        for event_file_id in file_ids:
+            for event_file_id in file_ids:
+                dict_events[event_file_id] = {
+                    event["id"]: event
+                    for event in dict_new_events.get(event_file_id, [])
+                }
 
-            fevents = (
-                "EVENTS/"
-                + guild_id
-                + "_"
-                + event_file_id
-                + "_events.json"
-            )
-
-            await acquire_sem(fevents)
-
-            try:
-                # ------------------------------------------------
-                # Read previous events without blocking the
-                # asyncio event loop.
-                # ------------------------------------------------
-
-                file_events = await asyncio.to_thread(
-                    read_events_file,
-                    fevents
+    else:
+        for event_type, file_ids in [
+            ("CHAT", chat_file_ids),
+            ("TB", tb_file_ids),
+            ("TW", tw_file_ids)
+        ]:
+    
+            if event_type not in event_types:
+                continue
+    
+            for event_file_id in file_ids:
+    
+                fevents = (
+                    "EVENTS/"
+                    + guild_id
+                    + "_"
+                    + event_file_id
+                    + "_events.json"
                 )
-
-                if file_events is None:
-                    golog.log(
-                        "WAR",
-                        "error while reading "
-                        + fevents
-                        + " ... ignoring",
-                        identifier=guild_id
+    
+                await acquire_sem(fevents)
+    
+                try:
+                    # ------------------------------------------------
+                    # Read previous events without blocking the
+                    # asyncio event loop.
+                    # ------------------------------------------------
+    
+                    file_events = await asyncio.to_thread(
+                        read_events_file,
+                        fevents
                     )
-
-                    file_events = {}
-
-                # ------------------------------------------------
-                # Add new events
-                # ------------------------------------------------
-
-                if event_file_id in dict_new_events:
-
-                    for event in dict_new_events[event_file_id]:
-                        event_id = event["id"]
-                        file_events[event_id] = event
-
-                    # --------------------------------------------
-                    # Write without blocking the event loop.
-                    # --------------------------------------------
-
-                    await asyncio.to_thread(
-                        write_events_file,
-                        fevents,
-                        file_events
-                    )
-
-                # ------------------------------------------------
-                # Add all events to returned dictionary
-                # ------------------------------------------------
-
-                dict_events[event_file_id] = file_events
-
-            finally:
-                await release_sem(fevents)
+    
+                    if file_events is None:
+                        golog.log(
+                            "WAR",
+                            "error while reading "
+                            + fevents
+                            + " ... ignoring",
+                            identifier=guild_id
+                        )
+    
+                        file_events = {}
+    
+                    # ------------------------------------------------
+                    # Add new events
+                    # ------------------------------------------------
+    
+                    if event_file_id in dict_new_events:
+    
+                        for event in dict_new_events[event_file_id]:
+                            event_id = event["id"]
+                            file_events[event_id] = event
+    
+                        # --------------------------------------------
+                        # Write without blocking the event loop.
+                        # --------------------------------------------
+    
+                        await asyncio.to_thread(
+                            write_events_file,
+                            fevents,
+                            file_events
+                        )
+    
+                    # ------------------------------------------------
+                    # Add all events to returned dictionary
+                    # ------------------------------------------------
+    
+                    dict_events[event_file_id] = file_events
+    
+                finally:
+                    await release_sem(fevents)
+    
 
     golog.log("DBG", "end loop dict_new_events")
 
