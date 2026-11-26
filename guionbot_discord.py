@@ -9739,6 +9739,218 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.cpg"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
 
+
+##############################################################
+# Daily scheduled guild events
+##############################################################
+async def run_scheduled_platoons(guild_id, output_channel):
+    ec, et, bot_infos = await get_mysql.get_warbot_info_from_guild(guild_id)
+    if ec != 0:
+        await output_channel.send("ERR: " + et)
+        return
+    ec, ret_txt = await check_and_deploy_platoons(
+        guild_id, bot_infos["tbChanRead_id"], bot_infos["echostation_id"],
+        None, None, False, filter_zones=[],
+        connected_allyCode=bot_infos["allyCode"]
+    )
+    if ec != 0:
+        await output_channel.send("ERR: " + ret_txt)
+        return
+    for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+        await output_channel.send(txt)
+
+
+async def run_scheduled_deployments(guild_id, output_channel):
+    ec, et, bot_infos = await get_mysql.get_warbot_info_from_guild(guild_id)
+    if ec != 0:
+        await output_channel.send("ERR: " + et)
+        return
+    err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players(
+        guild_id, 0, ignored_allyCodes=[], allyCode=bot_infos["allyCode"]
+    )
+    if err_code != 0:
+        await output_channel.send(ret_txt)
+        return
+    lines = ret_data["lines_player"]
+    end_time = ret_data["round_endTime"]
+    expire_time_txt = datetime.datetime.fromtimestamp(
+        int(end_time / 1000), guild_timezone
+    ).strftime("le %A %d %B à %H:%M (" + config.GUILD_TIMEZONE + ")")
+    output_txt = (
+        "Joueurs n'ayant pas tout déployé en BT - fin du round "
+        + expire_time_txt + " : \n"
+    )
+    if lines:
+        for player_name, player_status in sorted(lines, key=lambda x: x[0].lower()):
+            output_txt += "**" + player_name + "**: " + player_status + "\n"
+        output_txt += "\n__Total__ : " + ret_data["total"]
+    else:
+        output_txt += "Aucun"
+    for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+        await output_channel.send(txt)
+
+
+class ScheduledGuildEventsCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.daily_schedule_loop.start()
+
+    def cog_unload(self):
+        self.daily_schedule_loop.cancel()
+
+    @commands.check(officer_command)
+    @commands.command(
+        name="schedule",
+        brief="Gère les actions quotidiennes programmées",
+        help=(
+            "go.schedule add platoons 08:00 #salon\n"
+            "go.schedule add deployments 15:30 #salon\n"
+            "go.schedule list\n"
+            "go.schedule delete <id>"
+        )
+    )
+    @golog.with_operation_context("officer.schedule")
+    async def schedule(self, ctx, action=None, *args):
+        if ctx.guild is None:
+            await ctx.send("ERR: commande non autorisée depuis un DM")
+            return
+        ec, et, bot_infos = await get_mysql.get_warbot_info(
+            ctx.guild.id, ctx.message.channel.id
+        )
+        if ec != 0:
+            await ctx.send("ERR: " + et)
+            return
+        guild_id = bot_infos["guild_id"]
+        action = (action or "list").lower()
+
+        if action == "add":
+            if len(args) < 2:
+                await ctx.send("Syntaxe: go.schedule add <platoons|deployments> HH:MM [#salon]")
+                return
+            event_type, daytime = args[0].lower(), args[1]
+            if event_type not in ("platoons", "deployments"):
+                await ctx.send("ERR: type attendu: platoons ou deployments")
+                return
+            if not re.match(r"^(?:[01]\d|2[0-3]):[0-5]\d$", daytime):
+                await ctx.send("ERR: heure invalide. Format attendu: HH:MM")
+                return
+
+            output_channel = ctx.message.channel
+            if len(args) >= 3:
+                channel_arg = args[2]
+                if channel_arg.startswith("<#") or channel_arg.startswith("https://discord.com/channels/"):
+                    output_channel, err_msg = await get_channel_from_channelname(ctx, channel_arg)
+                    if output_channel is None:
+                        await ctx.send("ERR: " + err_msg)
+                        return
+                else:
+                    try:
+                        channel_id = int(channel_arg)
+                        output_channel = self.bot.get_channel(channel_id)
+                        if output_channel is None:
+                            output_channel = await self.bot.fetch_channel(channel_id)
+                    except (ValueError, discorderrors.NotFound, discorderrors.Forbidden):
+                        await ctx.send("ERR: salon Discord introuvable ou inaccessible")
+                        return
+            if not hasattr(output_channel, "guild") or output_channel.guild.id != ctx.guild.id:
+                await ctx.send("ERR: le salon doit appartenir à ce serveur Discord")
+                return
+
+            await connect_mysql.simple_execute_async(
+                "INSERT INTO guild_scheduled_events "
+                "(event_type, daytime, guild_id, channel_id) VALUES (%s, %s, %s, %s) "
+                "ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id), "
+                "last_run_date=NULL, last_run_at=NULL",
+                (event_type, daytime, guild_id, int(output_channel.id))
+            )
+            await ctx.send(
+                "Programmation enregistrée: **" + event_type + "** à **"
+                + daytime + "** chaque jour dans " + output_channel.mention + "."
+            )
+            return
+
+        if action == "list":
+            rows = await connect_mysql.get_table_async(
+                "SELECT id, event_type, DATE_FORMAT(daytime, '%H:%i'), channel_id, last_run_date "
+                "FROM guild_scheduled_events WHERE guild_id=%s ORDER BY daytime, event_type",
+                (guild_id,)
+            )
+            if not rows:
+                await ctx.send("Aucune programmation enregistrée pour cette guilde.")
+                return
+            output = ["**Programmations quotidiennes**"]
+            for row_id, event_type, daytime, channel_id, last_run_date in rows:
+                channel = self.bot.get_channel(int(channel_id))
+                channel_txt = channel.mention if channel else "<#" + str(channel_id) + ">"
+                output.append(
+                    f"#{row_id} — {event_type} à {daytime} — {channel_txt}"
+                    + (f" (dernier lancement: {last_run_date})" if last_run_date else "")
+                )
+            await ctx.send("\n".join(output))
+            return
+
+        if action == "delete":
+            if len(args) != 1 or not args[0].isdigit():
+                await ctx.send("Syntaxe: go.schedule delete <id>")
+                return
+            await connect_mysql.simple_execute_async(
+                "DELETE FROM guild_scheduled_events WHERE id=%s AND guild_id=%s",
+                (int(args[0]), guild_id)
+            )
+            await ctx.send("Programmation supprimée si elle appartenait à cette guilde.")
+            return
+        await ctx.send("Actions disponibles: add, list, delete. Voir go.help schedule.")
+
+    @tasks.loop(seconds=60)
+    async def daily_schedule_loop(self):
+        if bot_test_mode:
+            return
+        now = datetime.datetime.now(guild_timezone)
+        daytime, run_date = now.strftime("%H:%M"), now.strftime("%Y-%m-%d")
+        rows = await connect_mysql.get_table_async(
+            "SELECT id, event_type, guild_id, channel_id FROM guild_scheduled_events "
+            "WHERE DATE_FORMAT(daytime, '%H:%i')=%s "
+            "AND (last_run_date IS NULL OR last_run_date < %s)",
+            (daytime, run_date)
+        )
+        if not rows:
+            return
+        for schedule_id, event_type, guild_id, channel_id in rows:
+            await connect_mysql.simple_execute_async(
+                "UPDATE guild_scheduled_events SET last_run_date=%s, last_run_at=NOW() "
+                "WHERE id=%s AND (last_run_date IS NULL OR last_run_date < %s)",
+                (run_date, schedule_id, run_date)
+            )
+            claimed = await connect_mysql.get_value_async(
+                "SELECT last_run_date FROM guild_scheduled_events WHERE id=%s",
+                (schedule_id,)
+            )
+            if claimed is None or str(claimed) != run_date:
+                continue
+            channel = self.bot.get_channel(int(channel_id))
+            if channel is None:
+                try:
+                    channel = await self.bot.fetch_channel(int(channel_id))
+                except (discorderrors.NotFound, discorderrors.Forbidden):
+                    golog.log("ERR", f"Scheduled event {schedule_id}: channel {channel_id} unavailable")
+                    continue
+            try:
+                with golog.operation_context(f"scheduled_{event_type}", identifier=str(guild_id)):
+                    golog.log("INFO", f"Running scheduled event id={schedule_id} type={event_type} guild={guild_id}")
+                    if event_type == "platoons":
+                        await run_scheduled_platoons(guild_id, channel)
+                    elif event_type == "deployments":
+                        await run_scheduled_deployments(guild_id, channel)
+                    else:
+                        golog.log("ERR", f"Unknown scheduled event type: {event_type}")
+            except Exception:
+                golog.log("ERR", f"Scheduled event {schedule_id} failed: {traceback.format_exc()}")
+
+    @daily_schedule_loop.before_loop
+    async def before_daily_schedule_loop(self):
+        await self.bot.wait_until_ready()
+
+
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
@@ -9800,6 +10012,8 @@ async def main():
     await bot.add_cog(TwCog(bot))
     await bot.add_cog(BronziumCog(bot))
     await bot.add_cog(AuthCog(bot))
+    if bot_background_tasks and not bot_test_mode:
+        await bot.add_cog(ScheduledGuildEventsCog(bot))
 
     if bot_background_tasks:
         golog.log("INFO", "Start loops...")
