@@ -9760,7 +9760,7 @@ async def run_scheduled_platoons(guild_id, output_channel):
         await output_channel.send(txt)
 
 
-async def run_scheduled_deployments(guild_id, output_channel):
+async def run_scheduled_deployments(guild_id, output_channel, tag_officers=True):
     ec, et, bot_infos = await get_mysql.get_warbot_info_from_guild(guild_id)
     if ec != 0:
         await output_channel.send("ERR: " + et)
@@ -9784,7 +9784,11 @@ async def run_scheduled_deployments(guild_id, output_channel):
     if lines:
         for player_name, player_status in sorted(lines, key=lambda x: x[0].lower()):
             if player_name in dict_players_by_IG:
-                player_name_txt = dict_players_by_IG[player_name][1]
+                player_data = dict_players_by_IG[player_name]
+                if not tag_officers and player_data[2]:
+                    player_name_txt = "**" + player_name + "**"
+                else:
+                    player_name_txt = player_data[1]
             else:
                 player_name_txt = "**" + player_name + "**"
             output_txt += player_name_txt + ": " + player_status + "\n"
@@ -9809,7 +9813,7 @@ class ScheduledGuildEventsCog(commands.Cog):
         brief="Gère les actions quotidiennes programmées",
         help=(
             "go.schedule add platoons 08:00 #salon\n"
-            "go.schedule add deployments 15:30 #salon\n"
+            "go.schedule add deployments 15:30 #salon [-off]\n"
             "go.schedule list\n"
             "go.schedule delete <id>"
         )
@@ -9833,6 +9837,7 @@ class ScheduledGuildEventsCog(commands.Cog):
                 await ctx.send("Syntaxe: go.schedule add <platoons|deployments> HH:MM [#salon]")
                 return
             event_type, daytime = args[0].lower(), args[1]
+            tag_officers = "-off" not in args[3:] if len(args) > 3 else True
             if event_type not in ("platoons", "deployments"):
                 await ctx.send("ERR: type attendu: platoons ou deployments")
                 return
@@ -9863,9 +9868,11 @@ class ScheduledGuildEventsCog(commands.Cog):
 
             await connect_mysql.simple_execute_async(
                 "INSERT INTO guild_scheduled_events "
-                "(event_type, daytime, guild_id, channel_id) VALUES (%s, %s, %s, %s) "
-                "ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id)",
-                (event_type, daytime, guild_id, int(output_channel.id))
+                "(event_type, daytime, guild_id, channel_id, tag_officers) "
+                "VALUES (%s, %s, %s, %s, %s) "
+                "ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id), "
+                "tag_officers=VALUES(tag_officers)",
+                (event_type, daytime, guild_id, int(output_channel.id), tag_officers)
             )
             await ctx.send(
                 "Programmation enregistrée: **" + event_type + "** à **"
@@ -9875,7 +9882,7 @@ class ScheduledGuildEventsCog(commands.Cog):
 
         if action == "list":
             rows = await connect_mysql.get_table_async(
-                "SELECT id, event_type, DATE_FORMAT(daytime, '%H:%i'), channel_id, last_run_date "
+                "SELECT id, event_type, DATE_FORMAT(daytime, '%H:%i'), channel_id, last_run_date, tag_officers "
                 "FROM guild_scheduled_events WHERE guild_id=%s ORDER BY daytime, event_type",
                 (guild_id,)
             )
@@ -9883,12 +9890,13 @@ class ScheduledGuildEventsCog(commands.Cog):
                 await ctx.send("Aucune programmation enregistrée pour cette guilde.")
                 return
             output = ["**Programmations quotidiennes**"]
-            for row_id, event_type, daytime, channel_id, last_run_date in rows:
+            for row_id, event_type, daytime, channel_id, last_run_date, tag_officers in rows:
                 channel = self.bot.get_channel(int(channel_id))
                 channel_txt = channel.mention if channel else "<#" + str(channel_id) + ">"
                 output.append(
                     f"#{row_id} — {event_type} à {daytime} — {channel_txt}"
                     + (f" (dernier lancement: {last_run_date})" if last_run_date else "")
+                    + (" — tag officiers: désactivé" if event_type == "deployments" and not tag_officers else "")
                 )
             await ctx.send("\n".join(output))
             return
@@ -9912,14 +9920,14 @@ class ScheduledGuildEventsCog(commands.Cog):
         now = datetime.datetime.now(guild_timezone)
         daytime, run_date = now.strftime("%H:%M"), now.strftime("%Y-%m-%d")
         rows = await connect_mysql.get_table_async(
-            "SELECT id, event_type, guild_id, channel_id FROM guild_scheduled_events "
+            "SELECT id, event_type, guild_id, channel_id, tag_officers FROM guild_scheduled_events "
             "WHERE DATE_FORMAT(daytime, '%H:%i')=%s "
             "AND (last_run_date IS NULL OR last_run_date < %s)",
             (daytime, run_date)
         )
         if not rows:
             return
-        for schedule_id, event_type, guild_id, channel_id in rows:
+        for schedule_id, event_type, guild_id, channel_id, tag_officers in rows:
             claimed_rows = await connect_mysql.simple_execute_async(
                 "UPDATE guild_scheduled_events SET last_run_date=%s, last_run_at=NOW() "
                 "WHERE id=%s AND (last_run_date IS NULL OR last_run_date < %s)",
@@ -9940,7 +9948,7 @@ class ScheduledGuildEventsCog(commands.Cog):
                     if event_type == "platoons":
                         await run_scheduled_platoons(guild_id, channel)
                     elif event_type == "deployments":
-                        await run_scheduled_deployments(guild_id, channel)
+                        await run_scheduled_deployments(guild_id, channel, tag_officers=bool(tag_officers))
                     else:
                         golog.log("ERR", f"Unknown scheduled event type: {event_type}")
             except Exception:
