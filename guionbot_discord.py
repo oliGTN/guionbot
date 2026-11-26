@@ -2815,7 +2815,11 @@ async def on_message_edit(before, after):
                 player_name = ret_re.group(1)
                 start_date = ret_re.group(2)
                 end_date = ret_re.group(3)
-                caller_id = after.interaction.user.id
+                interaction_metadata = after.interaction_metadata
+                if interaction_metadata is None or interaction_metadata.user is None:
+                    golog.log("WAR", "FFDroid absence response has no interaction user metadata")
+                    return
+                caller_id = interaction_metadata.user.id
                 query = "SELECT allyCode FROM players " \
                         "WHERE name='"+player_name+"' " \
                         "AND guildId IN ( " \
@@ -2853,61 +2857,61 @@ async def on_message_delete(message):
 
 # This function is called in on_message and on_message_edit
 async def store_wookiebot_raid_estimates(message):
-    if message.interaction==None:
-        if message.reference==None:
-            return
-        else:
-            golog.log("INFO", message.reference)
-            previous_msg_id = message.reference.message_id
-            golog.log("INFO", previous_msg_id)
-            previous_msg = await message.channel.fetch_message(previous_msg_id)
-            cmd_interaction = previous_msg.interaction
-            golog.log("INFO", "interaction_metadata="+str(previous_msg.interaction_metadata))
-    else:
-        cmd_interaction = message.interaction
-        golog.log("INFO", "interaction_metadata="+str(message.interaction_metadata))
-
-    if cmd_interaction == None:
+    # WookieBot identifies the command in the embed it sends back. Interaction
+    # metadata no longer exposes the application-command name in discord.py.
+    if len(message.embeds) != 1:
         return
 
-    cmd_name = cmd_interaction.name
-    #print(cmd_name)
-    if cmd_name == "raid guild":
+    embed_title = message.embeds[0].title or ""
+
+    if embed_title.startswith("Estimated Scores for "):
+        # "raid guild" response
         for attachment in message.attachments:
             golog.log("DBG", "Reading attachment...")
-            if not attachment.filename.endswith(".csv"):
+            filename = attachment.filename
+            if not filename.endswith(".csv"):
                 continue
-            raid_shortname = attachment.filename.split("_")[0]
-            if raid_shortname=="krayt":
+
+            # Droid Destruction CSVs are intentionally not handled here.
+            if filename == "droid-destruction-guild.csv":
+                continue
+
+            raid_shortname = filename.split("_")[0]
+            if raid_shortname == "krayt":
                 raid_name = "kraytdragon"
-            elif raid_shortname=="endor":
+            elif raid_shortname == "endor":
                 raid_name = "speederbike"
-            elif raid_shortname=="droid-destruction-guild.csv":
-                raid_name = "droiddestruction"
             else:
                 raid_name = raid_shortname
 
-            golog.log("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
+            golog.log("INFO", "Storing raid estimates from WookieBot for raid " + raid_name)
             file_content = await attachment.read()
-            file_txt = file_content.decode('utf-8')
+            file_txt = file_content.decode("utf-8")
             ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
             if ec != 0:
                 golog.log("ERR", et)
 
-    elif cmd_name == "guild ready gl":
+    else:
+        # "guild ready gl" response: the title identifies the event and the
+        # attached CSV follows <identifier>-ready-<timestamp>.csv.
+        readiness_match = re.match(r"^.+ Readiness for .+$", embed_title)
+        if readiness_match is None:
+            return
+
         for attachment in message.attachments:
             golog.log("DBG", "Reading attachment...")
-            if not attachment.filename.endswith(".csv"):
+            filename_match = re.match(
+                r"^(.+)-ready-(.+)\.csv$", attachment.filename
+            )
+            if filename_match is None:
                 continue
-            gl_shortname = attachment.filename.split("-")[0]
-            if gl_shortname=="HONDO":
-                gl_name = "GLHONDO"
-            else:
-                gl_name = gl_shortname
 
-            golog.log("INFO", "Storing GV progress from WookieBot for GL "+gl_name)
+            gl_shortname = filename_match.group(1)
+            gl_name = "GLHONDO" if gl_shortname == "HONDO" else gl_shortname
+
+            golog.log("INFO", "Storing GV progress from WookieBot for GL " + gl_name)
             file_content = await attachment.read()
-            file_txt = file_content.decode('utf-8')
+            file_txt = file_content.decode("utf-8")
             ec, et = await go.update_gl_progress_from_wookiebot(gl_name, file_txt)
             if ec != 0:
                 golog.log("ERR", et)
