@@ -69,7 +69,7 @@ def display_command_queue():
             user_id = ctx_interaction.author.id
             channel_id = ctx_interaction.channel.id
             date = ctx_interaction.message.created_at
-            cmd = ctx_interaction.message
+            cmd = ctx_interaction.message.content
         else: # Interaction
             user_id = ctx_interaction.user.id
             channel_id = ctx_interaction.channel_id

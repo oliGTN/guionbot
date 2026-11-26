@@ -190,7 +190,12 @@ async def check_locked_bots_60secs(bot):
                     await connect_mysql.simple_execute_async(query)
 
     except Exception as e:
-        golog.log("ERR", traceback.format_exc())
+        golog.log(
+            "ERR",
+            "".join(traceback.format_exception(
+                type(error), error, error.__traceback__
+            ))
+        )
         if not bot_test_mode:
             await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
 

@@ -499,7 +499,9 @@ async def _get_event_events(session, event_type, guild_id, bot_allyCode,
     ):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
-async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
+##########################
+#IN store_events: used for web api calls
+async def get_event_data(dict_guild, event_types, force_update, allyCode=None, store_events=True, earliest_timestamp=None):
     guild_id = dict_guild["profile"]["id"]
 
     calling_func = inspect.stack()[1][3]
@@ -590,27 +592,26 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             if room["type"] == "GUILDDEFAULT":
                 chat_channels.append(room["roomId"])
 
-    # ------------------------------------------------------------
-    # Start eventLatest_ts query now.
-    #
-    # This can run while the RPC requests are being processed.
-    # ------------------------------------------------------------
+    # Bot workflow: use the DB synchronization timestamp. API workflow:
+    # use its caller-supplied timestamp and never query/update this DB value.
+    if not store_events:
+        # API workflow: no implicit filtering.
+        eventLatest_ts = earliest_timestamp
+    elif earliest_timestamp is None:
+        query = (
+            "SELECT eventLatest_ts "
+            "FROM guild_bot_infos "
+            "WHERE guild_id='" + guild_id + "'"
+        )
+        golog.log("DBG", query)
+        event_latest_task = asyncio.create_task(
+            connect_mysql.get_value_async(query)
+        )
+        eventLatest_ts = await event_latest_task
+    else:
+        eventLatest_ts = earliest_timestamp
 
-    query = (
-        "SELECT eventLatest_ts "
-        "FROM guild_bot_infos "
-        "WHERE guild_id='" + guild_id + "'"
-    )
-
-    golog.log("DBG", query)
-
-    event_latest_task = asyncio.create_task(
-        connect_mysql.get_value_async(query)
-    )
-
-    # The RPC server filters old events before decoding their activity
-    # payloads. Keep the timestamp in milliseconds, matching event.timestamp.
-    eventLatest_ts = await event_latest_task
+    golog.log("INFO", "eventLatest_ts="+str(eventLatest_ts))
 
     # ------------------------------------------------------------
     # RPC requests
@@ -711,11 +712,12 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
 
         list_rpc_events.extend(events)
 
-        await update_mysql.store_tb_events(
-            guild_id,
-            tb_id,
-            events
-        )
+        if store_events:
+            await update_mysql.store_tb_events(
+                guild_id,
+                tb_id,
+                events
+            )
 
     resp_events = resp_events_by_type.get("TW")
 
@@ -724,11 +726,12 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
 
         list_rpc_events.extend(events)
 
-        await update_mysql.store_tw_events(
-            guild_id,
-            tw_id,
-            events
-        )
+        if store_events:
+            await update_mysql.store_tw_events(
+                guild_id,
+                tw_id,
+                events
+            )
 
     resp_events = resp_events_by_type.get("CHAT")
 
@@ -818,17 +821,6 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         else:
             continue
 
-        # --------------------------------------------------------
-        # eventLatest_ts == None means erroneous configuration.
-        #
-        # In that case, don't store events.
-        # --------------------------------------------------------
-
-        # A missing eventLatest_ts is an invalid configuration: keep
-        # the existing behavior of not storing events in this case.
-        if eventLatest_ts is None:
-            continue
-
         if event_ts > max_event_ts:
             max_event_ts = event_ts
 
@@ -845,7 +837,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
     # Update latest timestamp
     # ------------------------------------------------------------
 
-    if max_event_ts != 0 and eventLatest_ts is not None:
+    if store_events and max_event_ts != 0 and eventLatest_ts is not None:
         query = (
             "UPDATE guild_bot_infos "
             "SET eventLatest_ts=" + str(max_event_ts) + " "

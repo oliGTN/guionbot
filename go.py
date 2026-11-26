@@ -6579,7 +6579,6 @@ def decode_tb_special_mission_name(zone_shortname):
         zone_shortname = "-".join(zone_shortname_split[:2])
     else:
         return None, None, None
-    print(zone_shortname, mission_id)
 
     zone_name = None
     for x in dict_tb:
