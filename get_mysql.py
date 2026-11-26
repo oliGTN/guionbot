@@ -129,7 +129,7 @@ async def get_warbot_info_from_guild(guild_id):
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
             "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
             "twFulldefDetection, "\
-            "guilds.name, server_id, gfile_name, discord_id "\
+            "guilds.name, server_id, gfile_name, echostation_id, discord_id "\
             "FROM guild_bots "\
             "JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
             "JOIN players ON players.allyCode=guild_bots.allyCode "\
@@ -152,7 +152,8 @@ async def get_warbot_info_from_guild(guild_id):
                    "guild_name": db_data[7],
                    "server_id": db_data[8],
                    "gfile_name": db_data[9],
-                   "discord_id": db_data[10]}
+                   "echostation_id": db_data[10],
+                   "discord_id": db_data[11]}
 
 ########################################
 # Get guild ID, allyCode and player name for the
