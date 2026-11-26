@@ -154,7 +154,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
     if dict_player is None:
         stage_start = time.perf_counter()
         e, t, dict_player = await connect_rpc.get_extplayer_data(
-            allyCode, load_roster=True, category="ROSTER"
+            allyCode, category="ROSTER"
         )
         golog.log(
             "INFO",
