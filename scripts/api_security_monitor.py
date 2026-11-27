@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import collections, datetime as dt, gzip, glob, json, re, time, urllib.request
+import collections, datetime as dt, fcntl, gzip, glob, json, re, time, urllib.request
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
@@ -172,6 +172,89 @@ def high_alert_key(incident):
         suffix = ":" + urlsplit(incident[4].get("target", "")).path[:200]
     return severity + ":" + kind + ":" + ip + suffix
 
+
+def incremental_lines(path, cursors, completed):
+    """Read only bytes not previously consumed from an append-only log.
+
+    The device/inode identity follows an uncompressed file across logrotate
+    rename operations. Compressed rotations are consumed once in full.
+    """
+    try:
+        stat = path.stat()
+    except OSError:
+        return []
+    identity = str(stat.st_dev) + ":" + str(stat.st_ino)
+    if path.name.endswith(".gz"):
+        if identity in completed:
+            return []
+        try:
+            with gzip.open(path, "rt", encoding="utf-8", errors="replace") as stream:
+                lines = stream.read().splitlines()
+            completed[identity] = stat.st_mtime
+            return lines
+        except (OSError, EOFError):
+            return []
+
+    cursor = cursors.get(identity)
+    if cursor is None:
+        # Old rotations cannot contain requests in the rolling detection
+        # window. Mark them consumed rather than replaying months of history
+        # on the first incremental run after deployment.
+        if stat.st_mtime < time.time() - 86400 and path.name != path.parent.joinpath(path.name).name:
+            cursors[identity] = {"offset": stat.st_size, "mtime": stat.st_mtime}
+            return []
+        offset = 0
+    else:
+        offset = int(cursor.get("offset", 0))
+        if stat.st_size < offset:
+            offset = 0  # copy-truncate rotation
+    try:
+        with path.open("rb") as stream:
+            stream.seek(offset)
+            data = stream.read()
+    except OSError:
+        return []
+    last_newline = data.rfind(b"\\n")
+    if last_newline < 0:
+        return []
+    consumed = data[:last_newline + 1]
+    cursors[identity] = {
+        "offset": offset + len(consumed),
+        "mtime": stat.st_mtime
+    }
+    return consumed.decode("utf-8", errors="replace").splitlines()
+
+
+def parse_apache_line(line, now):
+    match = RX.match(line)
+    if not match:
+        return None
+    ip, stamp, request, status, size = match.groups()
+    try:
+        ts = dt.datetime.strptime(stamp, "%d/%b/%Y:%H:%M:%S %z").timestamp()
+    except ValueError:
+        return None
+    if ts < now - 86400:
+        return None
+    parts = request.split()
+    target = parts[1] if len(parts) > 1 else "/"
+    return {"ip": ip, "ts": ts, "path": urlsplit(target).path,
+            "target": target, "status": int(status),
+            "method": parts[0] if parts else "?",
+            "user_agent": line.rstrip().split('"')[-2] if line.count('"') >= 6 else "-"}
+
+
+def parse_event_line(line, now):
+    try:
+        event = json.loads(line)
+        event["ts"] = dt.datetime.fromisoformat(
+            event["timestamp"].replace("Z", "+00:00")
+        ).timestamp()
+        return event if event["ts"] >= now - 86400 else None
+    except Exception:
+        return None
+
+
 def main():
     import argparse
     p = argparse.ArgumentParser()
@@ -182,49 +265,114 @@ def main():
         p.error("choose --check or --daily")
     cfg = json.load(open(CONFIG))
     now = time.time()
+    statepath = Path(cfg["state_path"])
+    statepath.parent.mkdir(parents=True, exist_ok=True)
+    # The lock also protects state.json from concurrent check/daily runs.
+    lock_file = open(str(statepath) + ".lock", "w")
+    try:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print("API security monitor already running; skipping this invocation.")
+        return
+    try:
+        state = json.loads(statepath.read_text())
+    except Exception:
+        state = {"alerts": {}, "daily": None}
+    state.setdefault("alerts", {})
+    state.setdefault("daily", None)
+    state.setdefault("malicious_pending", {})
+
     requests = []
-    log_paths = [cfg["access_log"]] + glob.glob(cfg["access_log"] + ".[0-9]*")
-    for log_path in log_paths:
-        try:
-            opener = gzip.open if log_path.endswith(".gz") else open
-            with opener(log_path, "rt", encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    m = RX.match(line)
-                    if not m:
-                        continue
-                    ip, stamp, request, status, size = m.groups()
-                    try:
-                        ts = dt.datetime.strptime(stamp, "%d/%b/%Y:%H:%M:%S %z").timestamp()
-                    except ValueError:
-                        continue
-                    if ts < now - 86400:
-                        continue
-                    parts = request.split()
-                    target = parts[1] if len(parts) > 1 else "/"
-                    requests.append({"ip": ip, "ts": ts, "path": urlsplit(target).path,
-                                     "target": target, "status": int(status),
-                                     "method": parts[0] if len(parts) > 0 else "?",
-                                     "user_agent": line.rstrip().split('"')[-2] if line.count('"') >= 6 else "-"})
-        except OSError as e:
-            if log_path == cfg["access_log"]:
-                print("Apache log unavailable:", e)
     events = []
-    first_event_day = dt.datetime.fromtimestamp(now - 86400, dt.timezone.utc).date()
-    for path in Path(cfg["event_dir"]).glob("events-*.jsonl"):
-        try:
-            event_day = dt.date.fromisoformat(path.stem.replace("events-", "", 1))
-            if event_day < first_event_day:
-                continue
-            for line in path.read_text(errors="replace").splitlines():
-                try:
-                    x = json.loads(line)
-                    x["ts"] = dt.datetime.fromisoformat(x["timestamp"].replace("Z", "+00:00")).timestamp()
-                    if x["ts"] >= now - 86400:
-                        events.append(x)
-                except Exception:
-                    pass
-        except OSError:
-            pass
+    incremental = a.check and not a.daily
+    if incremental:
+        cursors = state.setdefault("apache_cursors", {})
+        completed = state.setdefault("apache_completed", {})
+        event_cursors = state.setdefault("event_cursors", {})
+        log_paths = [Path(cfg["access_log"])] + [
+            Path(x) for x in glob.glob(cfg["access_log"] + ".[0-9]*")
+        ]
+        seen_files = set()
+        for log_path in log_paths:
+            try:
+                stat = log_path.stat()
+                identity = str(stat.st_dev) + ":" + str(stat.st_ino)
+                if identity in seen_files:
+                    continue
+                seen_files.add(identity)
+                for line in incremental_lines(log_path, cursors, completed):
+                    request = parse_apache_line(line, now)
+                    if request:
+                        requests.append(request)
+            except OSError:
+                if str(log_path) == cfg["access_log"]:
+                    print("Apache log unavailable:", log_path)
+        first_event_day = dt.datetime.fromtimestamp(
+            now - 86400, dt.timezone.utc
+        ).date()
+        for event_path in Path(cfg["event_dir"]).glob("events-*.jsonl"):
+            try:
+                event_day = dt.date.fromisoformat(
+                    event_path.stem.replace("events-", "", 1)
+                )
+                if event_day < first_event_day:
+                    continue
+                for line in incremental_lines(event_path, event_cursors, {}):
+                    event = parse_event_line(line, now)
+                    if event:
+                        events.append(event)
+            except (OSError, ValueError):
+                pass
+
+        # Thresholds use rolling five-minute history, but input files are
+        # read incrementally. This keeps detection behavior independent of
+        # how frequently cron invokes the monitor.
+        rolling = state.setdefault("rolling_window", {})
+        rolling_requests = [
+            x for x in rolling.get("requests", [])
+            if now - x.get("ts", 0) <= 300
+        ]
+        rolling_events = [
+            x for x in rolling.get("events", [])
+            if now - x.get("ts", 0) <= 300
+        ]
+        rolling_requests.extend(requests)
+        rolling_events.extend(events)
+        rolling["requests"] = rolling_requests
+        rolling["events"] = rolling_events
+        requests = rolling_requests
+        events = rolling_events
+    else:
+        # The daily report still needs the complete preceding 24-hour
+        # population; it runs separately from the frequent incremental check.
+        log_paths = [cfg["access_log"]] + glob.glob(cfg["access_log"] + ".[0-9]*")
+        for log_path in log_paths:
+            try:
+                opener = gzip.open if log_path.endswith(".gz") else open
+                with opener(log_path, "rt", encoding="utf-8", errors="replace") as stream:
+                    for line in stream:
+                        request = parse_apache_line(line, now)
+                        if request:
+                            requests.append(request)
+            except OSError as error:
+                if log_path == cfg["access_log"]:
+                    print("Apache log unavailable:", error)
+        first_event_day = dt.datetime.fromtimestamp(
+            now - 86400, dt.timezone.utc
+        ).date()
+        for event_path in Path(cfg["event_dir"]).glob("events-*.jsonl"):
+            try:
+                event_day = dt.date.fromisoformat(
+                    event_path.stem.replace("events-", "", 1)
+                )
+                if event_day < first_event_day:
+                    continue
+                for line in event_path.read_text(errors="replace").splitlines():
+                    event = parse_event_line(line, now)
+                    if event:
+                        events.append(event)
+            except (OSError, ValueError):
+                pass
     thresholds = normalized_thresholds(cfg)
     grouped = collections.defaultdict(list)
     for x in requests:
@@ -272,14 +420,6 @@ def main():
         if PROBE.search(x["target"]) or INJECT.search(x["target"]):
             x["rules"] = malicious_match(x["target"])
             malicious_requests.append(x)
-    statepath = Path(cfg["state_path"])
-    statepath.parent.mkdir(parents=True, exist_ok=True)
-    try: state = json.loads(statepath.read_text())
-    except Exception: state = {"alerts": {}, "daily": None}
-    state.setdefault("alerts", {})
-    state.setdefault("daily", None)
-    state.setdefault("malicious_pending", {})
-
     # On the first run after upgrading, baseline the existing 24h log window.
     # This prevents a one-time flood from replaying historical scan traffic.
     if "malicious_seen" not in state:
