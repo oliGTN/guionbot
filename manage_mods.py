@@ -312,7 +312,9 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                     # The mod comes from the inventory, this is good
                     a_delta_inventory -= 1
 
-                if mod_slot in dict_player["rosterUnit"][target_char_defId]["equippedStatMod"]:
+                if "equippedStatMod" in dict_player["rosterUnit"][target_char_defId] \
+                   and mod_slot in dict_player["rosterUnit"][target_char_defId]["equippedStatMod"]:
+                    
                     # there is a mod that is replaced. This mod goes back to the inventory,
                     # this is not good
                     a_delta_inventory += 1
