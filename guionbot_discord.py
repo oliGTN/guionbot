@@ -1548,6 +1548,23 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         )
     ]
 
+    # Apply the same suppression to the explanatory "not assigned by bot" errors.
+    list_err = [
+        err for err in list_err
+        if not (
+            dict_preload_platoons.get(
+                (err.split(": ", 1)[0][:-2],
+                 int(err.split(": ", 1)[0].rsplit("-", 1)[1])), False
+            )
+            and sum(
+                len(players) - players.count("")
+                for players in dict_platoons_done[
+                    err.split(": ", 1)[0]
+                ].values()
+            ) >= 14
+        )
+    ]
+
     #Affichage des deltas ET auto pose par le bot
     full_txt = ''
     cur_phase = 0
