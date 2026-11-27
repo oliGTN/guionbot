@@ -187,6 +187,11 @@ def incremental_lines(path, cursors, completed):
     if path.name.endswith(".gz"):
         if identity in completed:
             return []
+        # A compressed rotation older than the rolling detection window
+        # cannot contribute to current alerts; avoid decompressing it.
+        if stat.st_mtime < time.time() - 86400:
+            completed[identity] = stat.st_mtime
+            return []
         try:
             with gzip.open(path, "rt", encoding="utf-8", errors="replace") as stream:
                 lines = stream.read().splitlines()
