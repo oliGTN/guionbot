@@ -1504,6 +1504,67 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
                                             list_open_territories,
                                             targets_free_platoons=targets_free_platoons)
 
+    # Suppress allocations for platoons at 14/15 when their configured strategy
+    # is PRELOAD (reconX_full=False). PRELOAD allocations are intentionally
+    # left for the last player to complete.
+    dict_preload_platoons = {}
+    query = """
+        SELECT s.zone_id,
+               COALESCE(s.recon1_full, 1),
+               COALESCE(s.recon2_full, 1),
+               COALESCE(s.recon3_full, 1),
+               COALESCE(s.recon4_full, 1),
+               COALESCE(s.recon5_full, 1),
+               COALESCE(s.recon6_full, 1)
+        FROM tb_strategy AS s
+        INNER JOIN tb_history AS h
+                ON h.id = s.tb_id
+               AND h.current_round = s.round
+        WHERE h.guild_id = %s
+          AND h.stars_final IS NULL
+    """
+    db_data = await connect_mysql.get_table_async(query, (guild_id,))
+    if db_data:
+        for row in db_data:
+            zone_definition = dict_tb.get(row[0])
+            if not isinstance(zone_definition, dict) or not zone_definition.get("name"):
+                continue
+            zone_name = zone_definition["name"]
+            for platoon_position in range(1, 7):
+                if not bool(row[platoon_position]):
+                    dict_preload_platoons[(zone_name, platoon_position)] = True
+
+    list_missing_platoons = [
+        allocation for allocation in list_missing_platoons
+        if not (
+            dict_preload_platoons.get(
+                (allocation["platoon"][:-2],
+                 int(allocation["platoon"].rsplit("-", 1)[1])), False
+            )
+            and sum(
+                len(players) - players.count("")
+                for players in dict_platoons_done[allocation["platoon"]].values()
+            ) >= 14
+        )
+    ]
+
+    # Apply the same suppression to the explanatory "not assigned by bot" errors.
+    list_err = [
+        err for err in list_err
+        if not (
+            dict_preload_platoons.get(
+                (err.split(": ", 1)[0][:-2],
+                 int(err.split(": ", 1)[0].rsplit("-", 1)[1])), False
+            )
+            and sum(
+                len(players) - players.count("")
+                for players in dict_platoons_done[
+                    err.split(": ", 1)[0]
+                ].values()
+            ) >= 14
+        )
+    ]
+
     #Affichage des deltas ET auto pose par le bot
     full_txt = ''
     cur_phase = 0
