@@ -200,7 +200,7 @@ def incremental_lines(path, cursors, completed):
         # Old rotations cannot contain requests in the rolling detection
         # window. Mark them consumed rather than replaying months of history
         # on the first incremental run after deployment.
-        if stat.st_mtime < time.time() - 86400 and path.name != path.parent.joinpath(path.name).name:
+        if stat.st_mtime < time.time() - 86400:
             cursors[identity] = {"offset": stat.st_size, "mtime": stat.st_mtime}
             return []
         offset = 0
